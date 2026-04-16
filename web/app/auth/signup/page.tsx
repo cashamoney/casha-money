@@ -39,68 +39,96 @@ export default function SignupPage() {
     if (data.user) {
       router.push("/dashboard/overview");
     }
-
     setLoading(false);
   };
 
+  const inputStyle = {
+    width: "100%",
+    height: "44px",
+    borderRadius: "12px",
+    padding: "0 16px",
+    fontSize: "14px",
+    border: "1px solid #E5E7EB",
+    background: "#F9FAFB",
+    color: "#0C0D10",
+    outline: "none",
+    boxSizing: "border-box" as const,
+  };
+
   return (
-    <div
-      className="min-h-screen flex items-center justify-center px-4"
-      style={{ background: "#FAFAFA" }}
-    >
-      <div
-        className="w-full max-w-[420px] rounded-2xl p-8"
-        style={{
-          background: "#FFFFFF",
-          border: "1px solid #E5E7EB",
-          boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
-        }}
-      >
+    <div style={{
+      minHeight: "100vh",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "16px",
+      background: "#FAFAFA",
+      fontFamily: "system-ui, -apple-system, sans-serif",
+    }}>
+      <div style={{
+        width: "100%",
+        maxWidth: "400px",
+        background: "#FFFFFF",
+        borderRadius: "16px",
+        padding: "32px",
+        border: "1px solid #E5E7EB",
+        boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
+      }}>
         {/* Logo */}
-        <div className="flex items-center gap-2 mb-8 justify-center">
-          <div
-            className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-white text-sm"
-            style={{ background: "linear-gradient(135deg, #22C55E, #3B82F6)" }}
-          >
-            C
-          </div>
-          <span className="text-xl font-bold text-[#0C0D10]">
-            Casha<span className="text-[#3B82F6]">.money</span>
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "8px",
+          marginBottom: "24px",
+        }}>
+          <div style={{
+            width: "36px",
+            height: "36px",
+            borderRadius: "8px",
+            background: "linear-gradient(135deg, #22C55E, #3B82F6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "white",
+            fontWeight: "bold",
+            fontSize: "14px",
+          }}>C</div>
+          <span style={{ fontSize: "18px", fontWeight: "bold", color: "#0C0D10" }}>
+            Casha<span style={{ color: "#3B82F6" }}>.money</span>
           </span>
         </div>
 
-        <h1
-          className="text-2xl font-bold text-center mb-2"
-          style={{ color: "#0C0D10" }}
-        >
-          Create your account
-        </h1>
-        <p
-          className="text-center text-sm mb-8"
-          style={{ color: "#6B7280" }}
-        >
-          Start managing your money with AI
-        </p>
+        <h1 style={{
+          fontSize: "20px",
+          fontWeight: "bold",
+          textAlign: "center",
+          color: "#0C0D10",
+          margin: "0 0 4px 0",
+        }}>Create your account</h1>
+
+        <p style={{
+          fontSize: "13px",
+          textAlign: "center",
+          color: "#6B7280",
+          margin: "0 0 24px 0",
+        }}>Start managing your money with AI</p>
 
         {error && (
-          <div
-            className="mb-4 p-3 rounded-xl text-sm"
-            style={{
-              background: "#FEF2F2",
-              color: "#DC2626",
-              border: "1px solid #FECACA",
-            }}
-          >
-            {error}
-          </div>
+          <div style={{
+            marginBottom: "16px",
+            padding: "12px",
+            borderRadius: "12px",
+            fontSize: "13px",
+            background: "#FEF2F2",
+            color: "#DC2626",
+            border: "1px solid #FECACA",
+          }}>{error}</div>
         )}
 
-        <form onSubmit={handleSignup} className="space-y-4">
-          <div>
-            <label
-              className="block text-sm font-medium mb-1.5"
-              style={{ color: "#374151" }}
-            >
+        <form onSubmit={handleSignup}>
+          <div style={{ marginBottom: "14px" }}>
+            <label style={{ display: "block", fontSize: "13px", fontWeight: "500", marginBottom: "6px", color: "#374151" }}>
               Full Name
             </label>
             <input
@@ -109,20 +137,12 @@ export default function SignupPage() {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="John Doe"
-              className="w-full h-11 rounded-xl px-4 text-sm outline-none transition-all"
-              style={{
-                background: "#F9FAFB",
-                border: "1px solid #E5E7EB",
-                color: "#0C0D10",
-              }}
+              style={inputStyle}
             />
           </div>
 
-          <div>
-            <label
-              className="block text-sm font-medium mb-1.5"
-              style={{ color: "#374151" }}
-            >
+          <div style={{ marginBottom: "14px" }}>
+            <label style={{ display: "block", fontSize: "13px", fontWeight: "500", marginBottom: "6px", color: "#374151" }}>
               Email
             </label>
             <input
@@ -131,20 +151,12 @@ export default function SignupPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              className="w-full h-11 rounded-xl px-4 text-sm outline-none transition-all"
-              style={{
-                background: "#F9FAFB",
-                border: "1px solid #E5E7EB",
-                color: "#0C0D10",
-              }}
+              style={inputStyle}
             />
           </div>
 
-          <div>
-            <label
-              className="block text-sm font-medium mb-1.5"
-              style={{ color: "#374151" }}
-            >
+          <div style={{ marginBottom: "20px" }}>
+            <label style={{ display: "block", fontSize: "13px", fontWeight: "500", marginBottom: "6px", color: "#374151" }}>
               Password
             </label>
             <input
@@ -154,45 +166,48 @@ export default function SignupPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Minimum 8 characters"
-              className="w-full h-11 rounded-xl px-4 text-sm outline-none transition-all"
-              style={{
-                background: "#F9FAFB",
-                border: "1px solid #E5E7EB",
-                color: "#0C0D10",
-              }}
+              style={inputStyle}
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full h-12 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
-            style={{ background: "#0C0D10", color: "#FFFFFF" }}
+            style={{
+              width: "100%",
+              height: "46px",
+              borderRadius: "12px",
+              border: "none",
+              background: "#0C0D10",
+              color: "#FFFFFF",
+              fontSize: "14px",
+              fontWeight: "600",
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.5 : 1,
+            }}
           >
             {loading ? "Creating account..." : "Create Free Account"}
           </button>
         </form>
 
-        <p
-          className="text-center text-sm mt-6"
-          style={{ color: "#6B7280" }}
-        >
+        <p style={{
+          textAlign: "center",
+          fontSize: "13px",
+          color: "#6B7280",
+          marginTop: "20px",
+        }}>
           Already have an account?{" "}
-          <Link
-            href="/auth/login"
-            className="font-semibold"
-            style={{ color: "#3B82F6" }}
-          >
+          <Link href="/auth/login" style={{ color: "#3B82F6", fontWeight: "600", textDecoration: "none" }}>
             Sign in
           </Link>
         </p>
 
-        <p
-          className="text-center text-xs mt-4"
-          style={{ color: "#9CA3AF" }}
-        >
-          Free forever plan · No credit card required
-        </p>
+        <p style={{
+          textAlign: "center",
+          fontSize: "11px",
+          color: "#9CA3AF",
+          marginTop: "12px",
+        }}>Free forever · No credit card required</p>
       </div>
     </div>
   );
