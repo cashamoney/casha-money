@@ -1,13 +1,15 @@
-@import "tailwindcss";
+@import "tailwindcss/theme" layer(theme);
+@import "tailwindcss/preflight" layer(base);
+@import "tailwindcss/utilities" layer(utilities);
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: #FAFAFA;
+  color: #0C0D10;
 }
 
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
+a {
+  color: inherit;
+  text-decoration: none;
 }
