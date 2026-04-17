@@ -3,6 +3,16 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 import Link from "next/link";
+import {
+  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, Legend
+} from "recharts";
+
+const COLORS = [
+  "#10b981", "#3b82f6", "#f59e0b", "#ef4444",
+  "#8b5cf6", "#06b6d4", "#f97316", "#ec4899",
+  "#22c55e", "#6366f1"
+];
 
 export default function OverviewPage() {
   const [user, setUser] = useState<any>(null);
@@ -10,341 +20,337 @@ export default function OverviewPage() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [goals, setGoals] = useState<any[]>([]);
   const [debts, setDebts] = useState<any[]>([]);
-  const [insights, setInsights] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadDashboard();
-  }, []);
+  useEffect(() => { loadDashboard(); }, []);
 
   const loadDashboard = async () => {
     const { data: authData } = await supabase.auth.getUser();
     if (!authData.user) return;
-
     setUser(authData.user);
     const uid = authData.user.id;
 
-    const [accountsRes, txnRes, goalsRes, debtsRes, insightsRes] =
-      await Promise.all([
-        supabase.from("accounts").select("*").eq("user_id", uid).eq("is_active", true),
-        supabase.from("transactions").select("*").eq("user_id", uid).order("transaction_date", { ascending: false }).limit(10),
-        supabase.from("goals").select("*").eq("user_id", uid).eq("status", "active"),
-        supabase.from("debts").select("*").eq("user_id", uid).eq("status", "active"),
-        supabase.from("insights").select("*").eq("user_id", uid).eq("is_read", false).order("created_at", { ascending: false }).limit(5),
-      ]);
+    const [accRes, txnRes, goalRes, debtRes] = await Promise.all([
+      supabase.from("accounts").select("*").eq("user_id", uid).eq("is_active", true),
+      supabase.from("transactions").select("*").eq("user_id", uid).order("transaction_date", { ascending: false }).limit(100),
+      supabase.from("goals").select("*").eq("user_id", uid).eq("status", "active"),
+      supabase.from("debts").select("*").eq("user_id", uid).eq("status", "active"),
+    ]);
 
-    setAccounts(accountsRes.data || []);
+    setAccounts(accRes.data || []);
     setTransactions(txnRes.data || []);
-    setGoals(goalsRes.data || []);
-    setDebts(debtsRes.data || []);
-    setInsights(insightsRes.data || []);
+    setGoals(goalRes.data || []);
+    setDebts(debtRes.data || []);
     setLoading(false);
   };
 
-  const totalBalance = accounts.reduce((sum, a) => sum + Number(a.current_balance), 0);
-  const totalDebt = debts.reduce((sum, d) => sum + Number(d.current_balance), 0);
-  const totalGoalTarget = goals.reduce((sum, g) => sum + Number(g.target_amount), 0);
-  const totalGoalSaved = goals.reduce((sum, g) => sum + Number(g.current_amount), 0);
+  const fmt = (n: number) => new Intl.NumberFormat("en-IN", {
+    style: "currency", currency: "INR", maximumFractionDigits: 0
+  }).format(n);
 
-  const thisMonthTxns = transactions.filter((t) => {
+  const totalBalance = accounts.reduce((s, a) => s + Number(a.current_balance), 0);
+  const totalDebt = debts.reduce((s, d) => s + Number(d.current_balance), 0);
+
+  const thisMonth = transactions.filter(t => {
     const d = new Date(t.transaction_date);
-    const now = new Date();
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    const n = new Date();
+    return d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear();
   });
 
-  const monthIncome = thisMonthTxns
-    .filter((t) => t.transaction_type === "income")
-    .reduce((sum, t) => sum + Math.abs(Number(t.amount)), 0);
-
-  const monthExpense = thisMonthTxns
-    .filter((t) => t.transaction_type === "expense")
-    .reduce((sum, t) => sum + Math.abs(Number(t.amount)), 0);
-
+  const monthIncome = thisMonth.filter(t => t.transaction_type === "income").reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
+  const monthExpense = thisMonth.filter(t => t.transaction_type === "expense").reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
   const savingsRate = monthIncome > 0 ? ((monthIncome - monthExpense) / monthIncome) * 100 : 0;
 
-  const healthScore = calculateHealthScore(totalBalance, totalDebt, savingsRate, monthIncome, monthExpense);
+  // Spending by category for pie chart
+  const categoryMap: Record<string, number> = {};
+  transactions.filter(t => t.transaction_type === "expense").forEach(t => {
+    const cat = t.category || "Other";
+    categoryMap[cat] = (categoryMap[cat] || 0) + Math.abs(Number(t.amount));
+  });
+  const pieData = Object.entries(categoryMap)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([name, value]) => ({ name, value: Math.round(value) }));
 
-  const formatMoney = (amount: number) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(amount);
+  // Last 6 months bar chart
+  const last6Months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - (5 - i));
+    const month = d.toLocaleDateString("en-IN", { month: "short" });
+    const year = d.getFullYear();
+    const m = d.getMonth();
+    const y = d.getFullYear();
+    const income = transactions.filter(t => {
+      const td = new Date(t.transaction_date);
+      return td.getMonth() === m && td.getFullYear() === y && t.transaction_type === "income";
+    }).reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
+    const expense = transactions.filter(t => {
+      const td = new Date(t.transaction_date);
+      return td.getMonth() === m && td.getFullYear() === y && t.transaction_type === "expense";
+    }).reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
+    return { month, income: Math.round(income), expense: Math.round(expense) };
+  });
+
+  const healthScore = (() => {
+    let s = 500;
+    if (totalBalance > 0) s += Math.min(100, totalBalance / 1000);
+    if (totalDebt === 0) s += 100;
+    else if (totalDebt < monthIncome * 6) s += 50;
+    else s -= 50;
+    if (savingsRate >= 30) s += 150;
+    else if (savingsRate >= 20) s += 100;
+    else if (savingsRate >= 10) s += 50;
+    else if (savingsRate < 0) s -= 100;
+    return Math.max(0, Math.min(1000, Math.round(s)));
+  })();
+
+  const scoreColor = healthScore >= 800 ? "#22c55e" : healthScore >= 600 ? "#3b82f6" : healthScore >= 400 ? "#f59e0b" : "#ef4444";
+  const scoreLabel = healthScore >= 800 ? "Excellent 🎉" : healthScore >= 600 ? "Good 💪" : healthScore >= 400 ? "Fair 📈" : "Needs Work 🤝";
+
+  const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 17) return "Good afternoon";
+    return "Good evening";
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-sm" style={{ color: "#9CA3AF" }}>Loading dashboard...</p>
+  if (loading) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: "32px", marginBottom: "12px" }}>⏳</div>
+        <p style={{ color: "#9CA3AF", fontSize: "14px" }}>Loading your dashboard...</p>
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
-    <div className="max-w-[1200px] mx-auto">
+    <div style={{ maxWidth: "1200px", margin: "0 auto", fontFamily: "system-ui, sans-serif" }}>
+
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "28px" }}>
         <div>
-          <p className="text-sm" style={{ color: "#9CA3AF" }}>
-            {new Date().toLocaleDateString("en-IN", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
+          <p style={{ fontSize: "13px", color: "#9CA3AF", margin: "0 0 4px 0" }}>
+            {new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
           </p>
-          <h1 className="text-2xl font-bold mt-1" style={{ color: "#0C0D10" }}>
-            Good {getGreeting()},{" "}
-            {user?.user_metadata?.full_name?.split(" ")[0] || "there"}
+          <h1 style={{ fontSize: "22px", fontWeight: "700", color: "#0C0D10", margin: 0 }}>
+            {greeting()}, {user?.user_metadata?.full_name?.split(" ")[0] || "there"} 👋
           </h1>
         </div>
-        <div
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold"
-          style={{ background: "#F0FDF4", color: "#166534", border: "1px solid #BBF7D0" }}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] animate-pulse" />
+        <div style={{
+          display: "flex", alignItems: "center", gap: "6px",
+          padding: "6px 12px", borderRadius: "999px", fontSize: "12px", fontWeight: "600",
+          background: "#F0FDF4", color: "#166534", border: "1px solid #BBF7D0"
+        }}>
+          <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#22C55E", display: "inline-block" }} />
           AI Active
         </div>
       </div>
 
-      {/* Health Score + Net Worth */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+      {/* Top 4 Metric Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px", marginBottom: "24px" }}>
+
         {/* Health Score */}
-        <div className="rounded-2xl p-6" style={{ background: "#0C0D10" }}>
-          <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: "rgba(255,255,255,0.35)" }}>
-            Financial Health Score
-          </p>
-          <div className="flex items-end gap-3">
-            <span className="text-5xl font-bold text-white">{healthScore}</span>
-            <span className="text-sm mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>/ 1000</span>
+        <div style={{ background: "#0C0D10", borderRadius: "16px", padding: "24px" }}>
+          <p style={{ fontSize: "11px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.1em", color: "rgba(255,255,255,0.35)", margin: "0 0 12px 0" }}>Health Score</p>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: "8px", marginBottom: "8px" }}>
+            <span style={{ fontSize: "42px", fontWeight: "700", color: "#fff", lineHeight: 1 }}>{healthScore}</span>
+            <span style={{ fontSize: "14px", color: "rgba(255,255,255,0.4)", marginBottom: "4px" }}>/1000</span>
           </div>
-          <p className="text-xs mt-2" style={{ color: getScoreColor(healthScore) }}>
-            {getScoreLabel(healthScore)}
-          </p>
+          <p style={{ fontSize: "13px", margin: 0, color: scoreColor, fontWeight: "600" }}>{scoreLabel}</p>
+          {/* Mini progress bar */}
+          <div style={{ marginTop: "12px", height: "4px", background: "rgba(255,255,255,0.1)", borderRadius: "2px" }}>
+            <div style={{ height: "100%", width: `${healthScore / 10}%`, background: scoreColor, borderRadius: "2px", transition: "width 1s ease" }} />
+          </div>
         </div>
 
         {/* Net Worth */}
-        <div className="rounded-2xl p-6" style={{ background: "#FFFFFF", border: "1px solid #E5E7EB" }}>
-          <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: "#9CA3AF" }}>
-            Net Worth
-          </p>
-          <p className="text-3xl font-bold" style={{ color: "#0C0D10" }}>
-            {formatMoney(totalBalance - totalDebt)}
-          </p>
-          <p className="text-xs mt-2" style={{ color: "#6B7280" }}>
-            Assets: {formatMoney(totalBalance)} · Debt: {formatMoney(totalDebt)}
+        <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "16px", padding: "24px" }}>
+          <p style={{ fontSize: "11px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.1em", color: "#9CA3AF", margin: "0 0 12px 0" }}>Net Worth</p>
+          <p style={{ fontSize: "28px", fontWeight: "700", color: "#0C0D10", margin: "0 0 4px 0" }}>{fmt(totalBalance - totalDebt)}</p>
+          <p style={{ fontSize: "12px", color: "#9CA3AF", margin: 0 }}>
+            Assets {fmt(totalBalance)} · Debt {fmt(totalDebt)}
           </p>
         </div>
 
         {/* This Month */}
-        <div className="rounded-2xl p-6" style={{ background: "#FFFFFF", border: "1px solid #E5E7EB" }}>
-          <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: "#9CA3AF" }}>
-            This Month
-          </p>
-          <div className="flex items-center gap-4">
+        <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "16px", padding: "24px" }}>
+          <p style={{ fontSize: "11px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.1em", color: "#9CA3AF", margin: "0 0 12px 0" }}>This Month</p>
+          <div style={{ display: "flex", gap: "16px", marginBottom: "8px" }}>
             <div>
-              <p className="text-xs" style={{ color: "#22C55E" }}>Income</p>
-              <p className="text-lg font-bold" style={{ color: "#0C0D10" }}>{formatMoney(monthIncome)}</p>
+              <p style={{ fontSize: "11px", color: "#22C55E", margin: "0 0 2px 0" }}>Income</p>
+              <p style={{ fontSize: "18px", fontWeight: "700", color: "#0C0D10", margin: 0 }}>{fmt(monthIncome)}</p>
             </div>
-            <div className="w-px h-8" style={{ background: "#E5E7EB" }} />
+            <div style={{ width: "1px", background: "#E5E7EB" }} />
             <div>
-              <p className="text-xs" style={{ color: "#EF4444" }}>Spent</p>
-              <p className="text-lg font-bold" style={{ color: "#0C0D10" }}>{formatMoney(monthExpense)}</p>
+              <p style={{ fontSize: "11px", color: "#EF4444", margin: "0 0 2px 0" }}>Spent</p>
+              <p style={{ fontSize: "18px", fontWeight: "700", color: "#0C0D10", margin: 0 }}>{fmt(monthExpense)}</p>
             </div>
           </div>
-          <p className="text-xs mt-2" style={{ color: savingsRate >= 20 ? "#22C55E" : "#F59E0B" }}>
+          <p style={{ fontSize: "12px", color: savingsRate >= 20 ? "#22C55E" : "#F59E0B", margin: 0, fontWeight: "600" }}>
             Savings rate: {savingsRate.toFixed(0)}%
           </p>
         </div>
+
+        {/* Goals Progress */}
+        <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "16px", padding: "24px" }}>
+          <p style={{ fontSize: "11px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.1em", color: "#9CA3AF", margin: "0 0 12px 0" }}>Goals</p>
+          <p style={{ fontSize: "28px", fontWeight: "700", color: "#0C0D10", margin: "0 0 4px 0" }}>{goals.length}</p>
+          <p style={{ fontSize: "12px", color: "#9CA3AF", margin: "0 0 12px 0" }}>Active goals</p>
+          {goals.slice(0, 2).map((g, i) => {
+            const pct = Math.min(100, (Number(g.current_amount) / Number(g.target_amount)) * 100);
+            return (
+              <div key={i} style={{ marginBottom: "6px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "3px" }}>
+                  <span style={{ fontSize: "11px", color: "#6B7280" }}>{g.emoji} {g.name}</span>
+                  <span style={{ fontSize: "11px", color: "#6B7280" }}>{pct.toFixed(0)}%</span>
+                </div>
+                <div style={{ height: "4px", background: "#F3F4F6", borderRadius: "2px" }}>
+                  <div style={{ height: "100%", width: `${pct}%`, background: "#22C55E", borderRadius: "2px" }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard title="Accounts" value={accounts.length.toString()} sub="Connected" icon="🏦" />
-        <StatCard title="Transactions" value={transactions.length.toString()} sub="Recent" icon="💳" />
-        <StatCard
-          title="Goals"
-          value={goals.length.toString()}
-          sub={totalGoalTarget > 0 ? `${((totalGoalSaved / totalGoalTarget) * 100).toFixed(0)}% saved` : "Set your first goal"}
-          icon="🎯"
-        />
-        <StatCard
-          title="Debts"
-          value={debts.length > 0 ? formatMoney(totalDebt) : "None"}
-          sub={debts.length > 0 ? `${debts.length} active` : "Debt free! 🎉"}
-          icon="💸"
-        />
-      </div>
+      {/* Charts Row */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "24px" }}>
 
-      {/* Insights + Recent Transactions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* AI Insights */}
-        <div className="rounded-2xl p-6" style={{ background: "#FFFFFF", border: "1px solid #E5E7EB" }}>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-bold" style={{ color: "#0C0D10" }}>🧠 AI Insights</h2>
-            <span className="text-xs" style={{ color: "#9CA3AF" }}>{insights.length} new</span>
-          </div>
-          {insights.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-3xl mb-3">🧠</p>
-              <p className="text-sm" style={{ color: "#6B7280" }}>
-                Add transactions and I'll find savings opportunities for you!
-              </p>
+        {/* Spending by Category - Pie Chart */}
+        <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "16px", padding: "24px" }}>
+          <h2 style={{ fontSize: "14px", fontWeight: "700", color: "#0C0D10", margin: "0 0 20px 0" }}>
+            💰 Spending by Category
+          </h2>
+          {pieData.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "40px 0", color: "#9CA3AF", fontSize: "13px" }}>
+              <p style={{ fontSize: "32px", margin: "0 0 8px 0" }}>📊</p>
+              Add transactions to see your spending chart
             </div>
           ) : (
-            <div className="space-y-3">
-              {insights.map((insight) => (
-                <div
-                  key={insight.id}
-                  className="rounded-xl p-4"
-                  style={{
-                    background: insight.severity === "critical" ? "#FEF2F2" : insight.severity === "celebration" ? "#F0FDF4" : "#F9FAFB",
-                    border: `1px solid ${insight.severity === "critical" ? "#FECACA" : insight.severity === "celebration" ? "#BBF7D0" : "#E5E7EB"}`,
-                  }}
-                >
-                  <p className="text-sm font-semibold" style={{ color: "#0C0D10" }}>{insight.title}</p>
-                  <p className="text-xs mt-1" style={{ color: "#6B7280" }}>{insight.description}</p>
-                  {insight.impact_amount && (
-                    <p className="text-xs font-semibold mt-2" style={{ color: "#22C55E" }}>
-                      Potential savings: {formatMoney(insight.impact_amount)}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
+            <>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={2} dataKey="value">
+                    {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip formatter={(v: any) => fmt(v)} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "12px" }}>
+                {pieData.slice(0, 5).map((item, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                    <div style={{ width: "8px", height: "8px", borderRadius: "2px", background: COLORS[i % COLORS.length], flexShrink: 0 }} />
+                    <span style={{ fontSize: "11px", color: "#6B7280" }}>{item.name}</span>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
 
+        {/* Income vs Expense - Bar Chart */}
+        <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "16px", padding: "24px" }}>
+          <h2 style={{ fontSize: "14px", fontWeight: "700", color: "#0C0D10", margin: "0 0 20px 0" }}>
+            📈 Income vs Expenses
+          </h2>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={last6Months} barSize={12}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={false} tickLine={false} tickFormatter={v => v > 0 ? `₹${(v/1000).toFixed(0)}k` : "0"} />
+              <Tooltip formatter={(v: any) => fmt(v)} />
+              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "11px" }} />
+              <Bar dataKey="income" name="Income" fill="#22C55E" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="expense" name="Expense" fill="#EF4444" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Recent Transactions + Quick Actions */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: "16px", marginBottom: "24px" }}>
+
         {/* Recent Transactions */}
-        <div className="rounded-2xl p-6" style={{ background: "#FFFFFF", border: "1px solid #E5E7EB" }}>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-bold" style={{ color: "#0C0D10" }}>💳 Recent Transactions</h2>
-            <Link href="/dashboard/transactions" className="text-xs font-semibold" style={{ color: "#3B82F6" }}>
-              View all →
-            </Link>
+        <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "16px", padding: "24px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+            <h2 style={{ fontSize: "14px", fontWeight: "700", color: "#0C0D10", margin: 0 }}>💳 Recent Transactions</h2>
+            <Link href="/dashboard/transactions" style={{ fontSize: "12px", fontWeight: "600", color: "#3B82F6" }}>View all →</Link>
           </div>
           {transactions.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-3xl mb-3">💳</p>
-              <p className="text-sm mb-3" style={{ color: "#6B7280" }}>
-                No transactions yet
-              </p>
-              <Link
-                href="/dashboard/transactions"
-                className="inline-block text-xs font-semibold px-4 py-2 rounded-lg"
-                style={{ background: "#0C0D10", color: "#FFFFFF" }}
-              >
-                Add your first transaction
+            <div style={{ textAlign: "center", padding: "32px 0" }}>
+              <p style={{ fontSize: "28px", margin: "0 0 8px 0" }}>💳</p>
+              <p style={{ fontSize: "13px", color: "#6B7280", margin: "0 0 12px 0" }}>No transactions yet</p>
+              <Link href="/dashboard/transactions" style={{ fontSize: "12px", fontWeight: "600", padding: "8px 16px", borderRadius: "8px", background: "#0C0D10", color: "#fff" }}>
+                Add first transaction
               </Link>
             </div>
           ) : (
-            <div className="space-y-2">
-              {transactions.slice(0, 7).map((txn) => (
-                <div
-                  key={txn.id}
-                  className="flex items-center justify-between py-2.5 px-3 rounded-xl"
-                  style={{ background: "#F9FAFB" }}
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate" style={{ color: "#0C0D10" }}>
-                      {txn.merchant_name || txn.description || txn.category || "Transaction"}
-                    </p>
-                    <p className="text-xs" style={{ color: "#9CA3AF" }}>
-                      {new Date(txn.transaction_date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-                      {txn.category && ` · ${txn.category}`}
-                    </p>
+            <div>
+              {transactions.slice(0, 8).map((txn, i) => (
+                <div key={txn.id} style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "10px 0",
+                  borderBottom: i < Math.min(transactions.length, 8) - 1 ? "1px solid #F9FAFB" : "none"
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{
+                      width: "36px", height: "36px", borderRadius: "10px",
+                      background: txn.transaction_type === "income" ? "#F0FDF4" : "#F9FAFB",
+                      display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", flexShrink: 0
+                    }}>
+                      {txn.transaction_type === "income" ? "💵" : txn.category === "Food & Dining" ? "🍽️" : txn.category === "Transportation" ? "🚗" : txn.category === "Shopping" ? "🛍️" : "💳"}
+                    </div>
+                    <div>
+                      <p style={{ fontSize: "13px", fontWeight: "500", color: "#0C0D10", margin: "0 0 2px 0" }}>
+                        {txn.merchant_name || txn.description || txn.category || "Transaction"}
+                      </p>
+                      <p style={{ fontSize: "11px", color: "#9CA3AF", margin: 0 }}>
+                        {new Date(txn.transaction_date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                        {txn.category && ` · ${txn.category}`}
+                      </p>
+                    </div>
                   </div>
-                  <p
-                    className="text-sm font-semibold ml-3"
-                    style={{
-                      color: txn.transaction_type === "income" ? "#22C55E" : "#0C0D10",
-                    }}
-                  >
-                    {txn.transaction_type === "income" ? "+" : "-"}
-                    {formatMoney(Math.abs(Number(txn.amount)))}
+                  <p style={{ fontSize: "14px", fontWeight: "700", margin: 0, color: txn.transaction_type === "income" ? "#22C55E" : "#0C0D10" }}>
+                    {txn.transaction_type === "income" ? "+" : "-"}{fmt(Math.abs(Number(txn.amount)))}
                   </p>
                 </div>
               ))}
             </div>
           )}
         </div>
-      </div>
 
-      {/* Quick Actions */}
-      <div className="rounded-2xl p-6" style={{ background: "#FFFFFF", border: "1px solid #E5E7EB" }}>
-        <h2 className="text-sm font-bold mb-4" style={{ color: "#0C0D10" }}>⚡ Quick Actions</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <QuickAction href="/dashboard/transactions" icon="💳" label="Add Transaction" />
-          <QuickAction href="/dashboard/goals" icon="🎯" label="Set a Goal" />
-          <QuickAction href="/dashboard/debts" icon="💸" label="Track Debt" />
-          <QuickAction href="/dashboard/chat" icon="🧠" label="Ask AI Advisor" />
+        {/* Quick Actions */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <h2 style={{ fontSize: "14px", fontWeight: "700", color: "#0C0D10", margin: "0 0 4px 0" }}>⚡ Quick Actions</h2>
+          {[
+            { href: "/dashboard/transactions", icon: "💳", label: "Add Transaction", color: "#EFF6FF" },
+            { href: "/dashboard/goals", icon: "🎯", label: "Add to Goal", color: "#F0FDF4" },
+            { href: "/dashboard/debts", icon: "💸", label: "Track Debt", color: "#FEF2F2" },
+            { href: "/dashboard/chat", icon: "🧠", label: "Ask AI Advisor", color: "#F5F3FF" },
+          ].map((action, i) => (
+            <Link key={i} href={action.href} style={{
+              display: "flex", alignItems: "center", gap: "12px",
+              padding: "14px 16px", borderRadius: "12px",
+              background: "#fff", border: "1px solid #E5E7EB",
+              textDecoration: "none", transition: "all 0.15s"
+            }}>
+              <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: action.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px" }}>
+                {action.icon}
+              </div>
+              <span style={{ fontSize: "13px", fontWeight: "600", color: "#0C0D10" }}>{action.label}</span>
+            </Link>
+          ))}
+
+          {/* Debt Summary */}
+          {debts.length > 0 && (
+            <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "12px", padding: "16px", marginTop: "4px" }}>
+              <p style={{ fontSize: "11px", fontWeight: "600", color: "#991B1B", margin: "0 0 4px 0" }}>💸 Total Debt</p>
+              <p style={{ fontSize: "20px", fontWeight: "700", color: "#DC2626", margin: "0 0 4px 0" }}>{fmt(totalDebt)}</p>
+              <p style={{ fontSize: "11px", color: "#9CA3AF", margin: 0 }}>{debts.length} active loan{debts.length > 1 ? "s" : ""}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
-}
-
-function StatCard({ title, value, sub, icon }: { title: string; value: string; sub: string; icon: string }) {
-  return (
-    <div className="rounded-2xl p-5" style={{ background: "#FFFFFF", border: "1px solid #E5E7EB" }}>
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-medium uppercase tracking-wider" style={{ color: "#9CA3AF" }}>{title}</p>
-        <span className="text-lg">{icon}</span>
-      </div>
-      <p className="text-xl font-bold" style={{ color: "#0C0D10" }}>{value}</p>
-      <p className="text-xs mt-1" style={{ color: "#6B7280" }}>{sub}</p>
-    </div>
-  );
-}
-
-function QuickAction({ href, icon, label }: { href: string; icon: string; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:shadow-sm"
-      style={{ background: "#F9FAFB", border: "1px solid #E5E7EB" }}
-    >
-      <span className="text-lg">{icon}</span>
-      <span className="text-sm font-medium" style={{ color: "#0C0D10" }}>{label}</span>
-    </Link>
-  );
-}
-
-function getGreeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return "morning";
-  if (hour < 17) return "afternoon";
-  return "evening";
-}
-
-function calculateHealthScore(balance: number, debt: number, savingsRate: number, income: number, expense: number): number {
-  let score = 500;
-
-  if (balance > 0) score += Math.min(100, balance / 1000);
-  if (debt === 0) score += 100;
-  else if (debt < income * 6) score += 50;
-  else score -= 50;
-
-  if (savingsRate >= 30) score += 150;
-  else if (savingsRate >= 20) score += 100;
-  else if (savingsRate >= 10) score += 50;
-  else if (savingsRate < 0) score -= 100;
-
-  if (income > expense) score += 50;
-
-  return Math.max(0, Math.min(1000, Math.round(score)));
-}
-
-function getScoreColor(score: number): string {
-  if (score >= 800) return "#22C55E";
-  if (score >= 600) return "#3B82F6";
-  if (score >= 400) return "#F59E0B";
-  return "#EF4444";
-}
-
-function getScoreLabel(score: number): string {
-  if (score >= 800) return "Excellent — You're doing amazing! 🎉";
-  if (score >= 600) return "Good — Keep building momentum 💪";
-  if (score >= 400) return "Fair — Room for improvement 📈";
-  return "Needs attention — Let's fix this together 🤝";
 }
