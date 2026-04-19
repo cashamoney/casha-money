@@ -12,6 +12,7 @@ const NAV = [
   { name: "Goals", path: "/dashboard/goals", icon: "🎯" },
   { name: "Debts", path: "/dashboard/debts", icon: "💸" },
   { name: "Subscriptions", path: "/dashboard/subscriptions", icon: "🔄" },
+  { name: "SMS Parser", path: "/dashboard/sms", icon: "📱" },
   { name: "Tax Genius", path: "/dashboard/tax", icon: "🧾" },
   { name: "AI Advisor", path: "/dashboard/chat", icon: "🧠" },
   { name: "Settings", path: "/dashboard/settings", icon: "⚙️" },
