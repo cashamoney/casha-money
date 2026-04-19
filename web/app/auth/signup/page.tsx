@@ -10,6 +10,11 @@ const COUNTRIES = [
   { code: "GB", name: "United Kingdom", currency: "GBP" },
   { code: "AE", name: "UAE", currency: "AED" },
   { code: "SG", name: "Singapore", currency: "SGD" },
+  { code: "AU", name: "Australia", currency: "AUD" },
+  { code: "CA", name: "Canada", currency: "CAD" },
+  { code: "DE", name: "Germany", currency: "EUR" },
+  { code: "NG", name: "Nigeria", currency: "NGN" },
+  { code: "KE", name: "Kenya", currency: "KES" },
 ];
 
 function PasswordStrength({ password }: { password: string }) {
@@ -25,7 +30,7 @@ function PasswordStrength({ password }: { password: string }) {
   const labels = ["", "Weak", "Fair", "Good", "Strong"];
 
   return (
-    <div style={{ marginTop: "7px" }}>
+    <div style={{ marginTop: "8px" }}>
       <div style={{ display: "flex", gap: "4px", marginBottom: "4px" }}>
         {[1, 2, 3, 4].map((i) => (
           <div
@@ -54,26 +59,25 @@ function PasswordStrength({ password }: { password: string }) {
   );
 }
 
-function Logo({ light = false }: { light?: boolean }) {
+function SignupLogo({ light = false }: { light?: boolean }) {
   return (
     <div
       style={{
         display: "flex",
         alignItems: "center",
         lineHeight: 1,
-        justifyContent: "center",
       }}
     >
       <img
         src="/logo.png"
         alt="Casha"
         style={{
-          width: "56px",
-          height: "56px",
+          width: "48px",
+          height: "48px",
           objectFit: "contain",
           display: "block",
-          marginRight: "-8px",
           flexShrink: 0,
+          marginRight: "-8px",
         }}
       />
       <span
@@ -142,10 +146,11 @@ export default function SignupPage() {
 
   const inputStyle = (name: string): React.CSSProperties => ({
     width: "100%",
-    height: "44px",
+    height: "46px",
     borderRadius: "10px",
     padding: "0 14px",
     fontSize: "14px",
+    lineHeight: "46px",
     outline: "none",
     fontFamily: "inherit",
     background: "#FAFAFA",
@@ -158,10 +163,10 @@ export default function SignupPage() {
   return (
     <div
       style={{
-        height: "100vh",
+        minHeight: "100vh",
         width: "100%",
         display: "grid",
-        gridTemplateColumns: "42% 58%",
+        gridTemplateColumns: "43% 57%",
         fontFamily: "'Inter', system-ui, sans-serif",
         background: "#F8FAFC",
         overflow: "hidden",
@@ -177,7 +182,7 @@ export default function SignupPage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: "40px",
+          padding: "40px 42px",
         }}
       >
         <div
@@ -196,15 +201,26 @@ export default function SignupPage() {
 
         <div
           style={{
-            maxWidth: "360px",
             width: "100%",
-            textAlign: "center",
+            maxWidth: "360px",
             position: "relative",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
           }}
         >
-          <div style={{ marginBottom: "28px" }}>
-            <Logo light />
-          </div>
+          {/* Clickable logo back to homepage */}
+          <a
+            href="/"
+            style={{
+              display: "inline-block",
+              textDecoration: "none",
+              marginBottom: "28px",
+              width: "fit-content",
+            }}
+          >
+            <SignupLogo light />
+          </a>
 
           <p
             style={{
@@ -222,10 +238,10 @@ export default function SignupPage() {
           <h1
             style={{
               margin: "0 0 16px 0",
-              fontSize: "clamp(28px, 3vw, 38px)",
+              fontSize: "clamp(26px, 3vw, 36px)",
               fontWeight: 800,
               letterSpacing: "-0.03em",
-              lineHeight: "1.12",
+              lineHeight: "1.14",
               color: "#FFFFFF",
             }}
           >
@@ -238,24 +254,24 @@ export default function SignupPage() {
 
           <p
             style={{
-              margin: "0 auto 26px",
+              margin: "0 0 24px 0",
               fontSize: "14px",
               lineHeight: "1.65",
               color: "rgba(255,255,255,0.42)",
-              maxWidth: "300px",
+              maxWidth: "320px",
             }}
           >
-            Track spending, save taxes, destroy debt, and get an AI advisor that
-            actually knows your numbers.
+            Track spending, save taxes, destroy debt, and get an AI advisor
+            that actually knows your numbers.
           </p>
 
+          {/* Better aligned bullet points */}
           <div
             style={{
-              display: "grid",
-              gap: "10px",
-              textAlign: "left",
-              maxWidth: "300px",
-              margin: "0 auto 26px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+              marginBottom: "28px",
             }}
           >
             {[
@@ -267,41 +283,65 @@ export default function SignupPage() {
               <div
                 key={i}
                 style={{
-                  display: "flex",
+                  display: "grid",
+                  gridTemplateColumns: "18px 1fr",
                   alignItems: "center",
-                  gap: "9px",
+                  columnGap: "10px",
                 }}
               >
                 <div
                   style={{
-                    width: "5px",
-                    height: "5px",
-                    borderRadius: "50%",
-                    background: "#22C55E",
+                    width: "18px",
+                    height: "18px",
+                    borderRadius: "999px",
+                    background: "rgba(34,197,94,0.14)",
+                    border: "1px solid rgba(34,197,94,0.28)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                     flexShrink: 0,
                   }}
-                />
-                <span
+                >
+                  <svg
+                    width="9"
+                    height="9"
+                    fill="none"
+                    stroke="#22C55E"
+                    strokeWidth="2.5"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </div>
+
+                <p
                   style={{
+                    margin: 0,
                     fontSize: "13px",
-                    color: "rgba(255,255,255,0.48)",
+                    lineHeight: "1.4",
+                    color: "rgba(255,255,255,0.52)",
+                    fontWeight: 500,
                   }}
                 >
                   {item}
-                </span>
+                </p>
               </div>
             ))}
           </div>
 
+          {/* Stats */}
           <div
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(3, 1fr)",
-              gap: "14px",
+              gap: "16px",
               paddingTop: "18px",
               borderTop: "1px solid rgba(255,255,255,0.08)",
-              maxWidth: "320px",
-              margin: "0 auto",
+              marginBottom: "28px",
             }}
           >
             {[
@@ -312,7 +352,7 @@ export default function SignupPage() {
               <div key={i}>
                 <p
                   style={{
-                    margin: "0 0 2px 0",
+                    margin: "0 0 3px 0",
                     fontSize: "17px",
                     fontWeight: 800,
                     letterSpacing: "-0.02em",
@@ -326,6 +366,7 @@ export default function SignupPage() {
                     margin: 0,
                     fontSize: "11px",
                     color: "rgba(255,255,255,0.28)",
+                    lineHeight: "1.3",
                   }}
                 >
                   {s.l}
@@ -333,6 +374,17 @@ export default function SignupPage() {
               </div>
             ))}
           </div>
+
+          <p
+            style={{
+              margin: 0,
+              fontSize: "11px",
+              color: "rgba(255,255,255,0.15)",
+              lineHeight: "1.5",
+            }}
+          >
+            Educational platform only. Not investment advice.
+          </p>
         </div>
       </div>
 
