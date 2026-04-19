@@ -63,9 +63,7 @@ const Xmk = ({ s = 15 }: { s?: number }) => (
   <svg width={s} height={s} fill="none" stroke="#EF4444" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
 );
 
-// Single accent color — only green
 const G = "#22C55E";
-const GD = "#16A34A";
 
 export default function Home() {
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
@@ -92,7 +90,6 @@ export default function Home() {
     { tag: "Subscriptions", h: "Find money you forgot you were spending.", p: "Automatically detects every active subscription from your transactions — even ones completely forgotten.", icon: <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>, code: `Detected  —  April 2026\n\nNetflix       Rs.499/month\nHotstar       Rs.299/month\nSpotify       Rs.119/month\nGym (unused)  Rs.1,999/month\n\nMonthly waste:  Rs.2,916\nAnnually:       Rs.34,992` },
   ];
 
-  // 50/30/20 — ALL GREEN shades, no blue/amber
   const rule = [
     { pct: "50", label: "Needs", color: "#16A34A", bg: "rgba(22,163,74,0.08)", border: "rgba(22,163,74,0.15)", amount: "Rs.37,500", items: ["Housing & Rent", "Groceries", "EMI Payments", "Insurance", "Utilities", "Transport"] },
     { pct: "30", label: "Wants", color: "#22C55E", bg: "rgba(34,197,94,0.07)", border: "rgba(34,197,94,0.14)", amount: "Rs.22,500", items: ["Dining & Delivery", "Shopping", "Entertainment", "Subscriptions", "Travel", "Personal Care"] },
@@ -133,18 +130,27 @@ export default function Home() {
     { q: "Is Casha a registered financial advisor?", a: "No. Casha is a financial education platform, not a SEBI-registered advisor or licensed tax professional. All AI recommendations are educational only. Please consult a qualified CA before making significant financial decisions." },
   ];
 
+  // ── Logo component used everywhere ──
+  const CashaLogo = ({ size = 32, textSize = 17, light = false }: { size?: number; textSize?: number; light?: boolean }) => (
+    <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
+      <img
+        src="/logo.png"
+        alt="Casha"
+        style={{ width: `${size}px`, height: `${size}px`, objectFit: "contain", flexShrink: 0 }}
+      />
+      <span style={{ fontSize: `${textSize}px`, fontWeight: "800", color: light ? "#fff" : T.black, letterSpacing: "-0.03em" }}>
+        casha<span style={{ color: T.green }}>.money</span>
+      </span>
+    </div>
+  );
+
   return (
     <div style={{ fontFamily: "'Inter', 'Helvetica Neue', system-ui, sans-serif", background: T.white, color: T.text, overflowX: "hidden" }}>
 
       {/* NAV */}
       <header style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 999, height: "62px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 40px", background: scrolled ? "rgba(255,255,255,0.96)" : "transparent", backdropFilter: scrolled ? "blur(16px)" : "none", borderBottom: scrolled ? `1px solid ${T.border}` : "none", transition: "all 0.25s" }}>
-        <a href="/" style={{ display: "flex", alignItems: "center", gap: "9px", textDecoration: "none" }}>
-          <div style={{ width: "32px", height: "32px", borderRadius: "9px", background: T.green, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ fontSize: "16px", fontWeight: "900", color: T.black, lineHeight: 1 }}>c</span>
-          </div>
-          <span style={{ fontSize: "17px", fontWeight: "800", color: T.black, letterSpacing: "-0.03em" }}>
-            casha<span style={{ color: T.green }}>.money</span>
-          </span>
+        <a href="/" style={{ textDecoration: "none" }}>
+          <CashaLogo size={32} textSize={17} />
         </a>
         <nav style={{ display: "flex", alignItems: "center", gap: "32px" }}>
           {[["Features", "#features"], ["50/30/20", "#rule"], ["Pricing", "#pricing"], ["FAQ", "#faq"]].map(([l, h]) => (
@@ -163,7 +169,7 @@ export default function Home() {
         </div>
       </header>
 
-      {/* HERO — CENTERED */}
+      {/* HERO */}
       <section style={{ paddingTop: "140px", paddingBottom: "80px", paddingLeft: "24px", paddingRight: "24px", textAlign: "center" }}>
         <div style={{ maxWidth: "780px", margin: "0 auto" }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: "999px", padding: "6px 16px", marginBottom: "28px" }}>
@@ -173,7 +179,6 @@ export default function Home() {
 
           <h1 style={{ fontSize: "clamp(44px, 7vw, 82px)", fontWeight: "800", color: T.black, letterSpacing: "-0.04em", lineHeight: "1.03", margin: "0 0 20px 0" }}>
             Your money,<br />
-            {/* "finally" — gradient only on this word, no blue/copy issue */}
             <span style={{ display: "inline-block", color: T.green, fontStyle: "italic" }}>finally</span>
             {" "}<span style={{ color: T.black }}>making sense.</span>
           </h1>
@@ -215,11 +220,9 @@ export default function Home() {
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "188px 1fr" }}>
               <div style={{ background: T.white, borderRight: `1px solid ${T.border}`, padding: "16px 10px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "7px", padding: "0 6px", marginBottom: "20px" }}>
-                  <div style={{ width: "22px", height: "22px", borderRadius: "6px", background: T.green, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <span style={{ fontSize: "11px", fontWeight: "900", color: T.black }}>c</span>
-                  </div>
-                  <span style={{ fontSize: "13px", fontWeight: "800", color: T.black, letterSpacing: "-0.02em" }}>casha.money</span>
+                {/* Sidebar logo — uses real logo */}
+                <div style={{ padding: "0 6px", marginBottom: "20px" }}>
+                  <CashaLogo size={22} textSize={13} />
                 </div>
                 {["Overview", "Transactions", "Budget", "Debts", "Tax Genius", "AI Advisor", "Settings"].map((n, i) => (
                   <div key={n} style={{ padding: "8px 10px", borderRadius: "7px", marginBottom: "1px", background: i === 0 ? "#F4F4F5" : "transparent", fontSize: "13px", color: i === 0 ? T.black : T.faint, fontWeight: i === 0 ? "600" : "400" }}>{n}</div>
@@ -293,7 +296,6 @@ export default function Home() {
             ].map((s, i) => (
               <Fade key={i} delay={i * 0.06}>
                 <div style={{ padding: "14px 10px", borderRight: i < 4 ? `1px solid ${T.border}` : "none" }}>
-                  {/* Fixed: consistent font size, no overflow */}
                   <p style={{ fontSize: "clamp(18px, 2.2vw, 26px)", fontWeight: "800", color: T.black, margin: "0 0 5px 0", letterSpacing: "-0.02em" }}>{s.n}</p>
                   <p style={{ fontSize: "12px", color: T.muted, margin: 0, lineHeight: "1.3" }}>{s.l}</p>
                 </div>
@@ -303,7 +305,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* PROBLEM — centered header */}
+      {/* PROBLEM */}
       <section style={{ background: T.white }}>
         <div style={W}>
           <Fade>
@@ -322,7 +324,6 @@ export default function Home() {
             ].map((p, i) => (
               <Fade key={i} delay={i * 0.07}>
                 <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: "14px", padding: "24px" }}>
-                  {/* Fixed: all same font size — no Rs.1.2L looking bigger */}
                   <p style={{ fontSize: "32px", fontWeight: "800", color: T.black, margin: "0 0 10px 0", letterSpacing: "-0.02em", lineHeight: 1 }}>{p.n}</p>
                   <p style={{ fontSize: "14px", color: "#374151", margin: "0 0 8px 0", lineHeight: "1.45", fontWeight: "500" }}>{p.t}</p>
                   <p style={{ fontSize: "11px", color: T.faint, margin: 0 }}>{p.s}</p>
@@ -333,7 +334,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 50/30/20 — only green shades */}
+      {/* 50/30/20 */}
       <section id="rule" style={{ background: T.black }}>
         <div style={W}>
           <Fade>
@@ -345,7 +346,6 @@ export default function Home() {
               </p>
             </div>
           </Fade>
-
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px", marginBottom: "28px" }}>
             {rule.map((r, i) => (
               <Fade key={i} delay={i * 0.09}>
@@ -369,7 +369,6 @@ export default function Home() {
               </Fade>
             ))}
           </div>
-
           <Fade delay={0.25}>
             <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "14px", padding: "26px 30px" }}>
               <p style={{ fontSize: "11px", fontWeight: "700", color: "rgba(255,255,255,0.28)", letterSpacing: "0.08em", textTransform: "uppercase", margin: "0 0 18px 0" }}>Income: Rs.75,000/month</p>
@@ -464,7 +463,6 @@ export default function Home() {
           <Fade>
             <div style={{ textAlign: "center", maxWidth: "480px", margin: "0 auto 48px" }}>
               <span style={LBL()}>Why Casha</span>
-              {/* Fixed: "Built for India." and "Built better." on separate lines */}
               <h2 style={H2}>
                 Built for India.<br />
                 <span style={{ color: T.green }}>Built better.</span>
@@ -475,7 +473,6 @@ export default function Home() {
           <Fade delay={0.1}>
             <div style={{ display: "flex", justifyContent: "center" }}>
               <div style={{ border: `1px solid ${T.border}`, borderRadius: "14px", overflow: "hidden", width: "100%", maxWidth: "760px" }}>
-                {/* Header — no symbol after Casha */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr repeat(4, 90px)", background: T.black, padding: "13px 20px", gap: "8px" }}>
                   <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.28)", fontWeight: "600" }}>Feature</span>
                   {["Casha", "CRED", "Jupiter", "YNAB"].map((n, i) => (
@@ -517,8 +514,7 @@ export default function Home() {
             ].map((s, i) => (
               <Fade key={i} delay={i * 0.07}>
                 <div style={CARD}>
-                  {/* Fixed: all step numbers same size */}
-                  <p style={{ fontSize: "32px", fontWeight: "800", color: T.border, margin: "0 0 16px 0", letterSpacing: "-0.03em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{s.n}</p>
+                  <p style={{ fontSize: "32px", fontWeight: "800", color: T.border, margin: "0 0 16px 0", letterSpacing: "-0.03em", lineHeight: 1 }}>{s.n}</p>
                   <h3 style={{ fontSize: "15px", fontWeight: "700", color: T.black, margin: "0 0 8px 0" }}>{s.h}</h3>
                   <p style={{ fontSize: "13px", color: T.muted, margin: 0, lineHeight: "1.6" }}>{s.p}</p>
                 </div>
@@ -676,12 +672,8 @@ export default function Home() {
       <footer style={{ background: T.black, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
         <div style={{ maxWidth: "1080px", margin: "0 auto", padding: "32px 24px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px", marginBottom: "22px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-              <div style={{ width: "28px", height: "28px", borderRadius: "7px", background: T.green, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ fontSize: "13px", fontWeight: "900", color: T.black }}>c</span>
-              </div>
-              <span style={{ fontSize: "15px", fontWeight: "800", color: T.white, letterSpacing: "-0.02em" }}>casha.money</span>
-            </div>
+            {/* Footer logo — uses real logo */}
+            <CashaLogo size={28} textSize={15} light />
             <div style={{ display: "flex", gap: "22px", flexWrap: "wrap" }}>
               {[["Features", "#features"], ["50/30/20", "#rule"], ["Pricing", "#pricing"], ["FAQ", "#faq"], ["Sign in", "/auth/login"], ["Sign up", "/auth/signup"]].map(([l, h]) => (
                 <a key={l} href={h} style={{ fontSize: "13px", color: "rgba(255,255,255,0.28)", textDecoration: "none" }}
@@ -716,7 +708,7 @@ export default function Home() {
         * { box-sizing: border-box; }
         html { scroll-behavior: smooth; }
         body { margin: 0; }
-        input::placeholder, textarea::placeholder { color: #9CA3AF; }
+        input::placeholder { color: #9CA3AF; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
         @media (max-width: 900px) { nav { display: none; } }
       `}</style>
