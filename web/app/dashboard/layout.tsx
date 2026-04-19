@@ -8,6 +8,7 @@ const NAV = [
   { name: "Overview", path: "/dashboard/overview", icon: "📊" },
   { name: "Accounts", path: "/dashboard/accounts", icon: "🏦" },
   { name: "Transactions", path: "/dashboard/transactions", icon: "💳" },
+  { name: "Budget", path: "/dashboard/budget", icon: "📋" },
   { name: "Goals", path: "/dashboard/goals", icon: "🎯" },
   { name: "Debts", path: "/dashboard/debts", icon: "💸" },
   { name: "Subscriptions", path: "/dashboard/subscriptions", icon: "🔄" },
