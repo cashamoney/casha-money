@@ -3,20 +3,20 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 
 const BUDGET_CATEGORIES = [
-  { name: "Housing/Rent", emoji: "🏠", color: "#6366F1", recommended: 30 },
-  { name: "Groceries", emoji: "🛒", color: "#22C55E", recommended: 15 },
+  { name: "Housing/Rent", emoji: "🏠", color: "#6366F1", recommended: 25 },
+  { name: "Groceries", emoji: "🛒", color: "#22C55E", recommended: 10 },
   { name: "Food Delivery", emoji: "🛵", color: "#F97316", recommended: 5 },
-  { name: "Transportation", emoji: "🚗", color: "#3B82F6", recommended: 10 },
-  { name: "EMI Payment", emoji: "📅", color: "#EF4444", recommended: 20 },
-  { name: "Entertainment", emoji: "🎬", color: "#F43F5E", recommended: 5 },
-  { name: "Shopping", emoji: "🛍️", color: "#EC4899", recommended: 5 },
-  { name: "Healthcare", emoji: "🏥", color: "#14B8A6", recommended: 5 },
-  { name: "Education", emoji: "📚", color: "#8B5CF6", recommended: 5 },
-  { name: "Subscription", emoji: "🔄", color: "#A855F7", recommended: 3 },
-  { name: "Streaming/OTT", emoji: "📺", color: "#F43F5E", recommended: 2 },
-  { name: "Insurance", emoji: "🛡️", color: "#6366F1", recommended: 5 },
+  { name: "Transportation", emoji: "🚗", color: "#3B82F6", recommended: 8 },
+  { name: "EMI Payment", emoji: "📅", color: "#EF4444", recommended: 15 },
+  { name: "Entertainment", emoji: "🎬", color: "#F43F5E", recommended: 3 },
+  { name: "Shopping", emoji: "🛍️", color: "#EC4899", recommended: 4 },
+  { name: "Healthcare", emoji: "🏥", color: "#14B8A6", recommended: 3 },
+  { name: "Education", emoji: "📚", color: "#8B5CF6", recommended: 3 },
+  { name: "Subscription", emoji: "🔄", color: "#A855F7", recommended: 2 },
+  { name: "Streaming/OTT", emoji: "📺", color: "#F43F5E", recommended: 1 },
+  { name: "Insurance", emoji: "🛡️", color: "#6366F1", recommended: 1 },
   { name: "Savings", emoji: "💰", color: "#10B981", recommended: 20 },
-  { name: "Other Expense", emoji: "📦", color: "#94A3B8", recommended: 5 },
+  { name: "Other Expense", emoji: "📦", color: "#94A3B8", recommended: 0 },
 ];
 
 export default function BudgetPage() {
@@ -36,7 +36,6 @@ export default function BudgetPage() {
     if (!authData.user) return;
     const uid = authData.user.id;
 
-    // Load income
     const { data: incomeTxns } = await supabase
       .from("transactions")
       .select("amount, transaction_date")
@@ -49,7 +48,6 @@ export default function BudgetPage() {
     const monthlyIncome = Math.round(totalIncome / monthCount);
     setIncome(monthlyIncome);
 
-    // Load this month spending
     const now = new Date();
     const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 
@@ -67,7 +65,6 @@ export default function BudgetPage() {
     });
     setSpent(spentMap);
 
-    // Load saved budgets from Supabase
     const { data: savedBudget } = await supabase
       .from("budgets")
       .select("categories")
@@ -78,15 +75,12 @@ export default function BudgetPage() {
 
     if (savedBudget?.categories && Object.keys(savedBudget.categories).length > 0) {
       setBudgets(savedBudget.categories);
-    } else {
-      // Auto generate on first load
-      if (monthlyIncome > 0) {
-        const autoBudgets: Record<string, number> = {};
-        BUDGET_CATEGORIES.forEach(cat => {
-          autoBudgets[cat.name] = Math.round(monthlyIncome * cat.recommended / 100);
-        });
-        setBudgets(autoBudgets);
-      }
+    } else if (monthlyIncome > 0) {
+      const autoBudgets: Record<string, number> = {};
+      BUDGET_CATEGORIES.forEach(cat => {
+        autoBudgets[cat.name] = Math.round(monthlyIncome * cat.recommended / 100);
+      });
+      setBudgets(autoBudgets);
     }
 
     setLoading(false);
@@ -214,8 +208,8 @@ export default function BudgetPage() {
               AI Budget Generated Successfully!
             </p>
             <p style={{ fontSize: "12px", color: "#16A34A", margin: 0 }}>
-              Based on your income of {fmt(income)}/month using the 50/30/20 rule adapted for India.
-              Go to "Edit Budget" tab to customize, then click "Save Budget".
+              Based on your income of {fmt(income)}/month using the 50/30/20 rule.
+              All percentages add up to 100%. Edit below and click Save Budget.
             </p>
           </div>
         </div>
@@ -228,20 +222,24 @@ export default function BudgetPage() {
             Monthly Income
           </p>
           <p style={{ fontSize: "22px", fontWeight: "700", color: "#fff", margin: 0 }}>
-            {income > 0 ? fmt(income) : "Add income →"}
+            {income > 0 ? fmt(income) : "Add income"}
           </p>
         </div>
         <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: "16px", padding: "18px" }}>
           <p style={{ fontSize: "11px", color: "#1E40AF", margin: "0 0 6px 0", fontWeight: "600", textTransform: "uppercase" }}>
             Total Budgeted
           </p>
-          <p style={{ fontSize: "22px", fontWeight: "700", color: "#1D4ED8", margin: 0 }}>{fmt(totalBudget)}</p>
+          <p style={{ fontSize: "22px", fontWeight: "700", color: "#1D4ED8", margin: 0 }}>
+            {fmt(totalBudget)}
+          </p>
         </div>
         <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "16px", padding: "18px" }}>
           <p style={{ fontSize: "11px", color: "#991B1B", margin: "0 0 6px 0", fontWeight: "600", textTransform: "uppercase" }}>
             Spent This Month
           </p>
-          <p style={{ fontSize: "22px", fontWeight: "700", color: "#DC2626", margin: 0 }}>{fmt(totalSpent)}</p>
+          <p style={{ fontSize: "22px", fontWeight: "700", color: "#DC2626", margin: 0 }}>
+            {fmt(totalSpent)}
+          </p>
         </div>
         <div style={{
           background: totalRemaining >= 0 ? "#F0FDF4" : "#FEF2F2",
@@ -358,7 +356,6 @@ export default function BudgetPage() {
                     )}
                   </div>
                 </div>
-
                 {budgeted > 0 && (
                   <div style={{ height: "8px", background: "#F3F4F6", borderRadius: "999px", overflow: "hidden" }}>
                     <div style={{
@@ -384,8 +381,9 @@ export default function BudgetPage() {
               💡 How AI Budget Works
             </p>
             <p style={{ fontSize: "12px", color: "#1E3A8A", margin: 0 }}>
-              Based on your income of <strong>{fmt(income)}/month</strong>, AI recommends using the 50/30/20 rule
-              adapted for India. 50% needs, 30% wants, 20% savings. Edit any amount below and save.
+              Based on your income of <strong>{fmt(income)}/month</strong>, AI uses the 50/30/20 rule
+              adapted for India. All percentages add up to exactly 100%.
+              Edit any amount below and save.
             </p>
           </div>
 
@@ -413,7 +411,10 @@ export default function BudgetPage() {
                     {cat.name}
                   </p>
                   <p style={{ fontSize: "11px", color: "#9CA3AF", margin: 0 }}>
-                    AI recommends: {cat.recommended}% = {fmt(Math.round(income * cat.recommended / 100))}
+                    {cat.recommended > 0
+                      ? `AI recommends: ${cat.recommended}% = ${fmt(Math.round(income * cat.recommended / 100))}`
+                      : "Set your own amount"
+                    }
                   </p>
                 </div>
 
@@ -455,27 +456,29 @@ export default function BudgetPage() {
             border: `1px solid ${totalBudget > income ? "#FECACA" : "#BBF7D0"}`
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-              <span style={{ fontSize: "14px", fontWeight: "700", color: "#0C0D10" }}>Total Budgeted</span>
+              <span style={{ fontSize: "14px", fontWeight: "700", color: "#0C0D10" }}>
+                Total Budgeted
+              </span>
               <span style={{ fontSize: "16px", fontWeight: "700", color: totalBudget > income ? "#DC2626" : "#16A34A" }}>
                 {fmt(totalBudget)}
               </span>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
               <span style={{ fontSize: "13px", color: "#6B7280" }}>Monthly Income</span>
               <span style={{ fontSize: "13px", color: "#6B7280" }}>{fmt(income)}</span>
             </div>
-            <div style={{ height: "1px", background: totalBudget > income ? "#FECACA" : "#BBF7D0", marginBottom: "8px" }} />
+            <div style={{ height: "1px", background: totalBudget > income ? "#FECACA" : "#BBF7D0", marginBottom: "10px" }} />
             {totalBudget > income ? (
               <p style={{ fontSize: "13px", color: "#DC2626", margin: 0, fontWeight: "500" }}>
                 ⚠️ Budget exceeds income by {fmt(totalBudget - income)}. Please reduce some categories.
               </p>
             ) : totalBudget > 0 ? (
               <p style={{ fontSize: "13px", color: "#16A34A", margin: 0, fontWeight: "500" }}>
-                ✅ {fmt(income - totalBudget)} unallocated — consider moving to Savings!
+                ✅ {fmt(income - totalBudget)} unallocated — consider adding to Savings!
               </p>
             ) : (
               <p style={{ fontSize: "13px", color: "#9CA3AF", margin: 0 }}>
-                Click "🤖 AI Generate" to auto-fill budgets based on your income.
+                Click "🤖 AI Generate" above to auto-fill budgets based on your income.
               </p>
             )}
           </div>
