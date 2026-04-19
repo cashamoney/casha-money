@@ -10,6 +10,7 @@ const NAV = [
   { name: "Transactions", path: "/dashboard/transactions", icon: "💳" },
   { name: "Goals", path: "/dashboard/goals", icon: "🎯" },
   { name: "Debts", path: "/dashboard/debts", icon: "💸" },
+  { name: "Subscriptions", path: "/dashboard/subscriptions", icon: "🔄" },
   { name: "Tax Genius", path: "/dashboard/tax", icon: "🧾" },
   { name: "AI Advisor", path: "/dashboard/chat", icon: "🧠" },
   { name: "Settings", path: "/dashboard/settings", icon: "⚙️" },
@@ -68,14 +69,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       minHeight: "100vh", display: "flex",
       background: "#FAFAFA", fontFamily: "system-ui, sans-serif"
     }}>
-
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
           style={{
             position: "fixed", inset: 0, background: "rgba(0,0,0,0.3)",
-            zIndex: 40, display: "block"
+            zIndex: 40
           }}
         />
       )}
@@ -85,8 +84,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         width: "240px", flexShrink: 0,
         background: "#FFFFFF", borderRight: "1px solid #E5E7EB",
         display: "flex", flexDirection: "column",
-        position: "fixed", top: 0, left: 0, bottom: 0,
-        zIndex: 50,
+        position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 50,
         transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)",
         transition: "transform 0.2s ease",
       }}
@@ -154,9 +152,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               }}>
                 {user?.user_metadata?.full_name || user?.email?.split("@")[0]}
               </p>
-              <p style={{ fontSize: "11px", color: "#9CA3AF", margin: 0 }}>
-                Free Plan
-              </p>
+              <p style={{ fontSize: "11px", color: "#9CA3AF", margin: 0 }}>Free Plan</p>
             </div>
           </div>
           <button
@@ -175,7 +171,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Main content */}
       <main style={{ flex: 1, minHeight: "100vh", marginLeft: "240px" }}>
-
         {/* Mobile top bar */}
         <div style={{
           height: "56px", display: "flex", alignItems: "center",
@@ -185,10 +180,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }}>
           <button
             onClick={() => setSidebarOpen(true)}
-            style={{
-              background: "none", border: "none", cursor: "pointer",
-              padding: "4px", color: "#6B7280"
-            }}
+            style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", color: "#6B7280" }}
           >
             <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path d="M4 6h16M4 12h16M4 18h16" />
@@ -206,17 +198,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </main>
 
-      {/* CSS for desktop sidebar */}
       <style>{`
         @media (min-width: 1024px) {
-          .lg-sidebar {
-            transform: translateX(0) !important;
-          }
+          .lg-sidebar { transform: translateX(0) !important; }
         }
         @media (max-width: 1023px) {
-          main {
-            margin-left: 0 !important;
-          }
+          main { margin-left: 0 !important; }
         }
       `}</style>
     </div>
