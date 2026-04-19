@@ -42,7 +42,7 @@ function WaitlistForm({ dark = false }: { dark?: boolean }) {
         <svg width="14" height="14" fill="none" stroke="#fff" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
       </div>
       <div>
-        <p style={{ fontSize: "14px", fontWeight: 700, color: dark ? "#4ADE80" : "#166534", margin: "0 0 2px 0" }}>You are #{pos} on the waitlist</p>
+        <p style={{ fontSize: "14px", fontWeight: 700, color: dark ? "#4ADE80" : "#166634", margin: "0 0 2px 0" }}>You are #{pos} on the waitlist</p>
         <p style={{ fontSize: "12px", color: dark ? "rgba(74,222,128,0.72)" : "#16A34A", margin: 0 }}>We will email you when Casha launches.</p>
       </div>
     </div>
@@ -66,14 +66,32 @@ function Xmk({ s = 15 }: { s?: number }) {
   return <svg width={s} height={s} fill="none" stroke="#EF4444" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>;
 }
 
-// ── Logo: negative margin compensates PNG transparent padding, gap=8 gives slight space ──
-function CashaLogo({ size = 58, fontSize = 21, light = false }: { size?: number; fontSize?: number; light?: boolean }) {
+// ── Logo: tight=true makes logo very close to text (for navbar only) ──
+function CashaLogo({
+  size = 58,
+  fontSize = 21,
+  light = false,
+  tight = false,
+}: {
+  size?: number;
+  fontSize?: number;
+  light?: boolean;
+  tight?: boolean;
+}) {
   return (
     <div style={{ display: "flex", alignItems: "center", lineHeight: 1 }}>
       <img
         src="/logo.png"
         alt="Casha"
-        style={{ width: `${size}px`, height: `${size}px`, objectFit: "contain", display: "block", flexShrink: 0, marginRight: "-4px" }}
+        style={{
+          width: `${size}px`,
+          height: `${size}px`,
+          objectFit: "contain",
+          display: "block",
+          flexShrink: 0,
+          // tight = navbar (very close), normal = footer/preview (slight gap)
+          marginRight: tight ? "-12px" : "-4px",
+        }}
       />
       <span style={{ fontSize: `${fontSize}px`, fontWeight: 800, color: light ? "#FFFFFF" : "#0A0A0A", letterSpacing: "-0.03em", lineHeight: 1 }}>
         casha<span style={{ color: "#22C55E" }}>.money</span>
@@ -150,9 +168,11 @@ export default function Home() {
   return (
     <div style={{ fontFamily: "'Inter', 'Helvetica Neue', system-ui, sans-serif", background: T.white, color: T.text, overflowX: "hidden" }}>
 
-      {/* NAV */}
+      {/* NAV — tight=true makes logo very close to text */}
       <header style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 999, height: "66px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 40px", background: scrolled ? "rgba(255,255,255,0.96)" : "transparent", backdropFilter: scrolled ? "blur(16px)" : "none", borderBottom: scrolled ? `1px solid ${T.border}` : "none", transition: "all 0.25s" }}>
-        <a href="/" style={{ textDecoration: "none" }}><CashaLogo size={56} fontSize={20} /></a>
+        <a href="/" style={{ textDecoration: "none" }}>
+          <CashaLogo size={56} fontSize={20} tight />
+        </a>
         <nav style={{ display: "flex", alignItems: "center", gap: "32px" }}>
           {[["Features", "#features"], ["50/30/20", "#rule"], ["Pricing", "#pricing"], ["FAQ", "#faq"]].map(([l, href]) => (
             <a key={l} href={href} style={{ fontSize: "14px", color: T.muted, textDecoration: "none", fontWeight: "500" }} onMouseEnter={e => e.currentTarget.style.color = T.text} onMouseLeave={e => e.currentTarget.style.color = T.muted}>{l}</a>
@@ -201,7 +221,10 @@ export default function Home() {
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "188px 1fr" }}>
               <div style={{ background: T.white, borderRight: `1px solid ${T.border}`, padding: "16px 10px" }}>
-                <div style={{ padding: "0 6px", marginBottom: "20px" }}><CashaLogo size={34} fontSize={14} /></div>
+                {/* Preview sidebar — normal gap (not tight) */}
+                <div style={{ padding: "0 6px", marginBottom: "20px" }}>
+                  <CashaLogo size={34} fontSize={14} />
+                </div>
                 {["Overview", "Transactions", "Budget", "Debts", "Tax Genius", "AI Advisor", "Settings"].map((n, i) => (
                   <div key={n} style={{ padding: "8px 10px", borderRadius: "7px", marginBottom: "1px", background: i === 0 ? "#F4F4F5" : "transparent", fontSize: "13px", color: i === 0 ? T.black : T.faint, fontWeight: i === 0 ? "600" : "400" }}>{n}</div>
                 ))}
@@ -465,7 +488,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* PRICING — equal height all 3 cards */}
+      {/* PRICING */}
       <section id="pricing" style={{ background: T.white, borderTop: `1px solid ${T.border}` }}>
         <div style={W}>
           <Fade>
@@ -599,10 +622,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FOOTER */}
+      {/* FOOTER — logo normal (not tight), copyright visible */}
       <footer style={{ background: T.black, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
         <div style={{ maxWidth: "1080px", margin: "0 auto", padding: "32px 24px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px", marginBottom: "22px" }}>
+            {/* Footer logo — normal gap, not tight */}
             <CashaLogo size={42} fontSize={16} light />
             <div style={{ display: "flex", gap: "22px", flexWrap: "wrap" }}>
               {[["Features", "#features"], ["50/30/20", "#rule"], ["Pricing", "#pricing"], ["FAQ", "#faq"], ["Sign in", "/auth/login"], ["Sign up", "/auth/signup"]].map(([l, href]) => (
@@ -621,8 +645,8 @@ export default function Home() {
           </div>
           <div style={{ height: "1px", background: "rgba(255,255,255,0.05)", marginBottom: "20px" }} />
           <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
-            {/* Footer copyright — now readable white */}
-            <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.35)", margin: 0 }}>
+            {/* Copyright — now clearly visible */}
+            <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.38)", margin: 0 }}>
               © 2026 Casha Money Technologies Private Limited. All rights reserved.
             </p>
             <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.18)", margin: 0, maxWidth: "480px", textAlign: "right", lineHeight: "1.55" }}>
