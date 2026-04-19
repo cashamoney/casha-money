@@ -234,7 +234,7 @@ function Cross({ size = 15 }) {
 }
 
 function CashaLogo({
-  size = 52,
+  size = 48,
   fontSize = 20,
   light = false,
 }: {
@@ -247,7 +247,7 @@ function CashaLogo({
       style={{
         display: "flex",
         alignItems: "center",
-        gap: "6px",
+        gap: "3px",
         lineHeight: 1,
       }}
     >
@@ -879,7 +879,7 @@ Monthly waste:  Rs.2,916`,
                 <p style={{ fontSize: "16px", fontWeight: "700", color: "#fff", margin: "0 0 5px 0" }}>Your budget, generated automatically.</p>
                 <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.38)", margin: 0, lineHeight: "1.5" }}>Enter your income. Casha builds the full plan — no spreadsheets, no manual work.</p>
               </div>
-              <a href="/auth/signup" style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "12px 22px", borderRadius: "10px", background: T.green, color: T.black, textDecoration: "none", fontWeight: "700", fontSize: "14px", whiteSpace: "nowrap", flexShrink: 0, boxShadow: "0 4px 14px rgba(34,197,94,0.3)" }}
+              <a href="/auth/signup" style={{ display: "inline-flex", alignItems: "center", gap: "3px", padding: "12px 22px", borderRadius: "10px", background: T.green, color: T.black, textDecoration: "none", fontWeight: "700", fontSize: "14px", whiteSpace: "nowrap", flexShrink: 0, boxShadow: "0 4px 14px rgba(34,197,94,0.3)" }}
                 onMouseEnter={e => e.currentTarget.style.opacity = "0.88"}
                 onMouseLeave={e => e.currentTarget.style.opacity = "1"}>Try it free →</a>
             </div>
@@ -902,7 +902,7 @@ Monthly waste:  Rs.2,916`,
                 <Fade key={i} delay={0.04}>
                   <div style={{ ...CARD, padding: "40px 44px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "48px", alignItems: "center" }}>
                     <div style={{ order: flip ? 2 : 1 }}>
-                      <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "6px", marginBottom: "14px" }}>
+                      <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "3px", marginBottom: "14px" }}>
                         <span style={{ color: T.green, display: "flex", alignItems: "center", flexShrink: 0 }}>{f.icon}</span>
                         <span style={{ fontSize: "11px", fontWeight: "700", letterSpacing: "0.1em", textTransform: "uppercase", color: T.green, lineHeight: 1 }}>{f.tag}</span>
                       </div>
@@ -1033,7 +1033,7 @@ Monthly waste:  Rs.2,916`,
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "14px", width: "100%", maxWidth: "840px" }}>
               {plans.map((plan, i) => (
                 <Fade key={i} delay={i * 0.07}>
-                  <div style={{ background: plan.highlight ? T.black : T.white, border: plan.highlight ? `2px solid ${T.green}` : `1px solid ${T.border}`, borderRadius: "16px", padding: "28px", display: "flex", flexDirection: "column", position: "relative" }}>
+                  <div style={{ background: plan.highlight ? T.black : T.white, border: plan.highlight ? `2px solid ${T.green}` : `1px solid ${T.border}`, borderRadius: "16px", padding: "28px", display: "flex", flexDirection: "column", position: "relative", height: "100%" }}>
                     {plan.badge && (
                       <div style={{ position: "absolute", top: "-11px", left: "50%", transform: "translateX(-50%)", background: T.green, color: T.white, fontSize: "11px", fontWeight: "700", padding: "3px 14px", borderRadius: "999px", whiteSpace: "nowrap" }}>{plan.badge}</div>
                     )}
