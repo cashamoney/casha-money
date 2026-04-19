@@ -17,6 +17,13 @@ const COUNTRIES = [
   { code: "KE", name: "Kenya", currency: "KES" },
 ];
 
+const LEFT_POINTS = [
+  "Works with all Indian banks",
+  "Tax optimizer built for India",
+  "AI budget using 50/30/20",
+  "No credit card required",
+];
+
 function PasswordStrength({ password }: { password: string }) {
   if (!password) return null;
 
@@ -63,34 +70,46 @@ function SignupLogo({ light = false }: { light?: boolean }) {
   return (
     <div
       style={{
+        width: "100%",
         display: "flex",
+        justifyContent: "center",
         alignItems: "center",
-        lineHeight: 1,
       }}
     >
-      <img
-        src="/logo.png"
-        alt="Casha"
+      <div
         style={{
-          width: "48px",
-          height: "48px",
-          objectFit: "contain",
-          display: "block",
-          flexShrink: 0,
-          marginRight: "-8px",
-        }}
-      />
-      <span
-        style={{
-          fontSize: "20px",
-          fontWeight: 800,
-          color: light ? "#FFFFFF" : "#0A0A0A",
-          letterSpacing: "-0.03em",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "2px",
           lineHeight: 1,
         }}
       >
-        casha<span style={{ color: "#22C55E" }}>.money</span>
-      </span>
+        <img
+          src="/logo.png"
+          alt="Casha"
+          style={{
+            width: "50px",
+            height: "50px",
+            objectFit: "contain",
+            display: "block",
+            flexShrink: 0,
+            marginRight: "-8px",
+          }}
+        />
+        <span
+          style={{
+            fontSize: "20px",
+            fontWeight: 800,
+            color: light ? "#FFFFFF" : "#0A0A0A",
+            letterSpacing: "-0.03em",
+            lineHeight: 1,
+            display: "inline-block",
+          }}
+        >
+          casha<span style={{ color: "#22C55E" }}>.money</span>
+        </span>
+      </div>
     </div>
   );
 }
@@ -207,16 +226,16 @@ export default function SignupPage() {
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
+            textAlign: "center",
           }}
         >
-          {/* Clickable logo back to homepage */}
+          {/* CLICKABLE LOGO BACK TO HOMEPAGE */}
           <a
             href="/"
             style={{
-              display: "inline-block",
+              display: "block",
               textDecoration: "none",
               marginBottom: "28px",
-              width: "fit-content",
             }}
           >
             <SignupLogo light />
@@ -254,7 +273,7 @@ export default function SignupPage() {
 
           <p
             style={{
-              margin: "0 0 24px 0",
+              margin: "0 auto 24px auto",
               fontSize: "14px",
               lineHeight: "1.65",
               color: "rgba(255,255,255,0.42)",
@@ -265,21 +284,20 @@ export default function SignupPage() {
             that actually knows your numbers.
           </p>
 
-          {/* Better aligned bullet points */}
+          {/* PERFECTLY CENTERED + ALIGNED FEATURE LIST */}
           <div
             style={{
               display: "flex",
               flexDirection: "column",
               gap: "12px",
               marginBottom: "28px",
+              width: "100%",
+              maxWidth: "300px",
+              marginInline: "auto",
+              textAlign: "left",
             }}
           >
-            {[
-              "Works with all Indian banks",
-              "Tax optimizer built for India",
-              "AI budget using 50/30/20",
-              "No credit card required",
-            ].map((item, i) => (
+            {LEFT_POINTS.map((item, i) => (
               <div
                 key={i}
                 style={{
@@ -333,7 +351,7 @@ export default function SignupPage() {
             ))}
           </div>
 
-          {/* Stats */}
+          {/* STATS */}
           <div
             style={{
               display: "grid",
@@ -342,6 +360,7 @@ export default function SignupPage() {
               paddingTop: "18px",
               borderTop: "1px solid rgba(255,255,255,0.08)",
               marginBottom: "28px",
+              textAlign: "left",
             }}
           >
             {[
