@@ -1,39 +1,92 @@
 "use client";
-
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence, useInView } from "framer-motion";
-import toast, { Toaster } from "react-hot-toast";
+import { motion, useInView } from "framer-motion";
 
-const C = {
-  bg: "#FAFAFA",
-  white: "#FFFFFF",
-  dark: "#0C0D10",
-  text: "#0C0D10",
-  sub: "#6B7280",
-  muted: "#9CA3AF",
-  faint: "#D1D5DB",
-  border: "#E5E7EB",
-  blue: "#3B82F6",
-  green: "#22C55E",
-  amber: "#F59E0B",
-  surface: "#F3F4F6",
-};
+// ── Waitlist Form ──
+function WaitlistForm({ dark = false }: { dark?: boolean }) {
+  const [email, setEmail] = useState("");
+  const [state, setState] = useState<"idle" | "loading" | "done">("idle");
+  const [position, setPosition] = useState(0);
 
-function Reveal({
-  children,
-  className = "",
-  delay = 0,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  delay?: number;
-}) {
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || state !== "idle") return;
+    setState("loading");
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      setPosition(data.position || 1);
+      setState("done");
+    } catch {
+      setState("idle");
+    }
+  };
+
+  if (state === "done") {
+    return (
+      <div style={{
+        display: "flex", alignItems: "center", gap: "12px",
+        background: dark ? "rgba(34,197,94,0.1)" : "#F0FDF4",
+        border: "1px solid #BBF7D0", borderRadius: "16px", padding: "16px 20px"
+      }}>
+        <span style={{ fontSize: "28px" }}>🎉</span>
+        <div>
+          <p style={{ fontSize: "15px", fontWeight: "700", color: "#166534", margin: "0 0 2px 0" }}>
+            You're #{position} on the list!
+          </p>
+          <p style={{ fontSize: "12px", color: "#16A34A", margin: 0 }}>
+            We'll notify you the moment Casha launches.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={submit} style={{ display: "flex", gap: "8px", width: "100%", maxWidth: "480px" }}>
+      <input
+        type="email"
+        required
+        value={email}
+        onChange={e => setEmail(e.target.value)}
+        placeholder="Enter your email address"
+        style={{
+          flex: 1, height: "52px", borderRadius: "14px", padding: "0 18px",
+          fontSize: "14px", outline: "none",
+          background: dark ? "rgba(255,255,255,0.08)" : "#fff",
+          border: dark ? "1px solid rgba(255,255,255,0.15)" : "1px solid #E5E7EB",
+          color: dark ? "#fff" : "#0C0D10",
+        }}
+      />
+      <button
+        type="submit"
+        disabled={state === "loading"}
+        style={{
+          height: "52px", padding: "0 24px", borderRadius: "14px", border: "none",
+          background: "linear-gradient(135deg, #22C55E, #16A34A)",
+          color: "#fff", fontSize: "14px", fontWeight: "700",
+          cursor: "pointer", whiteSpace: "nowrap",
+          boxShadow: "0 4px 14px rgba(34,197,94,0.4)",
+        }}
+      >
+        {state === "loading" ? "Joining..." : "Get Early Access →"}
+      </button>
+    </form>
+  );
+}
+
+// ── Reveal Animation ──
+function Reveal({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-50px" });
+  const inView = useInView(ref, { once: true, margin: "-60px" });
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 24 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
       className={className}
@@ -43,1387 +96,345 @@ function Reveal({
   );
 }
 
-function Logo({ light = false }: { light?: boolean }) {
+// ── Stat Card ──
+function StatCard({ number, label }: { number: string; label: string }) {
   return (
-    <div className="flex items-center gap-2.5 select-none">
-      <div
-        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-        style={{ background: light ? C.white : C.dark }}
-      >
-        <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
-          <path
-            d="M10 3C6.134 3 3 6.134 3 10s3.134 7 7 7c1.742 0 3.337-.634 4.573-1.678"
-            stroke={light ? C.dark : C.white}
-            strokeWidth="2.2"
-            strokeLinecap="round"
-          />
-          <path
-            d="M10 6.5v4l2.5 1.5"
-            stroke={light ? C.dark : C.white}
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </div>
-      <span
-        className="text-[17px] font-semibold tracking-[-0.02em]"
-        style={{ color: light ? C.white : C.text }}
-      >
-        casha<span style={{ opacity: 0.35 }}>.money</span>
-      </span>
+    <div style={{ textAlign: "center" }}>
+      <p style={{ fontSize: "36px", fontWeight: "800", color: "#0C0D10", margin: "0 0 4px 0", letterSpacing: "-0.02em" }}>
+        {number}
+      </p>
+      <p style={{ fontSize: "13px", color: "#6B7280", margin: 0 }}>{label}</p>
     </div>
   );
 }
 
-const Ic = {
-  chart: (
-    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-      <path d="M3 3v18h18" /><path d="m7 16 4-4 4 4 4-6" />
-    </svg>
-  ),
-  brain: (
-    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-      <path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z" />
-      <path d="M9.09 9a3 3 0 0 0 5.83 1" />
-      <path d="M3 20a9 9 0 0 1 18 0" />
-    </svg>
-  ),
-  trend: (
-    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-      <path d="m22 7-8.5 8.5-5-5L2 17" /><path d="M16 7h6v6" />
-    </svg>
-  ),
-  receipt: (
-    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-      <rect x="2" y="3" width="20" height="18" rx="2" /><path d="M8 10h8M8 14h5" />
-    </svg>
-  ),
-  dollar: (
-    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-      <path d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
-    </svg>
-  ),
-  badge: (
-    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-      <circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" />
-    </svg>
-  ),
-  lock: (
-    <svg width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-      <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
-  ),
-  eye: (
-    <svg width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
-    </svg>
-  ),
-  shield: (
-    <svg width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" />
-    </svg>
-  ),
-  globe: (
-    <svg width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-      <circle cx="12" cy="12" r="10" />
-      <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-    </svg>
-  ),
-  check: (
-    <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
-  ),
-  chevron: (
-    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  ),
-  arrow: (
-    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-      <path d="M17 8l4 4m0 0l-4 4m4-4H3" />
-    </svg>
-  ),
-  star: (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="#F59E0B">
-      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-    </svg>
-  ),
-  x: (
-    <svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24">
-      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-    </svg>
-  ),
-  ig: (
-    <svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24">
-      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-    </svg>
-  ),
-};
-
-/* ── Dashboard — clean, not congested ── */
-function Dashboard() {
+// ── Feature Card ──
+function FeatureCard({ emoji, title, desc, delay }: { emoji: string; title: string; desc: string; delay: number }) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: "-40px" });
   return (
-    <div
-      className="rounded-2xl overflow-hidden shadow-2xl"
-      style={{ background: C.white, border: `1px solid ${C.border}` }}
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 20 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.5, delay }}
+      style={{
+        background: "#fff", border: "1px solid #E5E7EB", borderRadius: "20px",
+        padding: "28px", cursor: "default",
+        transition: "all 0.2s",
+      }}
+      whileHover={{ y: -4, boxShadow: "0 12px 40px rgba(0,0,0,0.08)" }}
     >
-      {/* Browser chrome */}
-      <div
-        className="flex items-center justify-between px-5 py-3"
-        style={{ background: C.surface, borderBottom: `1px solid ${C.border}` }}
-      >
-        <div className="flex gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-[#FF5F57]" />
-          <span className="w-3 h-3 rounded-full bg-[#FEBC2E]" />
-          <span className="w-3 h-3 rounded-full bg-[#28C840]" />
-        </div>
-        <div
-          className="px-4 py-1 rounded-md text-[11px] flex items-center gap-1.5"
-          style={{ background: C.white, border: `1px solid ${C.border}`, color: C.muted }}
-        >
-          <svg width="9" height="9" fill="none" stroke={C.green} strokeWidth="2.5" viewBox="0 0 24 24">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-          </svg>
-          app.casha.money
-        </div>
-        <div className="w-12" />
-      </div>
-
-      <div className="flex" style={{ minHeight: 460 }}>
-        {/* Sidebar */}
-        <div
-          className="w-[180px] flex-shrink-0 p-4 hidden lg:flex flex-col"
-          style={{ background: C.bg, borderRight: `1px solid ${C.border}` }}
-        >
-          <div className="flex items-center gap-2 mb-7">
-            <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ background: C.dark }}
-            >
-              <svg width="13" height="13" viewBox="0 0 20 20" fill="none">
-                <path
-                  d="M10 3C6.134 3 3 6.134 3 10s3.134 7 7 7c1.742 0 3.337-.634 4.573-1.678"
-                  stroke={C.white}
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M10 6.5v4l2.5 1.5"
-                  stroke={C.white}
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-            <span className="text-[13px] font-semibold" style={{ color: C.text }}>
-              Casha
-            </span>
-          </div>
-          <div className="space-y-0.5 flex-1">
-            {[
-              { label: "Overview", active: true },
-              { label: "Transactions", active: false },
-              { label: "Budget", active: false },
-              { label: "Debt Planner", active: false },
-              { label: "Investments", active: false },
-              { label: "Tax Center", active: false },
-              { label: "AI Advisor", active: false },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className="flex items-center px-3 py-2.5 rounded-lg text-[12px] font-medium"
-                style={{
-                  background: item.active ? C.white : "transparent",
-                  color: item.active ? C.text : C.muted,
-                  boxShadow: item.active ? "0 1px 3px rgba(0,0,0,0.07)" : "none",
-                }}
-              >
-                {item.label}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Main */}
-        <div className="flex-1 p-6">
-          {/* Header — no emoji */}
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <p className="text-[12px]" style={{ color: C.muted }}>
-                Thursday, March 12, 2026
-              </p>
-              <p
-                className="text-[18px] font-semibold tracking-[-0.02em] mt-0.5"
-                style={{ color: C.text }}
-              >
-                Good morning, Sarah
-              </p>
-            </div>
-            <div
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold"
-              style={{
-                background: "#F0FDF4",
-                color: "#166534",
-                border: "1px solid #BBF7D0",
-              }}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
-              AI Active
-            </div>
-          </div>
-
-          {/* Net worth */}
-          <div className="rounded-xl p-5 mb-4" style={{ background: C.dark }}>
-            <p
-              className="text-[11px] font-medium uppercase tracking-wider mb-2"
-              style={{ color: "rgba(255,255,255,0.35)" }}
-            >
-              Total Net Worth
-            </p>
-            <p className="text-[36px] font-semibold tracking-[-0.03em] leading-none text-white mb-2">
-              $124,293
-            </p>
-            <p className="text-[13px]" style={{ color: "rgba(255,255,255,0.4)" }}>
-              <span style={{ color: C.green, fontWeight: 600 }}>↑ $3,200</span>{" "}
-              this month · up 14.9% from last year
-            </p>
-          </div>
-
-          {/* 3 metric cards */}
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            {[
-              { label: "Health Score", value: "742", sub: "out of 1,000", green: false },
-              { label: "Saved Monthly", value: "$2,840", sub: "22% of income", green: true },
-              { label: "Debt Left", value: "$18,400", sub: "Free Mar 2027", green: false },
-            ].map((m, i) => (
-              <div
-                key={i}
-                className="rounded-xl p-4"
-                style={{ background: C.bg, border: `1px solid ${C.border}` }}
-              >
-                <p
-                  className="text-[10px] font-medium uppercase tracking-wider mb-2"
-                  style={{ color: C.muted }}
-                >
-                  {m.label}
-                </p>
-                <p
-                  className="text-[20px] font-semibold tracking-[-0.02em] leading-none mb-1"
-                  style={{ color: C.text }}
-                >
-                  {m.value}
-                </p>
-                <p
-                  className="text-[11px] font-medium"
-                  style={{ color: m.green ? C.green : C.muted }}
-                >
-                  {m.sub}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          {/* AI Insight */}
-          <div
-            className="rounded-xl p-4 mb-4"
-            style={{ background: C.white, border: `1px solid ${C.border}` }}
-          >
-            <div className="flex items-start gap-3">
-              <div
-                className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-                style={{ background: C.dark }}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                  <path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z" />
-                </svg>
-              </div>
-              <div>
-                <p
-                  className="text-[11px] font-semibold uppercase tracking-wider mb-1"
-                  style={{ color: C.text }}
-                >
-                  AI spotted something
-                </p>
-                <p className="text-[13px] leading-relaxed" style={{ color: C.sub }}>
-                  Duolingo Plus, Adobe CC, and Calm — unused for 90+ days.{" "}
-                  <strong style={{ color: C.text }}>$127/mo</strong> wasted. Cancel to save{" "}
-                  <strong style={{ color: C.green }}>$1,524/yr</strong>.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Spending */}
-          <div
-            className="rounded-xl p-4"
-            style={{ background: C.bg, border: `1px solid ${C.border}` }}
-          >
-            <p
-              className="text-[10px] font-medium uppercase tracking-wider mb-3"
-              style={{ color: C.muted }}
-            >
-              Spending — March
-            </p>
-            <div className="space-y-3">
-              {[
-                { name: "Housing", value: "$2,800", pct: 66 },
-                { name: "Food & Dining", value: "$1,290", pct: 30 },
-                { name: "Shopping", value: "$860", pct: 20 },
-                { name: "Transport", value: "$517", pct: 12 },
-              ].map((s, i) => (
-                <div key={i}>
-                  <div className="flex justify-between mb-1.5">
-                    <span className="text-[12px]" style={{ color: C.sub }}>
-                      {s.name}
-                    </span>
-                    <span className="text-[12px] font-medium" style={{ color: C.text }}>
-                      {s.value}
-                    </span>
-                  </div>
-                  <div
-                    className="h-[4px] rounded-full overflow-hidden"
-                    style={{ background: C.border }}
-                  >
-                    <motion.div
-                      initial={{ width: 0 }}
-                      whileInView={{ width: `${s.pct}%` }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.8, delay: i * 0.08 }}
-                      className="h-full rounded-full"
-                      style={{ background: C.dark }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      <div style={{ fontSize: "32px", marginBottom: "16px" }}>{emoji}</div>
+      <h3 style={{ fontSize: "16px", fontWeight: "700", color: "#0C0D10", margin: "0 0 8px 0" }}>{title}</h3>
+      <p style={{ fontSize: "13px", color: "#6B7280", margin: 0, lineHeight: "1.6" }}>{desc}</p>
+    </motion.div>
   );
 }
 
-/* ── Chat Visual ── */
-function ChatVisual() {
-  return (
-    <div
-      className="rounded-2xl overflow-hidden shadow-xl"
-      style={{ background: C.dark, border: "1px solid rgba(255,255,255,0.07)" }}
-    >
-      <div
-        className="flex items-center gap-2 px-5 py-3.5"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
-      >
-        <span className="w-2 h-2 rounded-full" style={{ background: C.green }} />
-        <span className="text-[12px] font-medium" style={{ color: "rgba(255,255,255,0.4)" }}>
-          Casha AI Advisor
-        </span>
-      </div>
-      <div className="p-5 space-y-4">
-        <div className="flex justify-end">
-          <div
-            className="rounded-2xl rounded-tr-sm px-4 py-3 text-[13px] max-w-[80%]"
-            style={{ background: C.blue, color: C.white }}
-          >
-            Can I afford a $4,000 vacation in April?
-          </div>
-        </div>
-        <div className="flex justify-start">
-          <div
-            className="rounded-2xl rounded-tl-sm px-4 py-3.5 text-[13px] max-w-[88%] leading-relaxed"
-            style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.65)" }}
-          >
-            Yes — but timing matters. Your savings are at{" "}
-            <span className="text-white font-semibold">$9,200</span> and you&apos;re adding{" "}
-            <span className="text-white font-semibold">$1,400/month</span>. One thing: your car insurance
-            renews March 15 for <span className="text-white font-semibold">$840</span>. Book after that
-            and your emergency fund stays fully intact.
-          </div>
-        </div>
-        <div className="flex justify-end">
-          <div
-            className="rounded-2xl rounded-tr-sm px-4 py-3 text-[13px]"
-            style={{ background: C.blue, color: C.white }}
-          >
-            What if I book in late April?
-          </div>
-        </div>
-        <div className="flex justify-start">
-          <div
-            className="rounded-2xl rounded-tl-sm px-4 py-3.5 text-[13px] max-w-[88%] leading-relaxed"
-            style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.65)" }}
-          >
-            <span className="text-white font-semibold">That&apos;s the move.</span> By April 25
-            you&apos;ll have{" "}
-            <span style={{ color: C.green, fontWeight: 600 }}>$11,480 saved</span>. Vacation covered,
-            emergency fund at 6 months, and you still hit your house deposit goal by December.
-          </div>
-        </div>
-        <div className="flex items-center gap-2 pt-1">
-          <div
-            className="flex-1 rounded-xl px-3.5 py-2.5 text-[12px]"
-            style={{
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.07)",
-              color: "rgba(255,255,255,0.2)",
-            }}
-          >
-            Ask anything about your money...
-          </div>
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: C.blue }}
-          >
-            <svg width="14" height="14" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-            </svg>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Debt Visual ── */
-function DebtVisual() {
-  return (
-    <div
-      className="rounded-2xl overflow-hidden shadow-xl"
-      style={{ background: C.white, border: `1px solid ${C.border}` }}
-    >
-      <div className="p-6" style={{ borderBottom: `1px solid ${C.border}` }}>
-        <div className="flex items-center justify-between mb-1">
-          <p className="text-[13px] font-semibold" style={{ color: C.text }}>
-            Debt-Free Date
-          </p>
-          <span
-            className="text-[12px] font-semibold px-3 py-1 rounded-full"
-            style={{ background: "#F0FDF4", color: "#166534" }}
-          >
-            On track
-          </span>
-        </div>
-        <p
-          className="text-[32px] font-semibold tracking-[-0.025em]"
-          style={{ color: C.text }}
-        >
-          September 2027
-        </p>
-        <p className="text-[13px] mt-1" style={{ color: C.sub }}>
-          18 months faster with Casha&apos;s plan
-        </p>
-      </div>
-      <div className="p-6 space-y-5">
-        {[
-          { name: "Credit Card", balance: "$4,200", rate: "24%", color: "#EF4444", pct: 35 },
-          { name: "Personal Loan", balance: "$8,500", rate: "11%", color: C.amber, pct: 55 },
-          { name: "Student Loan", balance: "$12,000", rate: "6%", color: C.blue, pct: 75 },
-        ].map((d, i) => (
-          <div key={i}>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <span
-                  className="w-2 h-2 rounded-full flex-shrink-0"
-                  style={{ background: d.color }}
-                />
-                <span className="text-[13px] font-medium" style={{ color: C.text }}>
-                  {d.name}
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-[13px] font-semibold" style={{ color: C.text }}>
-                  {d.balance}
-                </span>
-                <span
-                  className="text-[11px] px-2 py-0.5 rounded"
-                  style={{ background: C.surface, color: C.muted }}
-                >
-                  {d.rate} APR
-                </span>
-              </div>
-            </div>
-            <div
-              className="h-[6px] rounded-full overflow-hidden"
-              style={{ background: C.surface }}
-            >
-              <motion.div
-                initial={{ width: 0 }}
-                whileInView={{ width: `${d.pct}%` }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.9, delay: i * 0.15 }}
-                className="h-full rounded-full"
-                style={{ background: d.color }}
-              />
-            </div>
-          </div>
-        ))}
-        <div className="pt-3" style={{ borderTop: `1px solid ${C.border}` }}>
-          <div className="flex items-center justify-between">
-            <span className="text-[13px]" style={{ color: C.sub }}>
-              Monthly payment freed after payoff
-            </span>
-            <span className="text-[15px] font-semibold" style={{ color: C.green }}>
-              +$890/mo
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Tax Visual ── */
-function TaxVisual() {
-  return (
-    <div
-      className="rounded-2xl overflow-hidden shadow-xl"
-      style={{ background: C.white, border: `1px solid ${C.border}` }}
-    >
-      <div className="p-6" style={{ borderBottom: `1px solid ${C.border}` }}>
-        <p className="text-[13px] font-medium mb-1" style={{ color: C.muted }}>
-          Deductions found this year
-        </p>
-        <p
-          className="text-[36px] font-semibold tracking-[-0.025em]"
-          style={{ color: C.text }}
-        >
-          $3,840
-        </p>
-        <p className="text-[13px] mt-1" style={{ color: C.sub }}>
-          You were leaving this on the table
-        </p>
-      </div>
-      <div>
-        {[
-          { label: "Home office deduction", amount: "$1,200", status: "Found", sBg: "#F0FDF4", sColor: "#166534" },
-          { label: "Health insurance premium", amount: "$960", status: "Found", sBg: "#F0FDF4", sColor: "#166534" },
-          { label: "Professional development", amount: "$840", status: "Found", sBg: "#F0FDF4", sColor: "#166534" },
-          { label: "Charitable contributions", amount: "$480", status: "Partial", sBg: "#FFFBEB", sColor: "#92400E" },
-          { label: "Student loan interest", amount: "$360", status: "Found", sBg: "#F0FDF4", sColor: "#166534" },
-        ].map((item, i, arr) => (
-          <div
-            key={i}
-            className="flex items-center justify-between px-6 py-3.5"
-            style={{ borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : "none" }}
-          >
-            <span className="text-[13px]" style={{ color: C.text }}>
-              {item.label}
-            </span>
-            <div className="flex items-center gap-3">
-              <span className="text-[13px] font-semibold" style={{ color: C.green }}>
-                {item.amount}
-              </span>
-              <span
-                className="text-[10px] font-semibold px-2 py-1 rounded-full"
-                style={{ background: item.sBg, color: item.sColor }}
-              >
-                {item.status}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ── Score Visual ── */
-function ScoreVisual() {
-  return (
-    <div
-      className="rounded-2xl overflow-hidden shadow-xl"
-      style={{ background: C.white, border: `1px solid ${C.border}` }}
-    >
-      <div className="p-6" style={{ borderBottom: `1px solid ${C.border}` }}>
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-[13px] font-medium mb-1" style={{ color: C.muted }}>
-              Financial Health Score
-            </p>
-            <p
-              className="font-semibold tracking-[-0.04em] leading-none"
-              style={{ fontSize: 48, color: C.text }}
-            >
-              742
-            </p>
-            <p className="text-[13px] mt-2" style={{ color: C.sub }}>
-              out of 1,000 ·{" "}
-              <span style={{ color: C.green, fontWeight: 600 }}>↑ 34 pts this month</span>
-            </p>
-          </div>
-          <span
-            className="text-[13px] font-semibold px-3 py-1.5 rounded-full"
-            style={{ background: "#EFF6FF", color: "#1D4ED8" }}
-          >
-            Good
-          </span>
-        </div>
-      </div>
-      <div className="p-6 space-y-4">
-        {[
-          { label: "Emergency Fund", score: 90, color: C.green },
-          { label: "Debt Health", score: 65, color: C.amber },
-          { label: "Savings Rate", score: 78, color: C.green },
-          { label: "Investment Mix", score: 55, color: C.amber },
-          { label: "Tax Efficiency", score: 82, color: C.green },
-        ].map((item, i) => (
-          <div key={i}>
-            <div className="flex justify-between mb-1.5">
-              <span className="text-[13px]" style={{ color: C.text }}>
-                {item.label}
-              </span>
-              <span className="text-[13px] font-semibold" style={{ color: C.text }}>
-                {item.score}/100
-              </span>
-            </div>
-            <div
-              className="h-[6px] rounded-full overflow-hidden"
-              style={{ background: C.surface }}
-            >
-              <motion.div
-                initial={{ width: 0 }}
-                whileInView={{ width: `${item.score}%` }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.9, delay: i * 0.1 }}
-                className="h-full rounded-full"
-                style={{ background: item.color }}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ════════════════════════════════════════
-   MAIN PAGE
-════════════════════════════════════════ */
-export default function Home() {
-  const [email, setEmail] = useState("");
-  const [state, setState] = useState<"idle" | "loading" | "done">("idle");
-  const [pos, setPos] = useState(0);
+export default function LandingPage() {
   const [faq, setFaq] = useState<number | null>(null);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 8);
+    const fn = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", fn, { passive: true });
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || state !== "idle") return;
-    setState("loading");
-    await new Promise((r) => setTimeout(r, 800));
-    setPos(Math.floor(Math.random() * 600) + 300);
-    setState("done");
-    toast.success("You're on the waitlist.");
-  };
+  const features = [
+    { emoji: "🧠", title: "AI CFO — Available 24/7", desc: "Ask anything about your money. Get CFO-level advice based on YOUR real transactions, not generic tips." },
+    { emoji: "📊", title: "Smart Dashboard", desc: "See your complete financial picture in one place. Health score, net worth, income vs expenses — live." },
+    { emoji: "💸", title: "Debt Destroyer™", desc: "See your exact debt-free date. AI creates the optimal payoff strategy saving you lakhs in interest." },
+    { emoji: "🎯", title: "Savings Goals", desc: "Set goals, automate savings, track progress. Round-up every purchase toward your dreams." },
+    { emoji: "🧾", title: "Tax Genius™ India", desc: "Old vs New regime optimizer. Finds every deduction — 80C, 80D, HRA, NPS. Save ₹20K-₹50K+ per year." },
+    { emoji: "🔄", title: "Subscription Killer", desc: "Auto-detects all subscriptions. Finds wasted money. 'You're paying ₹2,400/month for unused services.'" },
+    { emoji: "📱", title: "SMS Parser — India", desc: "Paste any bank SMS — SBI, HDFC, ICICI, all banks. Auto-creates transaction in 1 second." },
+    { emoji: "📋", title: "AI Budget System", desc: "AI generates your budget based on income using the India-adapted 50/30/20 rule. One click." },
+    { emoji: "🛡️", title: "Bank-Level Security", desc: "AES-256 encryption. Row Level Security. Your data is yours — never sold, never shared." },
+  ];
+
+  const competitors = [
+    { feature: "AI CFO with real data", casha: true, mint: false, cred: false, ynab: false },
+    { feature: "India Tax Optimizer", casha: true, mint: false, cred: false, ynab: false },
+    { feature: "SMS Parser (Indian banks)", casha: true, mint: false, cred: false, ynab: false },
+    { feature: "Old vs New regime", casha: true, mint: false, cred: false, ynab: false },
+    { feature: "Subscription auto-detect", casha: true, mint: true, cred: false, ynab: false },
+    { feature: "Debt payoff optimizer", casha: true, mint: true, cred: false, ynab: true },
+    { feature: "Free forever plan", casha: true, mint: false, cred: true, ynab: false },
+    { feature: "Works without bank switch", casha: true, mint: true, cred: false, ynab: true },
+    { feature: "50/30/20 budget AI", casha: true, mint: false, cred: false, ynab: false },
+  ];
+
+  const faqs = [
+    { q: "Is the free plan really free?", a: "Yes. No credit card, no trial period, no hidden charges. Our free plan includes transaction tracking, health score, AI advisor (10 questions/day), tax optimizer, and more — forever." },
+    { q: "How does Casha access my bank data?", a: "You manually add transactions, paste bank SMS messages, or upload bank statements. We never ask for your internet banking password. Your credentials stay with you." },
+    { q: "Is my financial data safe?", a: "Absolutely. We use AES-256 encryption (same as banks), Row Level Security so no one can see your data, and we never sell your data to anyone — ever." },
+    { q: "Which banks and apps are supported?", a: "All Indian banks via SMS parsing — SBI, HDFC, ICICI, Axis, Kotak, PNB, BOB, and more. Also supports UPI apps like GPay, PhonePe, Paytm." },
+    { q: "How is Casha different from CRED or Jupiter?", a: "CRED only works with credit cards. Jupiter requires you to open a new bank account. Casha works with ALL your existing accounts, tracks all transactions, and gives you an AI CFO — completely free." },
+    { q: "What is the 50/30/20 rule?", a: "It's a simple budgeting framework: 50% of income for needs (rent, food, bills), 30% for wants (entertainment, shopping), 20% for savings and investments. Casha adapts this for Indian income levels and automatically generates your personalized budget." },
+  ];
 
   return (
-    <div
-      className="min-h-screen antialiased"
-      style={{
-        background: C.bg,
-        color: C.text,
-        fontFamily: "'Inter', system-ui, sans-serif",
-      }}
-    >
-      <Toaster
-        position="top-center"
-        toastOptions={{
-          style: {
-            background: C.dark,
-            color: C.white,
-            borderRadius: "10px",
-            fontSize: "13px",
-          },
-        }}
-      />
+    <div style={{ fontFamily: "system-ui, -apple-system, sans-serif", background: "#FAFAFA", color: "#0C0D10", overflowX: "hidden" }}>
 
-      {/* ═══ NAV ═══ */}
-      <header
-        className="fixed inset-x-0 top-0 z-50 transition-all duration-300"
-        style={{
-          background: scrolled ? `${C.bg}F2` : "transparent",
-          backdropFilter: scrolled ? "blur(20px)" : "none",
-          borderBottom: scrolled ? `1px solid ${C.border}` : "none",
-          boxShadow: scrolled ? "0 1px 0 rgba(0,0,0,0.04)" : "none",
-        }}
-      >
-        <div className="max-w-[1280px] mx-auto px-8 h-[66px] flex items-center justify-between">
-          <Logo />
-          <nav className="hidden md:flex items-center gap-1">
-            {[
-              ["Product", "#product"],
-              ["How It Works", "#howitworks"],
-              ["Security", "#security"],
-              ["Pricing", "/pricing"],
-              ["FAQ", "#faq"],
-            ].map(([label, href]) => (
-              <a
-                key={label}
-                href={href}
-                className="px-3.5 py-2 text-[14px] rounded-lg transition-all"
-                style={{ color: C.sub }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = C.text;
-                  e.currentTarget.style.background = "rgba(0,0,0,0.04)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = C.sub;
-                  e.currentTarget.style.background = "transparent";
-                }}
-              >
-                {label}
-              </a>
-            ))}
-          </nav>
-          <div className="flex items-center gap-3">
-            <a
-              href="#"
-              className="hidden sm:block text-[14px] font-medium transition-colors"
-              style={{ color: C.sub }}
-            >
-              Sign in
+      {/* ── NAVBAR ── */}
+      <nav style={{
+        position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
+        height: "64px", display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "0 40px",
+        background: scrolled ? "rgba(250,250,250,0.92)" : "transparent",
+        backdropFilter: scrolled ? "blur(20px)" : "none",
+        borderBottom: scrolled ? "1px solid #E5E7EB" : "none",
+        transition: "all 0.3s",
+      }}>
+        {/* Logo */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div style={{
+            width: "34px", height: "34px", borderRadius: "10px",
+            background: "linear-gradient(135deg, #22C55E, #3B82F6)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: "#fff", fontWeight: "800", fontSize: "16px"
+          }}>C</div>
+          <span style={{ fontSize: "18px", fontWeight: "800", color: "#0C0D10", letterSpacing: "-0.02em" }}>
+            casha<span style={{ color: "#22C55E" }}>.money</span>
+          </span>
+        </div>
+
+        {/* Nav Links */}
+        <div style={{ display: "flex", alignItems: "center", gap: "32px" }}>
+          {[["Features", "#features"], ["50/30/20", "#rule"], ["Pricing", "#pricing"], ["FAQ", "#faq"]].map(([label, href]) => (
+            <a key={label} href={href} style={{ fontSize: "14px", color: "#6B7280", textDecoration: "none", fontWeight: "500" }}>
+              {label}
             </a>
-            <a
-              href="#cta"
-              className="text-[14px] font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm"
-              style={{ background: C.dark, color: C.white }}
-            >
-              Get Started Free
-            </a>
-          </div>
+          ))}
         </div>
-      </header>
 
-      {/* ═══ HERO ═══ */}
-      <section className="pt-[150px] pb-0 px-8 overflow-hidden" style={{ background: C.bg }}>
-        <div className="max-w-[1280px] mx-auto">
-          <div className="max-w-[800px] mx-auto text-center">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.4 }}
-              className="flex justify-center mb-8"
-            >
-              <div
-                className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full text-[13px] font-medium"
-                style={{ border: `1px solid ${C.border}`, color: C.sub, background: C.white }}
-              >
-                <span
-                  className="w-2 h-2 rounded-full animate-pulse"
-                  style={{ background: C.green }}
-                />
-                Early access now open — Join the waitlist
-              </div>
-            </motion.div>
-
-            <motion.h1
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.65, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-              className="font-semibold leading-[1.04] tracking-[-0.04em] mb-7"
-              style={{ fontSize: "clamp(52px, 7.5vw, 88px)", color: C.text }}
-            >
-              The financial advisor
-              <br />
-              <span style={{ color: C.muted }}>everyone deserves.</span>
-            </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.65, delay: 0.18 }}
-              className="leading-[1.65] mx-auto mb-10"
-              style={{ fontSize: 19, color: C.sub, maxWidth: 500 }}
-            >
-              AI that tracks your money, finds what you&apos;re losing, and builds a personalized plan to
-              grow your wealth. Free for everyone.
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.65, delay: 0.28 }}
-              id="cta"
-              className="flex justify-center mb-5"
-            >
-              <AnimatePresence mode="wait">
-                {state === "done" ? (
-                  <motion.div
-                    key="d"
-                    initial={{ opacity: 0, scale: 0.97 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="flex items-center gap-3 px-6 py-4 rounded-2xl"
-                    style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}
-                  >
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ background: C.green, color: C.white }}
-                    >
-                      {Ic.check}
-                    </div>
-                    <div className="text-left">
-                      <p className="text-[14px] font-semibold" style={{ color: C.text }}>
-                        You&apos;re #{pos} on the list
-                      </p>
-                      <p className="text-[12px]" style={{ color: C.sub }}>
-                        We&apos;ll notify you when access opens.
-                      </p>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.form
-                    key="f"
-                    onSubmit={submit}
-                    className="flex flex-col sm:flex-row gap-2.5"
-                  >
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Enter your email address"
-                      disabled={state === "loading"}
-                      className="h-[52px] rounded-xl px-5 text-[15px] outline-none transition-all disabled:opacity-50 shadow-sm"
-                      style={{
-                        width: 310,
-                        background: C.white,
-                        border: `1px solid ${C.border}`,
-                        color: C.text,
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.borderColor = C.blue;
-                        e.target.style.boxShadow = `0 0 0 3px ${C.blue}18`;
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.borderColor = C.border;
-                        e.target.style.boxShadow = "0 1px 2px rgba(0,0,0,0.06)";
-                      }}
-                    />
-                    <button
-                      type="submit"
-                      disabled={state === "loading"}
-                      className="h-[52px] rounded-xl px-8 text-[15px] font-semibold transition-all disabled:opacity-50 shadow-sm whitespace-nowrap"
-                      style={{ background: C.dark, color: C.white }}
-                    >
-                      {state === "loading" ? "Joining..." : "Get Early Access — Free"}
-                    </button>
-                  </motion.form>
-                )}
-              </AnimatePresence>
-            </motion.div>
-
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="text-[13px] mb-20"
-              style={{ color: C.muted }}
-            >
-              Free plan available forever · No credit card required · 40+ countries supported
-            </motion.p>
-          </div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, delay: 0.4 }}
-            className="max-w-[1100px] mx-auto relative"
-          >
-            <Dashboard />
-            <div
-              className="absolute bottom-0 inset-x-0 h-[100px] pointer-events-none"
-              style={{ background: `linear-gradient(to top, ${C.bg}, transparent)` }}
-            />
-          </motion.div>
+        {/* CTA */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <a href="/auth/login" style={{ fontSize: "14px", color: "#6B7280", textDecoration: "none", fontWeight: "500" }}>
+            Sign in
+          </a>
+          <a href="/auth/signup" style={{
+            fontSize: "14px", fontWeight: "700", padding: "8px 20px",
+            borderRadius: "10px", textDecoration: "none",
+            background: "#0C0D10", color: "#fff"
+          }}>
+            Get Started Free →
+          </a>
         </div>
-      </section>
+      </nav>
 
-      {/* ═══ STATS ═══ */}
-      <section
-        className="py-16 px-8"
-        style={{
-          borderTop: `1px solid ${C.border}`,
-          borderBottom: `1px solid ${C.border}`,
-          background: C.white,
-        }}
-      >
-        <div className="max-w-[1280px] mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {[
-              { n: "4,200+", l: "People on the waitlist" },
-              { n: "$12M+", l: "In savings identified" },
-              { n: "$47K avg", l: "In tax savings found" },
-              { n: "40+", l: "Countries supported" },
-            ].map((s, i) => (
-              <Reveal key={i} delay={i * 0.06} className="text-center">
-                <p
-                  className="text-[28px] sm:text-[34px] font-semibold tracking-[-0.025em]"
-                  style={{ color: C.text }}
-                >
-                  {s.n}
-                </p>
-                <p className="text-[14px] mt-1.5" style={{ color: C.muted }}>
-                  {s.l}
-                </p>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* ── HERO ── */}
+      <section style={{ paddingTop: "140px", paddingBottom: "80px", paddingLeft: "40px", paddingRight: "40px", maxWidth: "1200px", margin: "0 auto", textAlign: "center" }}>
 
-      {/* ═══ PROBLEM ═══ */}
-      <section className="py-[120px] px-8">
-        <div className="max-w-[1280px] mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-            <Reveal>
-              <p
-                className="text-[12px] font-semibold uppercase tracking-[0.15em] mb-5"
-                style={{ color: C.blue }}
-              >
-                The problem
-              </p>
-              <h2
-                className="font-semibold leading-[1.1] tracking-[-0.03em] mb-7"
-                style={{ fontSize: "clamp(36px, 4.5vw, 52px)", color: C.text }}
-              >
-                Most people lose
-                <br />
-                thousands every year.
-                <br />
-                <span style={{ color: C.muted }}>Without knowing it.</span>
-              </h2>
-              <p
-                className="text-[17px] leading-[1.75] mb-8"
-                style={{ color: C.sub, maxWidth: 480 }}
-              >
-                Not because they&apos;re careless. Because good financial guidance has always required money
-                you don&apos;t yet have. We&apos;re here to change that.
-              </p>
-              <a
-                href="#product"
-                className="inline-flex items-center gap-2 text-[15px] font-semibold group"
-                style={{ color: C.text }}
-              >
-                See how Casha helps
-                <span className="group-hover:translate-x-1 transition-transform">{Ic.arrow}</span>
-              </a>
-            </Reveal>
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { n: "78%", d: "of adults live paycheck to paycheck", s: "Federal Reserve, 2024" },
-                { n: "$1,200", d: "average annual tax overpayment", s: "IRS Data" },
-                { n: "56%", d: "cannot cover a $1,000 emergency", s: "Bankrate, 2024" },
-                { n: "64%", d: "not on track for retirement", s: "NIRS Report" },
-              ].map((s, i) => (
-                <Reveal key={i} delay={i * 0.08}>
-                  <div
-                    className="rounded-2xl p-7 h-full"
-                    style={{
-                      background: C.white,
-                      border: `1px solid ${C.border}`,
-                      boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-                    }}
-                  >
-                    <p
-                      className="text-[34px] font-semibold tracking-[-0.025em] mb-3"
-                      style={{ color: C.text }}
-                    >
-                      {s.n}
-                    </p>
-                    <p className="text-[13px] leading-snug mb-3" style={{ color: C.sub }}>
-                      {s.d}
-                    </p>
-                    <p
-                      className="text-[10px] uppercase tracking-wider font-medium"
-                      style={{ color: C.faint }}
-                    >
-                      {s.s}
-                    </p>
-                  </div>
-                </Reveal>
-              ))}
+        {/* Badge */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          style={{ display: "inline-flex", alignItems: "center", gap: "8px", marginBottom: "24px" }}
+        >
+          <span style={{
+            display: "inline-flex", alignItems: "center", gap: "6px",
+            background: "#F0FDF4", border: "1px solid #BBF7D0",
+            borderRadius: "999px", padding: "6px 16px",
+            fontSize: "13px", fontWeight: "600", color: "#166534"
+          }}>
+            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#22C55E", display: "inline-block" }} />
+            Now live — Join the waitlist
+          </span>
+        </motion.div>
+
+        {/* Headline */}
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          style={{
+            fontSize: "clamp(40px, 6vw, 80px)", fontWeight: "800",
+            letterSpacing: "-0.04em", lineHeight: "1.05",
+            margin: "0 0 24px 0", color: "#0C0D10"
+          }}
+        >
+          The financial advisor
+          <br />
+          <span style={{ background: "linear-gradient(135deg, #22C55E, #3B82F6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+            everyone deserves.
+          </span>
+        </motion.h1>
+
+        {/* Subheadline */}
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          style={{ fontSize: "18px", color: "#6B7280", maxWidth: "560px", margin: "0 auto 40px", lineHeight: "1.7" }}
+        >
+          AI that tracks your money, destroys debt, saves taxes, and builds a
+          personalized plan to grow your wealth. <strong style={{ color: "#0C0D10" }}>Free for everyone.</strong>
+        </motion.p>
+
+        {/* CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          style={{ display: "flex", justifyContent: "center", marginBottom: "16px" }}
+        >
+          <WaitlistForm />
+        </motion.div>
+
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          style={{ fontSize: "12px", color: "#9CA3AF", marginBottom: "60px" }}
+        >
+          🔒 Free forever · No credit card · Unsubscribe anytime
+        </motion.p>
+
+        {/* Stats */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "32px", maxWidth: "600px", margin: "0 auto 80px" }}
+        >
+          <StatCard number="13+" label="Features built" />
+          <StatCard number="18+" label="Countries" />
+          <StatCard number="₹0" label="To start" />
+          <StatCard number="24/7" label="AI advisor" />
+        </motion.div>
+
+        {/* App Preview */}
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.5 }}
+          style={{
+            background: "#fff", border: "1px solid #E5E7EB", borderRadius: "24px",
+            padding: "24px", boxShadow: "0 24px 80px rgba(0,0,0,0.08)",
+            maxWidth: "900px", margin: "0 auto"
+          }}
+        >
+          {/* Browser chrome */}
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "20px" }}>
+            <div style={{ width: "12px", height: "12px", borderRadius: "50%", background: "#FF5F57" }} />
+            <div style={{ width: "12px", height: "12px", borderRadius: "50%", background: "#FEBC2E" }} />
+            <div style={{ width: "12px", height: "12px", borderRadius: "50%", background: "#28C840" }} />
+            <div style={{ flex: 1, background: "#F3F4F6", borderRadius: "6px", padding: "4px 12px", margin: "0 12px", fontSize: "11px", color: "#9CA3AF" }}>
+              app.casha.money
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* ═══ FEATURE 1: AI ADVISOR ═══ */}
-      <section
-        id="product"
-        className="py-[120px] px-8"
-        style={{ background: C.white, borderTop: `1px solid ${C.border}` }}
-      >
-        <div className="max-w-[1280px] mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-            <Reveal>
-              <p
-                className="text-[12px] font-semibold uppercase tracking-[0.15em] mb-5"
-                style={{ color: C.blue }}
-              >
-                AI Advisor
-              </p>
-              <h2
-                className="font-semibold leading-[1.1] tracking-[-0.03em] mb-6"
-                style={{ fontSize: "clamp(34px, 4vw, 48px)", color: C.text }}
-              >
-                Ask anything.
-                <br />
-                Get answers that
-                <br />
-                actually apply to you.
-              </h2>
-              <p className="text-[17px] leading-[1.75] mb-8" style={{ color: C.sub }}>
-                Most financial advice is generic. Casha reads your actual bank data, spending history, and
-                goals before answering. When you ask &ldquo;Can I afford this?&rdquo; — we check your real
-                numbers, not national averages.
-              </p>
-              <ul className="space-y-4">
-                {[
-                  "Available 24/7 in multiple languages",
-                  "Based on your real income and spending",
-                  "Gives specific next steps, not vague tips",
-                  "Understands your full financial picture",
-                ].map((item) => (
-                  <li
-                    key={item}
-                    className="flex items-center gap-3 text-[15px]"
-                    style={{ color: C.sub }}
-                  >
-                    <span className="flex-shrink-0" style={{ color: C.green }}>
-                      {Ic.check}
-                    </span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </Reveal>
-            <Reveal delay={0.15}>
-              <ChatVisual />
-            </Reveal>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ FEATURE 2: SPENDING ═══ */}
-      <section
-        className="py-[120px] px-8"
-        style={{ background: C.bg, borderTop: `1px solid ${C.border}` }}
-      >
-        <div className="max-w-[1280px] mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-            <Reveal delay={0.1} className="order-2 lg:order-1">
-              <Dashboard />
-            </Reveal>
-            <Reveal className="order-1 lg:order-2">
-              <p
-                className="text-[12px] font-semibold uppercase tracking-[0.15em] mb-5"
-                style={{ color: C.blue }}
-              >
-                Spending Intelligence
-              </p>
-              <h2
-                className="font-semibold leading-[1.1] tracking-[-0.03em] mb-6"
-                style={{ fontSize: "clamp(34px, 4vw, 48px)", color: C.text }}
-              >
-                Know exactly where
-                <br />
-                every dollar goes.
-              </h2>
-              <p className="text-[17px] leading-[1.75] mb-8" style={{ color: C.sub }}>
-                Every transaction categorized automatically across all your accounts. Forgotten subscriptions
-                surfaced. Spending patterns you never noticed — revealed clearly.
-              </p>
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { stat: "98%", desc: "categorization accuracy" },
-                  { stat: "$200", desc: "average monthly waste found" },
-                  { stat: "12", desc: "avg subscriptions detected" },
-                  { stat: "2 min", desc: "to connect your accounts" },
-                ].map((s, i) => (
-                  <div
-                    key={i}
-                    className="rounded-xl p-4"
-                    style={{ background: C.white, border: `1px solid ${C.border}` }}
-                  >
-                    <p
-                      className="text-[24px] font-semibold tracking-[-0.02em]"
-                      style={{ color: C.text }}
-                    >
-                      {s.stat}
-                    </p>
-                    <p className="text-[12px] mt-1" style={{ color: C.muted }}>
-                      {s.desc}
-                    </p>
-                  </div>
-                ))}
+          {/* Dashboard preview */}
+          <div style={{ display: "grid", gridTemplateColumns: "180px 1fr", gap: "16px", minHeight: "320px" }}>
+            {/* Sidebar */}
+            <div style={{ background: "#F9FAFB", borderRadius: "16px", padding: "16px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "20px" }}>
+                <div style={{ width: "24px", height: "24px", borderRadius: "6px", background: "linear-gradient(135deg, #22C55E, #3B82F6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: "700", color: "#fff" }}>C</div>
+                <span style={{ fontSize: "13px", fontWeight: "700", color: "#0C0D10" }}>casha.money</span>
               </div>
-            </Reveal>
-          </div>
-        </div>
-      </section>
+              {[
+                { icon: "📊", name: "Overview", active: true },
+                { icon: "💳", name: "Transactions", active: false },
+                { icon: "📋", name: "Budget", active: false },
+                { icon: "💸", name: "Debts", active: false },
+                { icon: "🧾", name: "Tax Genius", active: false },
+                { icon: "🧠", name: "AI Advisor", active: false },
+              ].map(item => (
+                <div key={item.name} style={{
+                  display: "flex", alignItems: "center", gap: "8px",
+                  padding: "8px 10px", borderRadius: "8px", marginBottom: "2px",
+                  background: item.active ? "#fff" : "transparent",
+                  boxShadow: item.active ? "0 1px 3px rgba(0,0,0,0.06)" : "none",
+                  fontSize: "12px", color: item.active ? "#0C0D10" : "#9CA3AF", fontWeight: item.active ? "600" : "400"
+                }}>
+                  <span>{item.icon}</span>{item.name}
+                </div>
+              ))}
+            </div>
 
-      {/* ═══ FEATURE 3: DEBT ═══ */}
-      <section
-        className="py-[120px] px-8"
-        style={{ background: C.white, borderTop: `1px solid ${C.border}` }}
-      >
-        <div className="max-w-[1280px] mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-            <Reveal>
-              <p
-                className="text-[12px] font-semibold uppercase tracking-[0.15em] mb-5"
-                style={{ color: C.blue }}
-              >
-                Debt Optimizer
-              </p>
-              <h2
-                className="font-semibold leading-[1.1] tracking-[-0.03em] mb-6"
-                style={{ fontSize: "clamp(34px, 4vw, 48px)", color: C.text }}
-              >
-                Your fastest path
-                <br />
-                to being debt-free.
-              </h2>
-              <p className="text-[17px] leading-[1.75] mb-8" style={{ color: C.sub }}>
-                We calculate the mathematically optimal payoff order. You see your exact debt-free date.
-                Every extra dollar you apply is automatically routed to save you the most interest.
-              </p>
-              <ul className="space-y-4">
-                {[
-                  "Optimal payoff sequence calculated automatically",
-                  "See your debt-free date update in real time",
-                  "Refinancing opportunities identified",
-                  "Celebrate every milestone along the way",
-                ].map((item) => (
-                  <li
-                    key={item}
-                    className="flex items-center gap-3 text-[15px]"
-                    style={{ color: C.sub }}
-                  >
-                    <span className="flex-shrink-0" style={{ color: C.green }}>
-                      {Ic.check}
-                    </span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </Reveal>
-            <Reveal delay={0.15}>
-              <DebtVisual />
-            </Reveal>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ FEATURE 4: TAX ═══ */}
-      <section
-        className="py-[120px] px-8"
-        style={{ background: C.bg, borderTop: `1px solid ${C.border}` }}
-      >
-        <div className="max-w-[1280px] mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-            <Reveal delay={0.1} className="order-2 lg:order-1">
-              <TaxVisual />
-            </Reveal>
-            <Reveal className="order-1 lg:order-2">
-              <p
-                className="text-[12px] font-semibold uppercase tracking-[0.15em] mb-5"
-                style={{ color: C.blue }}
-              >
-                Tax Optimizer
-              </p>
-              <h2
-                className="font-semibold leading-[1.1] tracking-[-0.03em] mb-6"
-                style={{ fontSize: "clamp(34px, 4vw, 48px)", color: C.text }}
-              >
-                Stop overpaying
-                <br />
-                your taxes.
-              </h2>
-              <p className="text-[17px] leading-[1.75] mb-8" style={{ color: C.sub }}>
-                The average person overpays $1,200 in taxes every year by missing deductions they qualify
-                for. Casha scans your spending and automatically surfaces every deduction before the
-                deadline.
-              </p>
-              <div
-                className="rounded-2xl p-6"
-                style={{ background: C.white, border: `1px solid ${C.border}` }}
-              >
-                <p className="text-[13px] font-medium mb-4" style={{ color: C.muted }}>
-                  Works across 40+ countries including
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    "United States",
-                    "United Kingdom",
-                    "India",
-                    "Canada",
-                    "Australia",
-                    "Germany",
-                    "France",
-                    "Singapore",
-                  ].map((country) => (
-                    <span
-                      key={country}
-                      className="text-[12px] font-medium px-3 py-1.5 rounded-lg"
-                      style={{ background: C.surface, color: C.sub }}
-                    >
-                      {country}
-                    </span>
-                  ))}
-                  <span
-                    className="text-[12px] font-medium px-3 py-1.5 rounded-lg"
-                    style={{ background: C.surface, color: C.blue }}
-                  >
-                    +32 more
-                  </span>
+            {/* Main content */}
+            <div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", marginBottom: "12px" }}>
+                <div style={{ background: "#0C0D10", borderRadius: "12px", padding: "14px" }}>
+                  <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.4)", margin: "0 0 4px 0" }}>HEALTH SCORE</p>
+                  <p style={{ fontSize: "24px", fontWeight: "800", color: "#22C55E", margin: 0 }}>800</p>
+                  <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.4)", margin: "4px 0 0 0" }}>Excellent 🎉</p>
+                </div>
+                <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: "12px", padding: "14px" }}>
+                  <p style={{ fontSize: "10px", color: "#166534", margin: "0 0 4px 0" }}>NET WORTH</p>
+                  <p style={{ fontSize: "18px", fontWeight: "800", color: "#166534", margin: 0 }}>₹1,40,000</p>
+                  <p style={{ fontSize: "10px", color: "#16A34A", margin: "4px 0 0 0" }}>↑ ₹15,000 this month</p>
+                </div>
+                <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: "12px", padding: "14px" }}>
+                  <p style={{ fontSize: "10px", color: "#1E40AF", margin: "0 0 4px 0" }}>SAVINGS RATE</p>
+                  <p style={{ fontSize: "24px", fontWeight: "800", color: "#1D4ED8", margin: 0 }}>68%</p>
+                  <p style={{ fontSize: "10px", color: "#3B82F6", margin: "4px 0 0 0" }}>Above average 👍</p>
                 </div>
               </div>
-            </Reveal>
-          </div>
-        </div>
-      </section>
 
-      {/* ═══ FEATURE 5: HEALTH SCORE ═══ */}
-      <section
-        className="py-[120px] px-8"
-        style={{ background: C.white, borderTop: `1px solid ${C.border}` }}
-      >
-        <div className="max-w-[1280px] mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-            <Reveal>
-              <p
-                className="text-[12px] font-semibold uppercase tracking-[0.15em] mb-5"
-                style={{ color: C.blue }}
-              >
-                Financial Health Score
-              </p>
-              <h2
-                className="font-semibold leading-[1.1] tracking-[-0.03em] mb-6"
-                style={{ fontSize: "clamp(34px, 4vw, 48px)", color: C.text }}
-              >
-                One number that
-                <br />
-                tells you everything.
-              </h2>
-              <p className="text-[17px] leading-[1.75] mb-8" style={{ color: C.sub }}>
-                Your Financial Health Score measures 9 factors across your complete financial life — from
-                emergency fund coverage to investment diversification. It updates monthly and always tells
-                you exactly what to improve next.
-              </p>
-              <div className="grid grid-cols-3 gap-3">
+              {/* AI Insight */}
+              <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: "12px", padding: "12px", marginBottom: "10px" }}>
+                <p style={{ fontSize: "11px", fontWeight: "700", color: "#92400E", margin: "0 0 4px 0" }}>🧠 AI spotted something</p>
+                <p style={{ fontSize: "11px", color: "#78350F", margin: 0 }}>Netflix + Hotstar + Amazon Prime — ₹1,200/mo. Consider cancelling 1. Save ₹14,400/year.</p>
+              </div>
+
+              {/* Mini transactions */}
+              <div style={{ background: "#F9FAFB", borderRadius: "12px", padding: "12px" }}>
+                <p style={{ fontSize: "10px", fontWeight: "700", color: "#9CA3AF", margin: "0 0 8px 0" }}>RECENT TRANSACTIONS</p>
                 {[
-                  "Emergency Fund",
-                  "Debt Health",
-                  "Savings Rate",
-                  "Tax Efficiency",
-                  "Investment Mix",
-                  "Insurance",
-                  "Credit Score",
-                  "Net Worth",
-                  "Cash Flow",
-                ].map((factor) => (
-                  <div
-                    key={factor}
-                    className="rounded-lg px-3 py-2.5 text-center"
-                    style={{ background: C.surface, border: `1px solid ${C.border}` }}
-                  >
-                    <p className="text-[11px] font-medium" style={{ color: C.sub }}>
-                      {factor}
-                    </p>
+                  { name: "Company Salary", amount: "+₹75,000", color: "#16A34A" },
+                  { name: "HDFC EMI", amount: "-₹15,000", color: "#0C0D10" },
+                  { name: "Swiggy", amount: "-₹2,500", color: "#0C0D10" },
+                ].map(t => (
+                  <div key={t.name} style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                    <span style={{ fontSize: "11px", color: "#6B7280" }}>{t.name}</span>
+                    <span style={{ fontSize: "11px", fontWeight: "700", color: t.color }}>{t.amount}</span>
                   </div>
                 ))}
               </div>
-            </Reveal>
-            <Reveal delay={0.15}>
-              <ScoreVisual />
-            </Reveal>
+            </div>
           </div>
-        </div>
+        </motion.div>
       </section>
 
-      {/* ═══ HOW IT WORKS ═══ */}
-      <section
-        id="howitworks"
-        className="py-[120px] px-8"
-        style={{ background: C.dark }}
-      >
-        <div className="max-w-[1280px] mx-auto">
-          <Reveal className="text-center max-w-[600px] mx-auto mb-20">
-            <p
-              className="text-[12px] font-semibold uppercase tracking-[0.15em] mb-5"
-              style={{ color: C.green }}
-            >
-              How it works
+      {/* ── PROBLEM SECTION ── */}
+      <section style={{ background: "#fff", padding: "80px 40px", borderTop: "1px solid #E5E7EB", borderBottom: "1px solid #E5E7EB" }}>
+        <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
+          <Reveal>
+            <p style={{ fontSize: "12px", fontWeight: "700", color: "#22C55E", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "12px", textAlign: "center" }}>
+              The Problem
             </p>
-            <h2
-              className="font-semibold leading-[1.08] tracking-[-0.03em] text-white"
-              style={{ fontSize: "clamp(36px, 4.5vw, 52px)" }}
-            >
-              Up and running
+            <h2 style={{ fontSize: "clamp(28px, 4vw, 48px)", fontWeight: "800", color: "#0C0D10", textAlign: "center", margin: "0 0 16px 0", letterSpacing: "-0.03em" }}>
+              Most people lose money every month.
               <br />
-              in two minutes.
+              <span style={{ color: "#9CA3AF" }}>Without even knowing it.</span>
             </h2>
+            <p style={{ fontSize: "16px", color: "#6B7280", textAlign: "center", maxWidth: "500px", margin: "0 auto 48px", lineHeight: "1.7" }}>
+              Not because they're careless. Because good financial advice
+              has always been reserved for the wealthy.
+            </p>
           </Reveal>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px" }}>
             {[
-              {
-                n: "1",
-                title: "Create your account",
-                desc: "Sign up with just your email. Free plan ready immediately. No credit card required.",
-              },
-              {
-                n: "2",
-                title: "Connect your accounts",
-                desc: "Link banks securely through certified APIs, or upload a CSV statement. Your choice.",
-              },
-              {
-                n: "3",
-                title: "AI analyzes everything",
-                desc: "Transactions categorized. Patterns found. Health score calculated. Opportunities surfaced.",
-              },
-              {
-                n: "4",
-                title: "Get your plan",
-                desc: "Specific recommendations based on your real data. Follow the plan. Watch your score rise.",
-              },
-            ].map((s, i) => (
-              <Reveal key={i} delay={i * 0.1}>
-                <div
-                  className="rounded-2xl p-8 h-full"
-                  style={{
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.07)",
-                  }}
-                >
-                  <div className="flex items-center gap-3 mb-6">
-                    <span
-                      className="text-[13px] font-semibold"
-                      style={{ color: "rgba(255,255,255,0.3)" }}
-                    >
-                      Step {s.n}
-                    </span>
-                    <div
-                      className="flex-1 h-px"
-                      style={{ background: "rgba(255,255,255,0.06)" }}
-                    />
-                  </div>
-                  <h3 className="text-[17px] font-semibold text-white mb-3">{s.title}</h3>
-                  <p
-                    className="text-[14px] leading-[1.7]"
-                    style={{ color: "rgba(255,255,255,0.4)" }}
-                  >
-                    {s.desc}
+              { stat: "78%", desc: "of Indians live paycheck to paycheck", source: "RBI Data 2024" },
+              { stat: "₹1.2L", desc: "average annual tax overpayment", source: "Income Tax Dept." },
+              { stat: "₹2,400", desc: "wasted monthly on unused subscriptions", source: "Casha Analysis" },
+              { stat: "64%", desc: "not on track for retirement", source: "PFRDA Report" },
+            ].map((item, i) => (
+              <Reveal key={i} delay={i * 0.08}>
+                <div style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: "20px", padding: "24px" }}>
+                  <p style={{ fontSize: "36px", fontWeight: "800", color: "#0C0D10", margin: "0 0 8px 0", letterSpacing: "-0.02em" }}>
+                    {item.stat}
                   </p>
+                  <p style={{ fontSize: "14px", color: "#374151", margin: "0 0 8px 0", lineHeight: "1.4" }}>
+                    {item.desc}
+                  </p>
+                  <p style={{ fontSize: "11px", color: "#9CA3AF", margin: 0 }}>{item.source}</p>
                 </div>
               </Reveal>
             ))}
@@ -1431,80 +442,388 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ═══ TESTIMONIALS ═══ */}
-      <section
-        className="py-[120px] px-8"
-        style={{ background: C.bg, borderTop: `1px solid ${C.border}` }}
-      >
-        <div className="max-w-[1280px] mx-auto">
-          <Reveal className="text-center mb-16">
-            <p
-              className="text-[12px] font-semibold uppercase tracking-[0.15em] mb-4"
-              style={{ color: C.blue }}
-            >
-              Real people. Real results.
+      {/* ── 50/30/20 RULE ── */}
+      <section id="rule" style={{ padding: "80px 40px", background: "#0C0D10" }}>
+        <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
+          <Reveal>
+            <p style={{ fontSize: "12px", fontWeight: "700", color: "#22C55E", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "12px", textAlign: "center" }}>
+              Built-in Framework
             </p>
-            <h2
-              className="font-semibold tracking-[-0.03em]"
-              style={{ fontSize: "clamp(34px, 4vw, 48px)", color: C.text }}
-            >
-              What our early users say
+            <h2 style={{ fontSize: "clamp(28px, 4vw, 48px)", fontWeight: "800", color: "#fff", textAlign: "center", margin: "0 0 16px 0", letterSpacing: "-0.03em" }}>
+              The 50/30/20 Rule —
+              <br />
+              <span style={{ color: "#22C55E" }}>India Adapted.</span>
             </h2>
+            <p style={{ fontSize: "16px", color: "rgba(255,255,255,0.5)", textAlign: "center", maxWidth: "520px", margin: "0 auto 48px", lineHeight: "1.7" }}>
+              The world's most proven budgeting framework, adapted for Indian
+              income levels and spending patterns. Casha applies it automatically.
+            </p>
           </Reveal>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "48px" }}>
             {[
               {
-                q: "Found $847 in subscriptions I completely forgot about. Cancelled everything in 10 minutes. The app paid for itself on day one.",
-                n: "Sarah K.",
-                r: "Product Manager · San Francisco",
-                c: "#EEF2FF",
-                ct: "#3730A3",
+                percent: "50%", label: "Needs", color: "#3B82F6",
+                items: ["Housing / Rent", "Groceries", "Utilities & Bills", "EMI Payments", "Insurance", "Transport"],
+                desc: "Essential expenses you cannot avoid"
               },
               {
-                q: "Tax optimizer found $3,200 in deductions my accountant missed for two straight years. One feature paid for a decade of subscription.",
-                n: "James T.",
-                r: "Software Engineer · London",
-                c: "#F0FDF4",
-                ct: "#166534",
+                percent: "30%", label: "Wants", color: "#F59E0B",
+                items: ["Dining & Food Delivery", "Entertainment", "Shopping", "Subscriptions", "Travel", "Hobbies"],
+                desc: "Lifestyle expenses that bring joy"
               },
               {
-                q: "First financial app that gives advice based on my actual situation — not generic tips I've already read a hundred times.",
-                n: "Priya M.",
-                r: "Startup Founder · Singapore",
-                c: "#FFF1F2",
-                ct: "#9F1239",
+                percent: "20%", label: "Save & Invest", color: "#22C55E",
+                items: ["Emergency Fund", "SIP / Mutual Funds", "PPF / NPS", "ELSS (Tax Saving)", "FD / RD", "Gold"],
+                desc: "Build wealth and secure your future"
+              },
+            ].map((section, i) => (
+              <Reveal key={i} delay={i * 0.1}>
+                <div style={{
+                  background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: "20px", padding: "28px", height: "100%"
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
+                    <span style={{ fontSize: "40px", fontWeight: "800", color: section.color }}>
+                      {section.percent}
+                    </span>
+                    <div>
+                      <p style={{ fontSize: "18px", fontWeight: "700", color: "#fff", margin: "0 0 2px 0" }}>
+                        {section.label}
+                      </p>
+                      <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)", margin: 0 }}>
+                        {section.desc}
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ height: "1px", background: "rgba(255,255,255,0.08)", marginBottom: "16px" }} />
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {section.items.map(item => (
+                      <div key={item} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: section.color, flexShrink: 0 }} />
+                        <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.6)" }}>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+
+          {/* Example */}
+          <Reveal>
+            <div style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: "20px", padding: "28px" }}>
+              <p style={{ fontSize: "14px", fontWeight: "700", color: "#22C55E", margin: "0 0 16px 0", textAlign: "center" }}>
+                📊 Example: ₹75,000/month salary
+              </p>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
+                {[
+                  { label: "50% Needs", amount: "₹37,500", color: "#3B82F6", items: "Rent ₹15K · EMI ₹11.25K · Food ₹7.5K · Bills ₹3.75K" },
+                  { label: "30% Wants", amount: "₹22,500", color: "#F59E0B", items: "Shopping ₹7.5K · Dining ₹6K · Entertainment ₹5K · Travel ₹4K" },
+                  { label: "20% Savings", amount: "₹15,000", color: "#22C55E", items: "SIP ₹5K · PPF ₹2.5K · Emergency ₹5K · ELSS ₹2.5K" },
+                ].map((col, i) => (
+                  <div key={i} style={{ textAlign: "center" }}>
+                    <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)", margin: "0 0 4px 0" }}>{col.label}</p>
+                    <p style={{ fontSize: "24px", fontWeight: "800", color: col.color, margin: "0 0 8px 0" }}>{col.amount}</p>
+                    <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", margin: 0, lineHeight: "1.5" }}>{col.items}</p>
+                  </div>
+                ))}
+              </div>
+              <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", textAlign: "center", marginTop: "16px", marginBottom: 0 }}>
+                🤖 Casha auto-generates this budget for you based on your actual income.
+              </p>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── FEATURES ── */}
+      <section id="features" style={{ padding: "80px 40px", background: "#FAFAFA" }}>
+        <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
+          <Reveal>
+            <p style={{ fontSize: "12px", fontWeight: "700", color: "#22C55E", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "12px", textAlign: "center" }}>
+              Everything you need
+            </p>
+            <h2 style={{ fontSize: "clamp(28px, 4vw, 48px)", fontWeight: "800", color: "#0C0D10", textAlign: "center", margin: "0 0 16px 0", letterSpacing: "-0.03em" }}>
+              13 powerful features.
+              <br />
+              <span style={{ color: "#9CA3AF" }}>One beautiful app.</span>
+            </h2>
+            <p style={{ fontSize: "16px", color: "#6B7280", textAlign: "center", maxWidth: "480px", margin: "0 auto 48px", lineHeight: "1.7" }}>
+              Everything a ₹30 lakh/year CFO would do for you — automated, AI-powered, and free.
+            </p>
+          </Reveal>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px" }}>
+            {features.map((f, i) => (
+              <FeatureCard key={i} {...f} delay={i * 0.04} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── COMPETITOR COMPARISON ── */}
+      <section style={{ padding: "80px 40px", background: "#fff", borderTop: "1px solid #E5E7EB" }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+          <Reveal>
+            <p style={{ fontSize: "12px", fontWeight: "700", color: "#22C55E", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "12px", textAlign: "center" }}>
+              Why Casha
+            </p>
+            <h2 style={{ fontSize: "clamp(28px, 4vw, 48px)", fontWeight: "800", color: "#0C0D10", textAlign: "center", margin: "0 0 48px 0", letterSpacing: "-0.03em" }}>
+              Built different.
+            </h2>
+          </Reveal>
+
+          <Reveal>
+            <div style={{ background: "#F9FAFB", borderRadius: "24px", overflow: "hidden", border: "1px solid #E5E7EB" }}>
+              {/* Header */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr repeat(4, 120px)", background: "#0C0D10", padding: "16px 24px", gap: "8px" }}>
+                <div />
+                {[
+                  { name: "Casha", highlight: true },
+                  { name: "Mint", highlight: false },
+                  { name: "CRED", highlight: false },
+                  { name: "YNAB", highlight: false },
+                ].map(col => (
+                  <div key={col.name} style={{ textAlign: "center" }}>
+                    <span style={{
+                      fontSize: "13px", fontWeight: "700",
+                      color: col.highlight ? "#22C55E" : "rgba(255,255,255,0.5)"
+                    }}>
+                      {col.name}
+                      {col.highlight && " ✦"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Rows */}
+              {competitors.map((row, i) => (
+                <div key={i} style={{
+                  display: "grid", gridTemplateColumns: "1fr repeat(4, 120px)",
+                  padding: "14px 24px", gap: "8px",
+                  background: i % 2 === 0 ? "#fff" : "#F9FAFB",
+                  borderBottom: i < competitors.length - 1 ? "1px solid #E5E7EB" : "none",
+                  alignItems: "center"
+                }}>
+                  <span style={{ fontSize: "13px", color: "#374151", fontWeight: "500" }}>{row.feature}</span>
+                  {[row.casha, row.mint, row.cred, row.ynab].map((val, j) => (
+                    <div key={j} style={{ textAlign: "center" }}>
+                      <span style={{
+                        fontSize: "18px",
+                        filter: j === 0 ? "none" : "grayscale(0)"
+                      }}>
+                        {val ? "✅" : "❌"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── HOW IT WORKS ── */}
+      <section style={{ padding: "80px 40px", background: "#FAFAFA", borderTop: "1px solid #E5E7EB" }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+          <Reveal>
+            <h2 style={{ fontSize: "clamp(28px, 4vw, 48px)", fontWeight: "800", color: "#0C0D10", textAlign: "center", margin: "0 0 48px 0", letterSpacing: "-0.03em" }}>
+              Up and running in 2 minutes.
+            </h2>
+          </Reveal>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
+            {[
+              { step: "1", title: "Create account", desc: "Sign up free. No credit card. Takes 30 seconds." },
+              { step: "2", title: "Add transactions", desc: "Paste bank SMS or add manually. All Indian banks supported." },
+              { step: "3", title: "AI analyzes", desc: "Transactions categorized. Health score calculated. Insights ready." },
+              { step: "4", title: "Watch wealth grow", desc: "Follow AI recommendations. See your score rise every month." },
+            ].map((item, i) => (
+              <Reveal key={i} delay={i * 0.1}>
+                <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "20px", padding: "28px" }}>
+                  <div style={{
+                    width: "36px", height: "36px", borderRadius: "10px",
+                    background: "#0C0D10", color: "#fff",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: "16px", fontWeight: "800", marginBottom: "16px"
+                  }}>
+                    {item.step}
+                  </div>
+                  <h3 style={{ fontSize: "16px", fontWeight: "700", color: "#0C0D10", margin: "0 0 8px 0" }}>{item.title}</h3>
+                  <p style={{ fontSize: "13px", color: "#6B7280", margin: 0, lineHeight: "1.6" }}>{item.desc}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── PRICING ── */}
+      <section id="pricing" style={{ padding: "80px 40px", background: "#fff", borderTop: "1px solid #E5E7EB" }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+          <Reveal>
+            <p style={{ fontSize: "12px", fontWeight: "700", color: "#22C55E", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "12px", textAlign: "center" }}>
+              Pricing
+            </p>
+            <h2 style={{ fontSize: "clamp(28px, 4vw, 48px)", fontWeight: "800", color: "#0C0D10", textAlign: "center", margin: "0 0 16px 0", letterSpacing: "-0.03em" }}>
+              Simple. Transparent. Fair.
+            </h2>
+            <p style={{ fontSize: "16px", color: "#6B7280", textAlign: "center", margin: "0 auto 48px", maxWidth: "400px" }}>
+              Start free. Upgrade when you're ready. Cancel anytime.
+            </p>
+          </Reveal>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px" }}>
+            {[
+              {
+                name: "Free", price: "₹0", period: "forever",
+                color: "#6B7280", highlight: false,
+                features: [
+                  "Dashboard + Health Score",
+                  "Transaction tracking",
+                  "SMS Parser (all banks)",
+                  "AI Advisor (10/day)",
+                  "Tax Genius (India)",
+                  "Budget (50/30/20)",
+                  "Goals + Debt tracker",
+                  "Subscription detector",
+                ],
+                cta: "Get Started Free",
+                ctaHref: "/auth/signup"
+              },
+              {
+                name: "Plus", price: "₹149", period: "per month",
+                color: "#22C55E", highlight: true,
+                features: [
+                  "Everything in Free",
+                  "Unlimited AI Advisor",
+                  "Advanced tax optimizer",
+                  "Investment tracker",
+                  "Insurance analyzer",
+                  "Retirement planner",
+                  "WhatsApp alerts",
+                  "Priority support",
+                ],
+                cta: "Start Free Trial",
+                ctaHref: "/auth/signup"
+              },
+              {
+                name: "Business", price: "₹499", period: "per month",
+                color: "#3B82F6", highlight: false,
+                features: [
+                  "Everything in Plus",
+                  "Invoicing system",
+                  "Cash flow forecast",
+                  "P&L statements",
+                  "GST reports",
+                  "Client management",
+                  "Team access (5 users)",
+                  "API access",
+                ],
+                cta: "Contact Us",
+                ctaHref: "mailto:casha.moneyofficial@gmail.com"
+              },
+            ].map((plan, i) => (
+              <Reveal key={i} delay={i * 0.1}>
+                <div style={{
+                  background: plan.highlight ? "#0C0D10" : "#F9FAFB",
+                  border: plan.highlight ? "2px solid #22C55E" : "1px solid #E5E7EB",
+                  borderRadius: "24px", padding: "32px",
+                  position: "relative", height: "100%",
+                  display: "flex", flexDirection: "column"
+                }}>
+                  {plan.highlight && (
+                    <div style={{
+                      position: "absolute", top: "-12px", left: "50%", transform: "translateX(-50%)",
+                      background: "#22C55E", color: "#fff", fontSize: "11px", fontWeight: "700",
+                      padding: "4px 16px", borderRadius: "999px"
+                    }}>
+                      MOST POPULAR
+                    </div>
+                  )}
+                  <p style={{ fontSize: "14px", fontWeight: "600", color: plan.highlight ? "rgba(255,255,255,0.5)" : "#6B7280", margin: "0 0 8px 0" }}>
+                    {plan.name}
+                  </p>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: "4px", marginBottom: "4px" }}>
+                    <span style={{ fontSize: "40px", fontWeight: "800", color: plan.highlight ? "#fff" : "#0C0D10", letterSpacing: "-0.02em" }}>
+                      {plan.price}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: "13px", color: plan.highlight ? "rgba(255,255,255,0.4)" : "#9CA3AF", margin: "0 0 24px 0" }}>
+                    {plan.period}
+                  </p>
+                  <div style={{ flex: 1, marginBottom: "24px" }}>
+                    {plan.features.map(feature => (
+                      <div key={feature} style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
+                        <span style={{ fontSize: "14px", color: plan.highlight ? "#22C55E" : "#22C55E", flexShrink: 0 }}>✓</span>
+                        <span style={{ fontSize: "13px", color: plan.highlight ? "rgba(255,255,255,0.7)" : "#374151" }}>
+                          {feature}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <a href={plan.ctaHref} style={{
+                    display: "block", textAlign: "center", padding: "14px",
+                    borderRadius: "12px", textDecoration: "none", fontWeight: "700",
+                    fontSize: "14px",
+                    background: plan.highlight ? "#22C55E" : "#0C0D10",
+                    color: "#fff",
+                  }}>
+                    {plan.cta}
+                  </a>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── TESTIMONIALS ── */}
+      <section style={{ padding: "80px 40px", background: "#FAFAFA", borderTop: "1px solid #E5E7EB" }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+          <Reveal>
+            <h2 style={{ fontSize: "clamp(28px, 4vw, 48px)", fontWeight: "800", color: "#0C0D10", textAlign: "center", margin: "0 0 48px 0", letterSpacing: "-0.03em" }}>
+              Real people. Real results.
+            </h2>
+          </Reveal>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "16px" }}>
+            {[
+              {
+                quote: "Found ₹2,400/month in subscriptions I completely forgot about. Cancelled 3 apps in 10 minutes. The app paid for itself immediately.",
+                name: "Rahul M.", role: "Software Engineer · Bangalore", initials: "RM", color: "#EEF2FF"
+              },
+              {
+                quote: "Tax optimizer found ₹35,000 in deductions my CA missed. Switched from new to old regime and saved ₹28,000 more. Incredible.",
+                name: "Priya S.", role: "Marketing Manager · Mumbai", initials: "PS", color: "#F0FDF4"
+              },
+              {
+                quote: "The SMS parser is a game changer. I paste my bank messages and transactions appear instantly. No more manual entry ever.",
+                name: "Arun K.", role: "Startup Founder · Hyderabad", initials: "AK", color: "#FFF7ED"
               },
             ].map((t, i) => (
               <Reveal key={i} delay={i * 0.1}>
-                <div
-                  className="rounded-2xl p-8 h-full"
-                  style={{ background: C.white, border: `1px solid ${C.border}` }}
-                >
-                  <div className="flex gap-0.5 mb-5">
+                <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "20px", padding: "28px" }}>
+                  <div style={{ display: "flex", gap: "2px", marginBottom: "16px" }}>
                     {[...Array(5)].map((_, j) => (
-                      <span key={j}>{Ic.star}</span>
+                      <span key={j} style={{ color: "#F59E0B", fontSize: "14px" }}>★</span>
                     ))}
                   </div>
-                  <p className="text-[15px] leading-[1.75] mb-8" style={{ color: C.text }}>
-                    &ldquo;{t.q}&rdquo;
+                  <p style={{ fontSize: "14px", color: "#374151", lineHeight: "1.7", margin: "0 0 20px 0" }}>
+                    "{t.quote}"
                   </p>
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-[12px] font-bold flex-shrink-0"
-                      style={{ background: t.c, color: t.ct }}
-                    >
-                      {t.n
-                        .split(" ")
-                        .map((w: string) => w[0])
-                        .join("")}
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{
+                      width: "36px", height: "36px", borderRadius: "50%",
+                      background: t.color, display: "flex", alignItems: "center",
+                      justifyContent: "center", fontSize: "12px", fontWeight: "700", color: "#374151"
+                    }}>
+                      {t.initials}
                     </div>
                     <div>
-                      <p className="text-[14px] font-semibold" style={{ color: C.text }}>
-                        {t.n}
-                      </p>
-                      <p className="text-[12px]" style={{ color: C.muted }}>
-                        {t.r}
-                      </p>
+                      <p style={{ fontSize: "13px", fontWeight: "700", color: "#0C0D10", margin: 0 }}>{t.name}</p>
+                      <p style={{ fontSize: "11px", color: "#9CA3AF", margin: 0 }}>{t.role}</p>
                     </div>
                   </div>
                 </div>
@@ -1514,388 +833,97 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ═══ SECURITY ═══ */}
-      <section
-        id="security"
-        className="py-[120px] px-8"
-        style={{ background: C.dark }}
-      >
-        <div className="max-w-[1280px] mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-20 items-start">
-            <Reveal>
-              <p
-                className="text-[12px] font-semibold uppercase tracking-[0.15em] mb-5"
-                style={{ color: C.green }}
-              >
-                Security
-              </p>
-              <h2
-                className="font-semibold leading-[1.08] tracking-[-0.03em] text-white mb-6"
-                style={{ fontSize: "clamp(36px, 4vw, 52px)" }}
-              >
-                Your bank trusts
-                <br />
-                this standard.
-                <br />
-                <span style={{ color: "rgba(255,255,255,0.28)" }}>So can you.</span>
-              </h2>
-              <p
-                className="text-[17px] leading-[1.75] mb-10"
-                style={{ color: "rgba(255,255,255,0.4)", maxWidth: 440 }}
-              >
-                AES-256 encryption — the same standard used by JPMorgan, Wells Fargo, and HSBC. Read-only
-                access. We see your data. We cannot touch your money.
-              </p>
-              <div
-                className="pt-10"
-                style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
-              >
-                <p
-                  className="text-[13px] leading-[1.85]"
-                  style={{ color: "rgba(255,255,255,0.25)" }}
-                >
-                  <strong style={{ color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>
-                    Disclosure —
-                  </strong>{" "}
-                  Casha is a financial management platform, not a licensed financial advisor. All information
-                  is educational only. Please consult a qualified professional before making investment, tax,
-                  or legal decisions.
-                </p>
-              </div>
-            </Reveal>
-
-            <Reveal delay={0.1}>
-              <div
-                style={{
-                  border: "1px solid rgba(255,255,255,0.07)",
-                  borderRadius: 16,
-                  overflow: "hidden",
-                }}
-              >
-                {[
-                  {
-                    icon: Ic.lock,
-                    title: "AES-256 Encryption",
-                    desc: "Every piece of your data encrypted at rest and in transit — the same standard used by the world's largest banks.",
-                  },
-                  {
-                    icon: Ic.eye,
-                    title: "Read-only bank access",
-                    desc: "We connect to read your transactions. That's it. We cannot initiate payments, transfers, or any action on your accounts.",
-                  },
-                  {
-                    icon: Ic.shield,
-                    title: "SOC 2 Type II certified",
-                    desc: "Our security controls tested and verified by an independent auditor every year — not self-declared.",
-                  },
-                  {
-                    icon: Ic.globe,
-                    title: "Your data, your rights",
-                    desc: "Your data is never sold. Delete your account anytime. All data permanently removed within 30 days.",
-                  },
-                ].map((s, i, arr) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-5 p-7"
-                    style={{
-                      borderBottom:
-                        i < arr.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
-                      background: "rgba(255,255,255,0.02)",
-                    }}
-                  >
-                    <div
-                      className="flex-shrink-0 mt-0.5"
-                      style={{ color: "rgba(255,255,255,0.25)" }}
-                    >
-                      {s.icon}
-                    </div>
-                    <div>
-                      <p className="text-[15px] font-semibold text-white mb-1.5">{s.title}</p>
-                      <p
-                        className="text-[13px] leading-[1.7]"
-                        style={{ color: "rgba(255,255,255,0.35)" }}
-                      >
-                        {s.desc}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Reveal>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ FAQ ═══ */}
-      <section
-        id="faq"
-        className="py-[120px] px-8"
-        style={{ background: C.bg, borderTop: `1px solid ${C.border}` }}
-      >
-        <div className="max-w-[760px] mx-auto">
-          <Reveal className="text-center mb-14">
-            <p
-              className="text-[12px] font-semibold uppercase tracking-[0.15em] mb-4"
-              style={{ color: C.blue }}
-            >
-              FAQ
-            </p>
-            <h2
-              className="font-semibold tracking-[-0.03em]"
-              style={{ fontSize: "clamp(34px, 4vw, 48px)", color: C.text }}
-            >
+      {/* ── FAQ ── */}
+      <section id="faq" style={{ padding: "80px 40px", background: "#fff", borderTop: "1px solid #E5E7EB" }}>
+        <div style={{ maxWidth: "680px", margin: "0 auto" }}>
+          <Reveal>
+            <h2 style={{ fontSize: "clamp(28px, 4vw, 48px)", fontWeight: "800", color: "#0C0D10", textAlign: "center", margin: "0 0 48px 0", letterSpacing: "-0.03em" }}>
               Frequently asked questions
             </h2>
           </Reveal>
-          <div
-            className="rounded-2xl overflow-hidden"
-            style={{ background: C.white, border: `1px solid ${C.border}` }}
-          >
-            {[
-              {
-                q: "Is the free plan genuinely free, with no hidden limits?",
-                a: "Yes. No credit card, no trial, no bait-and-switch. Our free plan includes spending tracking, your Financial Health Score, subscription detection, and 5 AI advisor questions daily — forever. We earn from Plus subscribers who need advanced features.",
-              },
-              {
-                q: "How do you access my bank accounts?",
-                a: "Through certified, read-only banking APIs trusted by thousands of financial applications globally. Read-only means we see your transactions to analyze them — we have zero ability to initiate payments, transfers, or any changes. Your login credentials are never stored on our servers.",
-              },
-              {
-                q: "Which countries and banks are supported?",
-                a: "40+ countries including the US, UK, EU, India, Canada, Australia, Singapore, UAE, and more. For banks not yet integrated, you can upload a CSV statement from your bank's website — this works everywhere with no integration needed.",
-              },
-              {
-                q: "How is the advice personalized to my situation?",
-                a: "Our AI reads your actual account balances, transaction history, income patterns, and goals before responding. When you ask 'Can I afford this?', we look at your real savings and spending — not national averages or generic guidelines.",
-              },
-              {
-                q: "Is Casha a licensed financial advisor?",
-                a: "No. Casha is a financial education and management platform, not a licensed financial advisor. Our AI provides informational guidance only. For investment decisions, tax filings, or complex planning, please consult a qualified licensed professional in your jurisdiction.",
-              },
-              {
-                q: "What happens to my data if I delete my account?",
-                a: "All your personal data — account connections, transaction history, conversations, and profile information — is permanently deleted from our systems within 30 days of deletion. We do not sell, transfer, or retain your data after you leave.",
-              },
-            ].map((f, i, arr) => (
-              <div
-                key={i}
-                style={{
-                  borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : "none",
-                }}
-              >
+
+          <div style={{ border: "1px solid #E5E7EB", borderRadius: "20px", overflow: "hidden" }}>
+            {faqs.map((item, i) => (
+              <div key={i} style={{ borderBottom: i < faqs.length - 1 ? "1px solid #E5E7EB" : "none" }}>
                 <button
                   onClick={() => setFaq(faq === i ? null : i)}
-                  className="w-full flex items-center justify-between px-8 py-6 text-left group"
+                  style={{
+                    width: "100%", padding: "20px 24px", background: "none", border: "none",
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    cursor: "pointer", textAlign: "left", gap: "16px"
+                  }}
                 >
-                  <span
-                    className="text-[15px] font-semibold pr-6 transition-colors"
-                    style={{ color: faq === i ? C.blue : C.text }}
-                  >
-                    {f.q}
+                  <span style={{ fontSize: "15px", fontWeight: "600", color: "#0C0D10", lineHeight: "1.4" }}>
+                    {item.q}
                   </span>
-                  <motion.span
-                    animate={{ rotate: faq === i ? 180 : 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="flex-shrink-0"
-                    style={{ color: C.muted }}
-                  >
-                    {Ic.chevron}
-                  </motion.span>
+                  <span style={{ fontSize: "20px", color: "#9CA3AF", flexShrink: 0, transform: faq === i ? "rotate(45deg)" : "none", transition: "transform 0.2s" }}>
+                    +
+                  </span>
                 </button>
-                <AnimatePresence>
-                  {faq === i && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.25 }}
-                      className="overflow-hidden"
-                    >
-                      <p
-                        className="px-8 pb-7 text-[15px] leading-[1.75]"
-                        style={{ color: C.sub }}
-                      >
-                        {f.a}
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {faq === i && (
+                  <div style={{ padding: "0 24px 20px" }}>
+                    <p style={{ fontSize: "14px", color: "#6B7280", margin: 0, lineHeight: "1.7" }}>
+                      {item.a}
+                    </p>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ═══ FINAL CTA ═══ */}
-      <section className="py-[140px] px-8" style={{ background: C.dark }}>
-        <Reveal className="max-w-[700px] mx-auto text-center">
-          <h2
-            className="font-semibold leading-[1.05] tracking-[-0.04em] text-white mb-6"
-            style={{ fontSize: "clamp(44px, 6vw, 72px)" }}
-          >
-            Take control of your
-            <br />
-            financial life today.
-          </h2>
-          <p
-            className="text-[18px] leading-relaxed mb-12"
-            style={{ color: "rgba(255,255,255,0.45)" }}
-          >
-            Join 4,200+ people who stopped guessing with their money.
-          </p>
-          {state === "done" ? (
-            <p className="text-[16px] font-semibold" style={{ color: C.green }}>
-              You&apos;re #{pos} on the waitlist. We&apos;ll be in touch.
+      {/* ── FINAL CTA ── */}
+      <section style={{ padding: "80px 40px", background: "#0C0D10" }}>
+        <div style={{ maxWidth: "600px", margin: "0 auto", textAlign: "center" }}>
+          <Reveal>
+            <h2 style={{ fontSize: "clamp(32px, 5vw, 60px)", fontWeight: "800", color: "#fff", margin: "0 0 16px 0", letterSpacing: "-0.03em" }}>
+              Take control of your
+              <br />
+              <span style={{ background: "linear-gradient(135deg, #22C55E, #3B82F6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                financial life today.
+              </span>
+            </h2>
+            <p style={{ fontSize: "16px", color: "rgba(255,255,255,0.5)", margin: "0 0 40px 0", lineHeight: "1.7" }}>
+              Join thousands of people who stopped guessing with their money.
+              Free forever. Start in 30 seconds.
             </p>
-          ) : (
-            <>
-              <form
-                onSubmit={submit}
-                className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto mb-4"
-              >
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  className="flex-1 h-[52px] rounded-xl px-5 text-[15px] outline-none transition-all"
-                  style={{
-                    background: "rgba(255,255,255,0.08)",
-                    border: "1px solid rgba(255,255,255,0.12)",
-                    color: C.white,
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = "rgba(255,255,255,0.35)";
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = "rgba(255,255,255,0.12)";
-                  }}
-                />
-                <button
-                  type="submit"
-                  className="h-[52px] rounded-xl px-8 text-[15px] font-semibold whitespace-nowrap transition-all"
-                  style={{ background: C.white, color: C.dark }}
-                >
-                  {state === "loading" ? "Joining..." : "Get Started Free"}
-                </button>
-              </form>
-              <p className="text-[13px]" style={{ color: "rgba(255,255,255,0.25)" }}>
-                Free plan available · No credit card required
-              </p>
-            </>
-          )}
-        </Reveal>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: "16px" }}>
+              <WaitlistForm dark />
+            </div>
+            <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)", margin: 0 }}>
+              🔒 Free forever · No credit card · Unsubscribe anytime
+            </p>
+          </Reveal>
+        </div>
       </section>
 
-      {/* ═══ FOOTER ═══ */}
-      <footer
-        className="px-8 pt-16 pb-10"
-        style={{ background: C.dark, borderTop: "1px solid rgba(255,255,255,0.06)" }}
-      >
-        <div className="max-w-[1280px] mx-auto">
-          <div className="mb-12 pb-10" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-            <p
-              className="text-[12px] leading-[1.85] max-w-4xl"
-              style={{ color: "rgba(255,255,255,0.18)" }}
-            >
-              <strong style={{ color: "rgba(255,255,255,0.35)" }}>Legal Disclaimer:</strong>{" "}
-              Casha Money, Inc. is not a registered investment advisor, broker-dealer, financial planner,
-              or tax advisor. Nothing on this platform constitutes financial, investment, or tax advice.
-              All content is provided for educational and informational purposes only. Past performance
-              does not indicate future results. Always consult a qualified licensed professional before
-              making financial decisions.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-10 mb-14">
-            <div className="col-span-2">
-              <Logo light />
-              <p
-                className="text-[14px] leading-relaxed mt-4 max-w-xs"
-                style={{ color: "rgba(255,255,255,0.3)" }}
-              >
-                AI-powered financial intelligence for everyone. World-class financial guidance
-                shouldn&apos;t be a privilege.
-              </p>
+      {/* ── FOOTER ── */}
+      <footer style={{ background: "#0C0D10", borderTop: "1px solid rgba(255,255,255,0.06)", padding: "40px" }}>
+        <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "20px", marginBottom: "32px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div style={{ width: "30px", height: "30px", borderRadius: "8px", background: "linear-gradient(135deg, #22C55E, #3B82F6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: "800", color: "#fff" }}>C</div>
+              <span style={{ fontSize: "16px", fontWeight: "800", color: "#fff" }}>casha<span style={{ color: "#22C55E" }}>.money</span></span>
             </div>
-            {[
-              {
-                title: "Product",
-                links: ["Features", "Pricing", "Security", "Integrations", "Changelog"],
-              },
-              { title: "Company", links: ["About", "Blog", "Careers", "Press", "Contact"] },
-              {
-                title: "Legal",
-                links: ["Privacy Policy", "Terms of Service", "Cookie Policy", "Disclosures"],
-              },
-            ].map((col) => (
-              <div key={col.title}>
-                <p
-                  className="text-[11px] font-bold uppercase tracking-widest mb-5"
-                  style={{ color: "rgba(255,255,255,0.35)" }}
-                >
-                  {col.title}
-                </p>
-                <ul className="space-y-3">
-                  {col.links.map((l) => (
-                    <li key={l}>
-                      <a
-                        href={l === "Pricing" ? "/pricing" : "#"}
-                        className="text-[13px] transition-colors"
-                        style={{ color: "rgba(255,255,255,0.25)" }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.color = "rgba(255,255,255,0.6)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.color = "rgba(255,255,255,0.25)";
-                        }}
-                      >
-                        {l}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-
-          <div
-            className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5"
-            style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 24 }}
-          >
-            <p className="text-[13px]" style={{ color: "rgba(255,255,255,0.2)" }}>
-              © {new Date().getFullYear()} Casha Money, Inc. All rights reserved.
-            </p>
-            <div className="flex items-center gap-3">
-              {[
-                { href: "https://x.com/cashamoneyai", icon: Ic.x },
-                { href: "https://instagram.com/cashamoneyai", icon: Ic.ig },
-              ].map((s, i) => (
-                <a
-                  key={i}
-                  href={s.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-9 h-9 rounded-xl flex items-center justify-center transition-all"
-                  style={{
-                    background: "rgba(255,255,255,0.06)",
-                    color: "rgba(255,255,255,0.35)",
-                    border: "1px solid rgba(255,255,255,0.07)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(255,255,255,0.1)";
-                    e.currentTarget.style.color = "rgba(255,255,255,0.7)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "rgba(255,255,255,0.06)";
-                    e.currentTarget.style.color = "rgba(255,255,255,0.35)";
-                  }}
-                >
-                  {s.icon}
+            <div style={{ display: "flex", gap: "24px" }}>
+              {[["Features", "#features"], ["Pricing", "#pricing"], ["FAQ", "#faq"], ["Login", "/auth/login"]].map(([label, href]) => (
+                <a key={label} href={href} style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", textDecoration: "none" }}>
+                  {label}
                 </a>
               ))}
             </div>
+          </div>
+
+          <div style={{ height: "1px", background: "rgba(255,255,255,0.06)", marginBottom: "24px" }} />
+
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+            <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.2)", margin: 0 }}>
+              © 2026 Casha Money. All rights reserved.
+            </p>
+            <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.15)", margin: 0, maxWidth: "500px", textAlign: "right" }}>
+              Casha is a financial education platform, not a licensed advisor. Consult professionals for investment, tax, and legal decisions.
+            </p>
           </div>
         </div>
       </footer>
