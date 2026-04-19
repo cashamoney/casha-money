@@ -26,6 +26,7 @@ export default function BudgetPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [aiGenerated, setAiGenerated] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "setup">("overview");
 
   useEffect(() => { loadData(); }, []);
@@ -48,7 +49,7 @@ export default function BudgetPage() {
     const monthlyIncome = Math.round(totalIncome / monthCount);
     setIncome(monthlyIncome);
 
-    // Load this month spending by category
+    // Load this month spending
     const now = new Date();
     const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 
@@ -66,8 +67,8 @@ export default function BudgetPage() {
     });
     setSpent(spentMap);
 
-    // Load saved budgets
-    const { data: savedBudgets } = await supabase
+    // Load saved budgets from Supabase
+    const { data: savedBudget } = await supabase
       .from("budgets")
       .select("categories")
       .eq("user_id", uid)
@@ -75,18 +76,35 @@ export default function BudgetPage() {
       .limit(1)
       .single();
 
-    if (savedBudgets?.categories) {
-      setBudgets(savedBudgets.categories);
+    if (savedBudget?.categories && Object.keys(savedBudget.categories).length > 0) {
+      setBudgets(savedBudget.categories);
     } else {
-      // Auto-generate based on income
-      const autoBudgets: Record<string, number> = {};
-      BUDGET_CATEGORIES.forEach(cat => {
-        autoBudgets[cat.name] = Math.round(monthlyIncome * cat.recommended / 100);
-      });
-      setBudgets(autoBudgets);
+      // Auto generate on first load
+      if (monthlyIncome > 0) {
+        const autoBudgets: Record<string, number> = {};
+        BUDGET_CATEGORIES.forEach(cat => {
+          autoBudgets[cat.name] = Math.round(monthlyIncome * cat.recommended / 100);
+        });
+        setBudgets(autoBudgets);
+      }
     }
 
     setLoading(false);
+  };
+
+  const generateAIBudget = () => {
+    if (income === 0) {
+      alert("Please add income transactions first so AI can calculate your budget!");
+      return;
+    }
+    const autoBudgets: Record<string, number> = {};
+    BUDGET_CATEGORIES.forEach(cat => {
+      autoBudgets[cat.name] = Math.round(income * cat.recommended / 100);
+    });
+    setBudgets(autoBudgets);
+    setAiGenerated(true);
+    setActiveTab("setup");
+    setTimeout(() => setAiGenerated(false), 5000);
   };
 
   const saveBudgets = async () => {
@@ -98,7 +116,7 @@ export default function BudgetPage() {
     const startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
     const endDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()}`;
 
-    await supabase.from("budgets").upsert({
+    const { error } = await supabase.from("budgets").insert({
       user_id: authData.user.id,
       name: `Budget ${now.toLocaleDateString("en-IN", { month: "long", year: "numeric" })}`,
       period_type: "monthly",
@@ -111,16 +129,10 @@ export default function BudgetPage() {
     });
 
     setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
-  };
-
-  const generateAIBudget = () => {
-    const autoBudgets: Record<string, number> = {};
-    BUDGET_CATEGORIES.forEach(cat => {
-      autoBudgets[cat.name] = Math.round(income * cat.recommended / 100);
-    });
-    setBudgets(autoBudgets);
+    if (!error) {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 4000);
+    }
   };
 
   const fmt = (n: number) => new Intl.NumberFormat("en-IN", {
@@ -132,7 +144,7 @@ export default function BudgetPage() {
   const totalRemaining = totalBudget - totalSpent;
 
   const getStatus = (budgeted: number, spentAmt: number) => {
-    if (budgeted === 0) return { color: "#9CA3AF", label: "No budget set", pct: 0 };
+    if (budgeted === 0) return { color: "#9CA3AF", label: "No limit", pct: 0 };
     const pct = (spentAmt / budgeted) * 100;
     if (pct >= 100) return { color: "#EF4444", label: "Over budget!", pct };
     if (pct >= 80) return { color: "#F59E0B", label: "Almost at limit", pct };
@@ -156,20 +168,22 @@ export default function BudgetPage() {
             📋 Smart Budget
           </h1>
           <p style={{ fontSize: "13px", color: "#6B7280", margin: 0 }}>
-            {new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric" })} · AI-generated based on your income
+            {new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric" })} · AI-powered budget based on your income
           </p>
         </div>
-        <div style={{ display: "flex", gap: "8px" }}>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
           <button
             onClick={generateAIBudget}
             style={{
               padding: "10px 16px", borderRadius: "12px",
-              border: "1px solid #E5E7EB", background: "#fff",
-              color: "#0C0D10", fontSize: "13px", fontWeight: "600",
-              cursor: "pointer"
+              border: `1px solid ${aiGenerated ? "#BBF7D0" : "#E5E7EB"}`,
+              background: aiGenerated ? "#F0FDF4" : "#fff",
+              color: aiGenerated ? "#16A34A" : "#0C0D10",
+              fontSize: "13px", fontWeight: "600", cursor: "pointer",
+              transition: "all 0.3s"
             }}
           >
-            🤖 AI Generate
+            {aiGenerated ? "✅ Budget Generated!" : "🤖 AI Generate"}
           </button>
           <button
             onClick={saveBudgets}
@@ -178,13 +192,34 @@ export default function BudgetPage() {
               padding: "10px 20px", borderRadius: "12px", border: "none",
               background: saved ? "#22C55E" : "#0C0D10",
               color: "#fff", fontSize: "13px", fontWeight: "600",
-              cursor: "pointer", opacity: saving ? 0.7 : 1
+              cursor: "pointer", opacity: saving ? 0.7 : 1,
+              transition: "all 0.3s"
             }}
           >
-            {saving ? "Saving..." : saved ? "✅ Saved!" : "Save Budget"}
+            {saving ? "Saving..." : saved ? "✅ Saved!" : "💾 Save Budget"}
           </button>
         </div>
       </div>
+
+      {/* AI Generated Banner */}
+      {aiGenerated && (
+        <div style={{
+          background: "#F0FDF4", border: "1px solid #BBF7D0",
+          borderRadius: "12px", padding: "14px 18px", marginBottom: "20px",
+          display: "flex", alignItems: "center", gap: "12px"
+        }}>
+          <span style={{ fontSize: "24px" }}>🤖</span>
+          <div>
+            <p style={{ fontSize: "13px", fontWeight: "700", color: "#166534", margin: "0 0 2px 0" }}>
+              AI Budget Generated Successfully!
+            </p>
+            <p style={{ fontSize: "12px", color: "#16A34A", margin: 0 }}>
+              Based on your income of {fmt(income)}/month using the 50/30/20 rule adapted for India.
+              Go to "Edit Budget" tab to customize, then click "Save Budget".
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px", marginBottom: "24px" }}>
@@ -192,7 +227,9 @@ export default function BudgetPage() {
           <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)", margin: "0 0 6px 0", fontWeight: "600", textTransform: "uppercase" }}>
             Monthly Income
           </p>
-          <p style={{ fontSize: "22px", fontWeight: "700", color: "#fff", margin: 0 }}>{fmt(income)}</p>
+          <p style={{ fontSize: "22px", fontWeight: "700", color: "#fff", margin: 0 }}>
+            {income > 0 ? fmt(income) : "Add income →"}
+          </p>
         </div>
         <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: "16px", padding: "18px" }}>
           <p style={{ fontSize: "11px", color: "#1E40AF", margin: "0 0 6px 0", fontWeight: "600", textTransform: "uppercase" }}>
@@ -212,11 +249,10 @@ export default function BudgetPage() {
           borderRadius: "16px", padding: "18px"
         }}>
           <p style={{ fontSize: "11px", color: totalRemaining >= 0 ? "#166534" : "#991B1B", margin: "0 0 6px 0", fontWeight: "600", textTransform: "uppercase" }}>
-            Remaining
+            {totalRemaining >= 0 ? "Remaining" : "Over Budget"}
           </p>
           <p style={{ fontSize: "22px", fontWeight: "700", color: totalRemaining >= 0 ? "#16A34A" : "#DC2626", margin: 0 }}>
             {fmt(Math.abs(totalRemaining))}
-            {totalRemaining < 0 && " over"}
           </p>
         </div>
       </div>
@@ -224,21 +260,24 @@ export default function BudgetPage() {
       {/* Overall Progress */}
       <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "16px", padding: "20px", marginBottom: "24px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
-          <span style={{ fontSize: "13px", fontWeight: "600", color: "#0C0D10" }}>Overall Budget Progress</span>
           <span style={{ fontSize: "13px", fontWeight: "600", color: "#0C0D10" }}>
+            Overall Budget Used
+          </span>
+          <span style={{ fontSize: "13px", fontWeight: "700", color: "#0C0D10" }}>
             {totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0}%
           </span>
         </div>
-        <div style={{ height: "12px", background: "#F3F4F6", borderRadius: "999px", overflow: "hidden" }}>
+        <div style={{ height: "14px", background: "#F3F4F6", borderRadius: "999px", overflow: "hidden" }}>
           <div style={{
             height: "100%",
             width: `${Math.min(100, totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0)}%`,
-            background: totalSpent > totalBudget ? "#EF4444" : totalSpent > totalBudget * 0.8 ? "#F59E0B" : "#22C55E",
+            background: totalSpent > totalBudget ? "#EF4444"
+              : totalSpent > totalBudget * 0.8 ? "#F59E0B" : "#22C55E",
             borderRadius: "999px",
-            transition: "width 0.5s ease"
+            transition: "width 0.8s ease"
           }} />
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: "6px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px" }}>
           <span style={{ fontSize: "11px", color: "#9CA3AF" }}>Spent: {fmt(totalSpent)}</span>
           <span style={{ fontSize: "11px", color: "#9CA3AF" }}>Budget: {fmt(totalBudget)}</span>
         </div>
@@ -247,7 +286,7 @@ export default function BudgetPage() {
       {/* Tabs */}
       <div style={{ display: "flex", gap: "8px", marginBottom: "20px" }}>
         {[
-          { key: "overview", label: "📊 Budget Overview" },
+          { key: "overview", label: "📊 Overview" },
           { key: "setup", label: "⚙️ Edit Budget" },
         ].map(tab => (
           <button
@@ -277,21 +316,22 @@ export default function BudgetPage() {
               <div
                 key={cat.name}
                 style={{
-                  background: "#fff", border: `1px solid ${status.pct >= 100 ? "#FECACA" : "#E5E7EB"}`,
+                  background: "#fff",
+                  border: `1px solid ${status.pct >= 100 ? "#FECACA" : "#E5E7EB"}`,
                   borderRadius: "14px", padding: "16px",
                   borderLeft: `4px solid ${cat.color}`
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: budgeted > 0 ? "10px" : "0" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                     <span style={{ fontSize: "20px" }}>{cat.emoji}</span>
                     <div>
                       <p style={{ fontSize: "13px", fontWeight: "600", color: "#0C0D10", margin: 0 }}>
                         {cat.name}
                       </p>
-                      <p style={{ fontSize: "11px", color: "#9CA3AF", margin: 0 }}>
+                      <p style={{ fontSize: "11px", color: "#9CA3AF", margin: "2px 0 0 0" }}>
                         {fmt(spentAmt)} spent
-                        {budgeted > 0 && ` of ${fmt(budgeted)} budget`}
+                        {budgeted > 0 && ` · ${fmt(budgeted)} budget`}
                       </p>
                     </div>
                   </div>
@@ -301,17 +341,17 @@ export default function BudgetPage() {
                       borderRadius: "999px",
                       background: status.pct >= 100 ? "#FEF2F2"
                         : status.pct >= 80 ? "#FFFBEB"
-                          : status.pct >= 50 ? "#EFF6FF" : "#F0FDF4",
+                          : status.pct > 0 ? "#EFF6FF" : "#F3F4F6",
                       color: status.color
                     }}>
-                      {budgeted === 0 ? "No limit set" : status.label}
+                      {budgeted === 0 ? "No budget set" : status.label}
                     </span>
                     {budgeted > 0 && spentAmt < budgeted && (
                       <p style={{ fontSize: "11px", color: "#22C55E", margin: "4px 0 0 0", fontWeight: "600" }}>
-                        {fmt(budgeted - spentAmt)} left
+                        {fmt(budgeted - spentAmt)} remaining
                       </p>
                     )}
-                    {budgeted > 0 && spentAmt > budgeted && (
+                    {budgeted > 0 && spentAmt >= budgeted && (
                       <p style={{ fontSize: "11px", color: "#EF4444", margin: "4px 0 0 0", fontWeight: "600" }}>
                         {fmt(spentAmt - budgeted)} over!
                       </p>
@@ -336,49 +376,49 @@ export default function BudgetPage() {
         </div>
       )}
 
-      {/* Setup Tab */}
+      {/* Edit Budget Tab */}
       {activeTab === "setup" && (
         <div>
-          <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: "12px", padding: "14px", marginBottom: "20px" }}>
+          <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: "12px", padding: "14px 18px", marginBottom: "20px" }}>
             <p style={{ fontSize: "13px", color: "#1E40AF", margin: "0 0 4px 0", fontWeight: "600" }}>
-              🤖 AI Budget Recommendation
+              💡 How AI Budget Works
             </p>
             <p style={{ fontSize: "12px", color: "#1E3A8A", margin: 0 }}>
-              Based on your income of {fmt(income)}/month, we recommend the 50/30/20 rule adapted for India.
-              Click "AI Generate" to auto-fill all categories.
+              Based on your income of <strong>{fmt(income)}/month</strong>, AI recommends using the 50/30/20 rule
+              adapted for India. 50% needs, 30% wants, 20% savings. Edit any amount below and save.
             </p>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {BUDGET_CATEGORIES.map(cat => (
               <div
                 key={cat.name}
                 style={{
                   background: "#fff", border: "1px solid #E5E7EB",
-                  borderRadius: "14px", padding: "16px",
-                  display: "flex", alignItems: "center", gap: "16px"
+                  borderRadius: "14px", padding: "14px 16px",
+                  display: "flex", alignItems: "center", gap: "14px"
                 }}
               >
                 <div style={{
-                  width: "40px", height: "40px", borderRadius: "12px",
+                  width: "38px", height: "38px", borderRadius: "10px",
                   background: `${cat.color}15`,
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: "20px", flexShrink: 0
+                  fontSize: "18px", flexShrink: 0
                 }}>
                   {cat.emoji}
                 </div>
 
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontSize: "13px", fontWeight: "600", color: "#0C0D10", margin: "0 0 2px 0" }}>
                     {cat.name}
                   </p>
                   <p style={{ fontSize: "11px", color: "#9CA3AF", margin: 0 }}>
-                    Recommended: {cat.recommended}% = {fmt(Math.round(income * cat.recommended / 100))}
+                    AI recommends: {cat.recommended}% = {fmt(Math.round(income * cat.recommended / 100))}
                   </p>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ fontSize: "13px", color: "#6B7280" }}>₹</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+                  <span style={{ fontSize: "13px", color: "#6B7280", fontWeight: "600" }}>₹</span>
                   <input
                     type="number"
                     min="0"
@@ -386,16 +426,18 @@ export default function BudgetPage() {
                     onChange={e => setBudgets({ ...budgets, [cat.name]: Number(e.target.value) })}
                     placeholder="0"
                     style={{
-                      width: "100px", height: "38px", borderRadius: "10px",
-                      padding: "0 12px", fontSize: "13px", border: "1px solid #E5E7EB",
-                      background: "#F9FAFB", color: "#0C0D10", outline: "none",
-                      textAlign: "right"
+                      width: "110px", height: "38px", borderRadius: "10px",
+                      padding: "0 12px", fontSize: "13px",
+                      border: `1px solid ${budgets[cat.name] > 0 ? cat.color : "#E5E7EB"}`,
+                      background: budgets[cat.name] > 0 ? `${cat.color}08` : "#F9FAFB",
+                      color: "#0C0D10", outline: "none", textAlign: "right",
+                      fontWeight: "600"
                     }}
                   />
                 </div>
 
-                <div style={{ width: "60px", textAlign: "right" }}>
-                  <span style={{ fontSize: "12px", color: "#9CA3AF" }}>
+                <div style={{ width: "45px", textAlign: "right", flexShrink: 0 }}>
+                  <span style={{ fontSize: "12px", color: "#9CA3AF", fontWeight: "500" }}>
                     {income > 0 && budgets[cat.name]
                       ? `${Math.round((budgets[cat.name] / income) * 100)}%`
                       : "0%"
@@ -406,32 +448,34 @@ export default function BudgetPage() {
             ))}
           </div>
 
-          {/* Total check */}
+          {/* Budget vs Income checker */}
           <div style={{
-            marginTop: "20px", padding: "16px", borderRadius: "12px",
+            marginTop: "20px", padding: "18px", borderRadius: "14px",
             background: totalBudget > income ? "#FEF2F2" : "#F0FDF4",
             border: `1px solid ${totalBudget > income ? "#FECACA" : "#BBF7D0"}`
           }}>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontSize: "13px", fontWeight: "600", color: "#0C0D10" }}>
-                Total Budgeted
-              </span>
-              <span style={{ fontSize: "13px", fontWeight: "700", color: totalBudget > income ? "#DC2626" : "#16A34A" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+              <span style={{ fontSize: "14px", fontWeight: "700", color: "#0C0D10" }}>Total Budgeted</span>
+              <span style={{ fontSize: "16px", fontWeight: "700", color: totalBudget > income ? "#DC2626" : "#16A34A" }}>
                 {fmt(totalBudget)}
               </span>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px" }}>
-              <span style={{ fontSize: "12px", color: "#6B7280" }}>Monthly Income</span>
-              <span style={{ fontSize: "12px", color: "#6B7280" }}>{fmt(income)}</span>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+              <span style={{ fontSize: "13px", color: "#6B7280" }}>Monthly Income</span>
+              <span style={{ fontSize: "13px", color: "#6B7280" }}>{fmt(income)}</span>
             </div>
-            {totalBudget > income && (
-              <p style={{ fontSize: "12px", color: "#DC2626", margin: "8px 0 0 0" }}>
-                ⚠️ Your budget exceeds your income by {fmt(totalBudget - income)}. Reduce some categories.
+            <div style={{ height: "1px", background: totalBudget > income ? "#FECACA" : "#BBF7D0", marginBottom: "8px" }} />
+            {totalBudget > income ? (
+              <p style={{ fontSize: "13px", color: "#DC2626", margin: 0, fontWeight: "500" }}>
+                ⚠️ Budget exceeds income by {fmt(totalBudget - income)}. Please reduce some categories.
               </p>
-            )}
-            {totalBudget <= income && totalBudget > 0 && (
-              <p style={{ fontSize: "12px", color: "#16A34A", margin: "8px 0 0 0" }}>
-                ✅ {fmt(income - totalBudget)} unallocated — consider adding to Savings!
+            ) : totalBudget > 0 ? (
+              <p style={{ fontSize: "13px", color: "#16A34A", margin: 0, fontWeight: "500" }}>
+                ✅ {fmt(income - totalBudget)} unallocated — consider moving to Savings!
+              </p>
+            ) : (
+              <p style={{ fontSize: "13px", color: "#9CA3AF", margin: 0 }}>
+                Click "🤖 AI Generate" to auto-fill budgets based on your income.
               </p>
             )}
           </div>
@@ -440,14 +484,15 @@ export default function BudgetPage() {
             onClick={saveBudgets}
             disabled={saving}
             style={{
-              width: "100%", marginTop: "16px", height: "48px",
+              width: "100%", marginTop: "16px", height: "50px",
               borderRadius: "12px", border: "none",
               background: saved ? "#22C55E" : "#0C0D10",
               color: "#fff", fontSize: "14px", fontWeight: "600",
-              cursor: "pointer", opacity: saving ? 0.7 : 1
+              cursor: "pointer", opacity: saving ? 0.7 : 1,
+              transition: "all 0.3s"
             }}
           >
-            {saving ? "Saving..." : saved ? "✅ Budget Saved!" : "Save Budget"}
+            {saving ? "Saving..." : saved ? "✅ Budget Saved Successfully!" : "💾 Save Budget"}
           </button>
         </div>
       )}
