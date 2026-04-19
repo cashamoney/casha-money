@@ -63,12 +63,28 @@ const Xmk = ({ s = 15 }: { s?: number }) => (
   <svg width={s} height={s} fill="none" stroke="#EF4444" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
 );
 
-// ── Logo — perfectly tight gap, no extra space ──
-function CashaLogo({ h = 28, fs = 17, light = false }: { h?: number; fs?: number; light?: boolean }) {
+// ── Logo — size 44px, proper gap ──
+function CashaLogo({ size = 44, fontSize = 19, light = false }: { size?: number; fontSize?: number; light?: boolean }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "8px", lineHeight: 1 }}>
-      <img src="/logo.png" alt="Casha" style={{ width: `${h}px`, height: `${h}px`, objectFit: "contain", display: "block", flexShrink: 0 }} />
-      <span style={{ fontSize: `${fs}px`, fontWeight: "800", color: light ? "#FFFFFF" : "#0A0A0A", letterSpacing: "-0.03em", lineHeight: 1 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "10px", lineHeight: 1 }}>
+      <img
+        src="/logo.png"
+        alt="Casha"
+        style={{
+          width: `${size}px`,
+          height: `${size}px`,
+          objectFit: "contain",
+          display: "block",
+          flexShrink: 0,
+        }}
+      />
+      <span style={{
+        fontSize: `${fontSize}px`,
+        fontWeight: "800",
+        color: light ? "#FFFFFF" : "#0A0A0A",
+        letterSpacing: "-0.03em",
+        lineHeight: 1,
+      }}>
         casha<span style={{ color: "#22C55E" }}>.money</span>
       </span>
     </div>
@@ -135,18 +151,9 @@ export default function Home() {
   ];
 
   const ruleRows = [
-    {
-      pct: "50%", label: "Needs", color: "#22C55E", amount: "Rs.37,500",
-      tags: ["Housing & Rent", "Groceries", "EMI Payments", "Utilities", "Insurance", "Transport"]
-    },
-    {
-      pct: "30%", label: "Wants", color: "#4ADE80", amount: "Rs.22,500",
-      tags: ["Dining & Delivery", "Shopping", "Entertainment", "Subscriptions", "Travel", "Personal Care"]
-    },
-    {
-      pct: "20%", label: "Savings", color: "#86EFAC", amount: "Rs.15,000",
-      tags: ["Emergency Fund", "SIP / Mutual Funds", "PPF & NPS", "ELSS", "Fixed Deposit", "Gold"]
-    },
+    { pct: "50%", label: "Needs", color: "#22C55E", amount: "Rs.37,500", tags: ["Housing & Rent", "Groceries", "EMI Payments", "Utilities", "Insurance", "Transport"] },
+    { pct: "30%", label: "Wants", color: "#4ADE80", amount: "Rs.22,500", tags: ["Dining & Delivery", "Shopping", "Entertainment", "Subscriptions", "Travel", "Personal Care"] },
+    { pct: "20%", label: "Savings", color: "#86EFAC", amount: "Rs.15,000", tags: ["Emergency Fund", "SIP / Mutual Funds", "PPF & NPS", "ELSS", "Fixed Deposit", "Gold"] },
   ];
 
   const compare = [
@@ -187,9 +194,9 @@ export default function Home() {
     <div style={{ fontFamily: "'Inter', 'Helvetica Neue', system-ui, sans-serif", background: T.white, color: T.text, overflowX: "hidden" }}>
 
       {/* NAV */}
-      <header style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 999, height: "62px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 40px", background: scrolled ? "rgba(255,255,255,0.96)" : "transparent", backdropFilter: scrolled ? "blur(16px)" : "none", borderBottom: scrolled ? `1px solid ${T.border}` : "none", transition: "all 0.25s" }}>
+      <header style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 999, height: "66px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 40px", background: scrolled ? "rgba(255,255,255,0.96)" : "transparent", backdropFilter: scrolled ? "blur(16px)" : "none", borderBottom: scrolled ? `1px solid ${T.border}` : "none", transition: "all 0.25s" }}>
         <a href="/" style={{ textDecoration: "none" }}>
-          <CashaLogo h={28} fs={17} />
+          <CashaLogo size={44} fontSize={19} />
         </a>
         <nav style={{ display: "flex", alignItems: "center", gap: "32px" }}>
           {[["Features", "#features"], ["50/30/20", "#rule"], ["Pricing", "#pricing"], ["FAQ", "#faq"]].map(([l, href]) => (
@@ -255,8 +262,9 @@ export default function Home() {
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "188px 1fr" }}>
               <div style={{ background: T.white, borderRight: `1px solid ${T.border}`, padding: "16px 10px" }}>
+                {/* Sidebar logo — 32px */}
                 <div style={{ padding: "0 6px", marginBottom: "20px" }}>
-                  <CashaLogo h={20} fs={13} />
+                  <CashaLogo size={28} fontSize={13} />
                 </div>
                 {["Overview", "Transactions", "Budget", "Debts", "Tax Genius", "AI Advisor", "Settings"].map((n, i) => (
                   <div key={n} style={{ padding: "8px 10px", borderRadius: "7px", marginBottom: "1px", background: i === 0 ? "#F4F4F5" : "transparent", fontSize: "13px", color: i === 0 ? T.black : T.faint, fontWeight: i === 0 ? "600" : "400" }}>{n}</div>
@@ -374,107 +382,49 @@ export default function Home() {
           <Fade>
             <div style={{ textAlign: "center", maxWidth: "580px", margin: "0 auto 52px" }}>
               <span style={LBL(true)}>Built-in framework</span>
-              <h2 style={{ ...H2, color: T.white }}>
-                The 50/30/20 rule —<br />adapted for India.
-              </h2>
+              <h2 style={{ ...H2, color: T.white }}>The 50/30/20 rule —<br />adapted for India.</h2>
               <p style={{ fontSize: "17px", color: "rgba(255,255,255,0.45)", lineHeight: "1.7", margin: 0 }}>
                 A simple, proven system that divides your income into needs, wants, and savings. Casha applies it automatically every month.
               </p>
             </div>
           </Fade>
 
-          {/* Horizontal rows */}
           <Fade delay={0.1}>
             <div style={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", overflow: "hidden", marginBottom: "24px" }}>
               {ruleRows.map((row, i) => (
-                <div
-                  key={row.label}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "120px 1fr 160px",
-                    gap: "32px",
-                    alignItems: "center",
-                    padding: "28px 32px",
-                    background: i === 0 ? "rgba(34,197,94,0.05)" : i === 1 ? "rgba(74,222,128,0.03)" : "rgba(134,239,172,0.02)",
-                    borderBottom: i < ruleRows.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none",
-                  }}
-                >
-                  {/* Left — % and label */}
+                <div key={row.label} style={{ display: "grid", gridTemplateColumns: "120px 1fr 160px", gap: "32px", alignItems: "center", padding: "28px 32px", background: i === 0 ? "rgba(34,197,94,0.05)" : i === 1 ? "rgba(74,222,128,0.03)" : "rgba(134,239,172,0.02)", borderBottom: i < ruleRows.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
+                  {/* Left */}
                   <div>
-                    <p style={{ fontSize: "44px", fontWeight: "800", color: row.color, margin: "0 0 4px 0", letterSpacing: "-0.04em", lineHeight: 1 }}>
-                      {row.pct}
-                    </p>
-                    <p style={{ fontSize: "14px", fontWeight: "700", color: "#fff", margin: 0 }}>
-                      {row.label}
-                    </p>
+                    <p style={{ fontSize: "44px", fontWeight: "800", color: row.color, margin: "0 0 4px 0", letterSpacing: "-0.04em", lineHeight: 1 }}>{row.pct}</p>
+                    <p style={{ fontSize: "14px", fontWeight: "700", color: "#fff", margin: 0 }}>{row.label}</p>
                   </div>
-
                   {/* Middle — tags */}
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                     {row.tags.map(tag => (
-                      <span key={tag} style={{
-                        fontSize: "12px",
-                        color: "rgba(255,255,255,0.65)",
-                        background: "rgba(255,255,255,0.06)",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                        borderRadius: "999px",
-                        padding: "5px 12px",
-                        whiteSpace: "nowrap",
-                        lineHeight: 1.3,
-                      }}>
+                      <span key={tag} style={{ fontSize: "12px", color: "rgba(255,255,255,0.65)", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "999px", padding: "5px 12px", whiteSpace: "nowrap", lineHeight: 1.3 }}>
                         {tag}
                       </span>
                     ))}
                   </div>
-
-                  {/* Right — amount */}
+                  {/* Right */}
                   <div style={{ textAlign: "right" }}>
-                    <p style={{ fontSize: "22px", fontWeight: "800", color: "#fff", margin: "0 0 4px 0", letterSpacing: "-0.02em" }}>
-                      {row.amount}
-                    </p>
-                    <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.25)", margin: 0 }}>
-                      on Rs.75K income
-                    </p>
+                    <p style={{ fontSize: "22px", fontWeight: "800", color: "#fff", margin: "0 0 4px 0", letterSpacing: "-0.02em" }}>{row.amount}</p>
+                    <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.25)", margin: 0 }}>on Rs.75K income</p>
                   </div>
                 </div>
               ))}
             </div>
           </Fade>
 
-          {/* CTA bar */}
           <Fade delay={0.22}>
-            <div style={{
-              background: "rgba(34,197,94,0.08)",
-              border: "1px solid rgba(34,197,94,0.16)",
-              borderRadius: "14px",
-              padding: "22px 28px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: "20px",
-              flexWrap: "wrap",
-            }}>
+            <div style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.16)", borderRadius: "14px", padding: "22px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "20px", flexWrap: "wrap" }}>
               <div>
-                <p style={{ fontSize: "16px", fontWeight: "700", color: "#fff", margin: "0 0 5px 0" }}>
-                  Your budget, generated automatically.
-                </p>
-                <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.38)", margin: 0, lineHeight: "1.5" }}>
-                  Enter your income. Casha builds the full plan — no spreadsheets, no manual work.
-                </p>
+                <p style={{ fontSize: "16px", fontWeight: "700", color: "#fff", margin: "0 0 5px 0" }}>Your budget, generated automatically.</p>
+                <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.38)", margin: 0, lineHeight: "1.5" }}>Enter your income. Casha builds the full plan — no spreadsheets, no manual work.</p>
               </div>
-              <a
-                href="/auth/signup"
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: "6px",
-                  padding: "12px 22px", borderRadius: "10px",
-                  background: T.green, color: T.black,
-                  textDecoration: "none", fontWeight: "700", fontSize: "14px",
-                  whiteSpace: "nowrap", flexShrink: 0,
-                  boxShadow: "0 4px 14px rgba(34,197,94,0.3)",
-                }}
+              <a href="/auth/signup" style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "12px 22px", borderRadius: "10px", background: T.green, color: T.black, textDecoration: "none", fontWeight: "700", fontSize: "14px", whiteSpace: "nowrap", flexShrink: 0, boxShadow: "0 4px 14px rgba(34,197,94,0.3)" }}
                 onMouseEnter={e => e.currentTarget.style.opacity = "0.88"}
-                onMouseLeave={e => e.currentTarget.style.opacity = "1"}
-              >
+                onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
                 Try it free →
               </a>
             </div>
@@ -482,7 +432,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FEATURES — icon + tag on same line */}
+      {/* FEATURES */}
       <section id="features" style={{ background: T.white }}>
         <div style={W}>
           <Fade>
@@ -497,12 +447,10 @@ export default function Home() {
                 <Fade key={i} delay={0.04}>
                   <div style={{ ...CARD, padding: "40px 44px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "48px", alignItems: "center" }}>
                     <div style={{ order: flip ? 2 : 1 }}>
-                      {/* icon + tag — SAME LINE — flex row */}
+                      {/* icon + tag — SAME LINE */}
                       <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "6px", marginBottom: "14px" }}>
-                        <span style={{ color: T.green, display: "flex", alignItems: "center" }}>{f.icon}</span>
-                        <span style={{ fontSize: "11px", fontWeight: "700", letterSpacing: "0.1em", textTransform: "uppercase", color: T.green, lineHeight: 1 }}>
-                          {f.tag}
-                        </span>
+                        <span style={{ color: T.green, display: "flex", alignItems: "center", flexShrink: 0 }}>{f.icon}</span>
+                        <span style={{ fontSize: "11px", fontWeight: "700", letterSpacing: "0.1em", textTransform: "uppercase", color: T.green, lineHeight: 1 }}>{f.tag}</span>
                       </div>
                       <h3 style={{ fontSize: "21px", fontWeight: "800", color: T.black, margin: "0 0 12px 0", letterSpacing: "-0.02em", lineHeight: "1.2" }}>{f.h}</h3>
                       <p style={{ fontSize: "15px", color: T.muted, margin: 0, lineHeight: "1.7" }}>{f.p}</p>
@@ -763,7 +711,8 @@ export default function Home() {
       <footer style={{ background: T.black, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
         <div style={{ maxWidth: "1080px", margin: "0 auto", padding: "32px 24px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px", marginBottom: "22px" }}>
-            <CashaLogo h={26} fs={15} light />
+            {/* Footer logo — 36px */}
+            <CashaLogo size={36} fontSize={16} light />
             <div style={{ display: "flex", gap: "22px", flexWrap: "wrap" }}>
               {[["Features", "#features"], ["50/30/20", "#rule"], ["Pricing", "#pricing"], ["FAQ", "#faq"], ["Sign in", "/auth/login"], ["Sign up", "/auth/signup"]].map(([l, href]) => (
                 <a key={l} href={href} style={{ fontSize: "13px", color: "rgba(255,255,255,0.28)", textDecoration: "none" }}
