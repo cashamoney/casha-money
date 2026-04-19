@@ -40,7 +40,7 @@ function WaitlistForm({ dark = false }: { dark?: boolean }) {
         <svg width="14" height="14" fill="none" stroke="#fff" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
       </div>
       <div>
-        <p style={{ fontSize: "14px", fontWeight: "700", color: dark ? "#4ADE80" : "#166534", margin: "0 0 2px 0" }}>You are #{pos} on the waitlist</p>
+        <p style={{ fontSize: "14px", fontWeight: "700", color: dark ? "#4ADE80" : "#166634", margin: "0 0 2px 0" }}>You are #{pos} on the waitlist</p>
         <p style={{ fontSize: "12px", color: dark ? "rgba(74,222,128,0.7)" : "#16A34A", margin: 0 }}>We will email you when Casha launches.</p>
       </div>
     </div>
@@ -63,7 +63,21 @@ const Xmk = ({ s = 15 }: { s?: number }) => (
   <svg width={s} height={s} fill="none" stroke="#EF4444" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
 );
 
-const G = "#22C55E";
+// ── Reusable Logo — fixed gap and size ──
+function CashaLogo({ height = 28, fontSize = 17, light = false }: { height?: number; fontSize?: number; light?: boolean }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+      <img
+        src="/logo.png"
+        alt="Casha"
+        style={{ height: `${height}px`, width: `${height}px`, objectFit: "contain", flexShrink: 0, display: "block" }}
+      />
+      <span style={{ fontSize: `${fontSize}px`, fontWeight: "800", color: light ? "#fff" : "#0A0A0A", letterSpacing: "-0.03em", lineHeight: 1 }}>
+        casha<span style={{ color: "#22C55E" }}>.money</span>
+      </span>
+    </div>
+  );
+}
 
 export default function Home() {
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
@@ -74,7 +88,7 @@ export default function Home() {
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
-  const T = { black: "#0A0A0A", white: "#FFFFFF", green: G, text: "#18181B", muted: "#71717A", faint: "#A1A1AA", border: "#E4E4E7", surface: "#F9FAFB", card: "#FFFFFF" };
+  const T = { black: "#0A0A0A", white: "#FFFFFF", green: "#22C55E", text: "#18181B", muted: "#71717A", faint: "#A1A1AA", border: "#E4E4E7", surface: "#F9FAFB", card: "#FFFFFF" };
   const W: React.CSSProperties = { maxWidth: "1080px", margin: "0 auto", padding: "88px 24px" };
   const H2: React.CSSProperties = { fontSize: "clamp(26px, 3.8vw, 44px)", fontWeight: "800", color: T.text, letterSpacing: "-0.03em", lineHeight: "1.1", margin: "0 0 14px 0" };
   const LBL = (light = false): React.CSSProperties => ({ fontSize: "11px", fontWeight: "700", letterSpacing: "0.1em", textTransform: "uppercase", color: light ? "rgba(34,197,94,0.75)" : T.green, margin: "0 0 12px 0", display: "block" });
@@ -82,18 +96,43 @@ export default function Home() {
   const CARD: React.CSSProperties = { background: T.card, border: `1px solid ${T.border}`, borderRadius: "14px", padding: "26px" };
 
   const features = [
-    { tag: "AI Advisor", h: "Your personal CFO. Always available.", p: "Ask anything about your money. Get specific answers based on your actual transactions — not generic advice.", icon: <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>, code: `Casha AI  —  20 Apr 2026\n\nSavings rate: 65% (target: 20% exceeded)\n\nAction: Redirect Rs.33,750/month\nto HDFC loan. Debt-free 14 months\nearly. Interest saved: Rs.28,400` },
-    { tag: "Tax Genius", h: "Stop overpaying taxes. Every year.", p: "Compares Old vs New regime in real time. Tracks 80C, 80D, HRA, NPS deductions. Shows your exact savings before filing.", icon: <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>, code: `FY 2025-26  —  Tax Analysis\n\nOld Regime saves Rs.42,000 vs New.\n80C remaining: Rs.94,000 of Rs.1.5L\n\nAction: Invest in ELSS before 31 Mar\nEstimated saving: Rs.42,000` },
-    { tag: "Debt Destroyer", h: "See your debt-free date. Today.", p: "Add your loans and credit cards. Casha calculates the optimal payoff order and shows your exact debt-free date.", icon: <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>, code: `Avalanche strategy\n\n1. HDFC Credit Card  43% APR\n   Pay Rs.8,000/month\n2. SBI Personal Loan  14% APR\n   Continue minimum\n\nDebt-free: March 2027\nSaved: Rs.28,400 in interest` },
-    { tag: "SMS Parser", h: "Paste bank SMS. Transaction created.", p: "Works with every Indian bank. Paste any message — amount, merchant, and category extracted in one second.", icon: <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>, code: `HDFC SMS input:\nRs.2,500.00 debited from A/c XX1234\non 19-04-26. Info: Swiggy.\n\nParsed:\nAmount    Rs.2,500\nMerchant  Swiggy\nCategory  Food Delivery\nDate      19 Apr 2026` },
-    { tag: "Budget AI", h: "AI builds your budget. One click.", p: "Based on your income and the India-adapted 50/30/20 rule, Casha generates a complete monthly budget automatically.", icon: <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>, code: `Budget  —  April 2026\nIncome: Rs.75,000/month\n\nNeeds   50%  Rs.37,500\n  Housing + EMI + Groceries\nWants   30%  Rs.22,500\n  Dining + Shopping + Travel\nSavings 20%  Rs.15,000\n  SIP + PPF + Emergency Fund` },
-    { tag: "Subscriptions", h: "Find money you forgot you were spending.", p: "Automatically detects every active subscription from your transactions — even ones completely forgotten.", icon: <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>, code: `Detected  —  April 2026\n\nNetflix       Rs.499/month\nHotstar       Rs.299/month\nSpotify       Rs.119/month\nGym (unused)  Rs.1,999/month\n\nMonthly waste:  Rs.2,916\nAnnually:       Rs.34,992` },
-  ];
-
-  const rule = [
-    { pct: "50", label: "Needs", color: "#16A34A", bg: "rgba(22,163,74,0.08)", border: "rgba(22,163,74,0.15)", amount: "Rs.37,500", items: ["Housing & Rent", "Groceries", "EMI Payments", "Insurance", "Utilities", "Transport"] },
-    { pct: "30", label: "Wants", color: "#22C55E", bg: "rgba(34,197,94,0.07)", border: "rgba(34,197,94,0.14)", amount: "Rs.22,500", items: ["Dining & Delivery", "Shopping", "Entertainment", "Subscriptions", "Travel", "Personal Care"] },
-    { pct: "20", label: "Savings", color: "#4ADE80", bg: "rgba(74,222,128,0.06)", border: "rgba(74,222,128,0.12)", amount: "Rs.15,000", items: ["Emergency Fund", "SIP & Mutual Funds", "PPF & NPS", "ELSS (Tax Saving)", "Fixed Deposit", "Gold"] },
+    {
+      tag: "AI Advisor", h: "Your personal CFO. Always available.",
+      p: "Ask anything about your money. Get specific answers based on your actual transactions — not generic advice.",
+      // ── icon inline so it stays on same line as tag ──
+      icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={{ display: "block" }}><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>,
+      code: `Casha AI  —  20 Apr 2026\n\nSavings rate: 65% (target: 20% exceeded)\n\nAction: Redirect Rs.33,750/month\nto HDFC loan. Debt-free 14 months\nearly. Interest saved: Rs.28,400`
+    },
+    {
+      tag: "Tax Genius", h: "Stop overpaying taxes. Every year.",
+      p: "Compares Old vs New regime in real time. Tracks 80C, 80D, HRA, NPS deductions. Shows your exact savings before filing.",
+      icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={{ display: "block" }}><path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>,
+      code: `FY 2025-26  —  Tax Analysis\n\nOld Regime saves Rs.42,000 vs New.\n80C remaining: Rs.94,000 of Rs.1.5L\n\nAction: Invest in ELSS before 31 Mar\nEstimated saving: Rs.42,000`
+    },
+    {
+      tag: "Debt Destroyer", h: "See your debt-free date. Today.",
+      p: "Add your loans and credit cards. Casha calculates the optimal payoff order and shows your exact debt-free date.",
+      icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={{ display: "block" }}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>,
+      code: `Avalanche strategy\n\n1. HDFC Credit Card  43% APR\n   Pay Rs.8,000/month\n2. SBI Personal Loan  14% APR\n   Continue minimum\n\nDebt-free: March 2027\nSaved: Rs.28,400 in interest`
+    },
+    {
+      tag: "SMS Parser", h: "Paste bank SMS. Transaction created.",
+      p: "Works with every Indian bank. Paste any message — amount, merchant, and category extracted in one second.",
+      icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={{ display: "block" }}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>,
+      code: `HDFC SMS input:\nRs.2,500.00 debited from A/c XX1234\non 19-04-26. Info: Swiggy.\n\nParsed:\nAmount    Rs.2,500\nMerchant  Swiggy\nCategory  Food Delivery\nDate      19 Apr 2026`
+    },
+    {
+      tag: "Budget AI", h: "AI builds your budget. One click.",
+      p: "Based on your income and the India-adapted 50/30/20 rule, Casha generates a complete monthly budget automatically.",
+      icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={{ display: "block" }}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>,
+      code: `Budget  —  April 2026\nIncome: Rs.75,000/month\n\nNeeds   50%  Rs.37,500\n  Housing + EMI + Groceries\nWants   30%  Rs.22,500\n  Dining + Shopping + Travel\nSavings 20%  Rs.15,000\n  SIP + PPF + Emergency Fund`
+    },
+    {
+      tag: "Subscriptions", h: "Find money you forgot you were spending.",
+      p: "Automatically detects every active subscription from your transactions — even ones completely forgotten.",
+      icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={{ display: "block" }}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>,
+      code: `Detected  —  April 2026\n\nNetflix       Rs.499/month\nHotstar       Rs.299/month\nSpotify       Rs.119/month\nGym (unused)  Rs.1,999/month\n\nMonthly waste:  Rs.2,916\nAnnually:       Rs.34,992`
+    },
   ];
 
   const compare = [
@@ -126,23 +165,9 @@ export default function Home() {
     { q: "Is my financial data safe?", a: "We use AES-256 encryption, the same standard used by SBI and HDFC. Each user's data is completely isolated. We never sell your data to any third party." },
     { q: "Which banks does the SMS Parser support?", a: "All major Indian banks — SBI, HDFC, ICICI, Axis, Kotak, PNB, Bank of Baroda, Canara, IndusInd, Yes Bank — and UPI apps including Google Pay, PhonePe, Paytm, and BHIM." },
     { q: "What is the 50/30/20 rule and how does Casha use it?", a: "50% of income goes to needs (rent, EMI, groceries), 30% to wants (dining, shopping, entertainment), and 20% to savings and investments. Casha generates your budget automatically from your actual income with one click." },
-    { q: "How is Casha different from CRED or Jupiter?", a: "CRED works only with credit cards. Jupiter requires a new bank account. Casha works with all your existing accounts across every Indian bank, covers your complete financial life, and provides an AI advisor — all free." },
+    { q: "How is Casha different from CRED or Jupiter?", a: "CRED works only with credit cards. Jupiter requires a new bank account. Casha works with all your existing accounts, covers your complete financial life, and provides an AI advisor — all free." },
     { q: "Is Casha a registered financial advisor?", a: "No. Casha is a financial education platform, not a SEBI-registered advisor or licensed tax professional. All AI recommendations are educational only. Please consult a qualified CA before making significant financial decisions." },
   ];
-
-  // ── Logo component used everywhere ──
-  const CashaLogo = ({ size = 32, textSize = 17, light = false }: { size?: number; textSize?: number; light?: boolean }) => (
-    <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-      <img
-        src="/logo.png"
-        alt="Casha"
-        style={{ width: `${size}px`, height: `${size}px`, objectFit: "contain", flexShrink: 0 }}
-      />
-      <span style={{ fontSize: `${textSize}px`, fontWeight: "800", color: light ? "#fff" : T.black, letterSpacing: "-0.03em" }}>
-        casha<span style={{ color: T.green }}>.money</span>
-      </span>
-    </div>
-  );
 
   return (
     <div style={{ fontFamily: "'Inter', 'Helvetica Neue', system-ui, sans-serif", background: T.white, color: T.text, overflowX: "hidden" }}>
@@ -150,7 +175,7 @@ export default function Home() {
       {/* NAV */}
       <header style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 999, height: "62px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 40px", background: scrolled ? "rgba(255,255,255,0.96)" : "transparent", backdropFilter: scrolled ? "blur(16px)" : "none", borderBottom: scrolled ? `1px solid ${T.border}` : "none", transition: "all 0.25s" }}>
         <a href="/" style={{ textDecoration: "none" }}>
-          <CashaLogo size={32} textSize={17} />
+          <CashaLogo height={28} fontSize={17} />
         </a>
         <nav style={{ display: "flex", alignItems: "center", gap: "32px" }}>
           {[["Features", "#features"], ["50/30/20", "#rule"], ["Pricing", "#pricing"], ["FAQ", "#faq"]].map(([l, h]) => (
@@ -176,26 +201,22 @@ export default function Home() {
             <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: T.green, display: "inline-block", animation: "pulse 2s infinite" }} />
             <span style={{ fontSize: "13px", fontWeight: "600", color: "#166534" }}>618+ people on the early access list</span>
           </div>
-
           <h1 style={{ fontSize: "clamp(44px, 7vw, 82px)", fontWeight: "800", color: T.black, letterSpacing: "-0.04em", lineHeight: "1.03", margin: "0 0 20px 0" }}>
             Your money,<br />
-            <span style={{ display: "inline-block", color: T.green, fontStyle: "italic" }}>finally</span>
-            {" "}<span style={{ color: T.black }}>making sense.</span>
+            <span style={{ color: T.green, fontStyle: "italic" }}>finally</span>{" "}
+            <span style={{ color: T.black }}>making sense.</span>
           </h1>
-
           <p style={{ fontSize: "19px", color: T.muted, lineHeight: "1.65", maxWidth: "500px", margin: "0 auto 36px" }}>
             Track every rupee, destroy debt, save{" "}
             <strong style={{ color: T.text }}>Rs.20,000–50,000 in taxes</strong>
             {" "}annually, and get an AI financial advisor — free, forever.
           </p>
-
           <div style={{ display: "flex", justifyContent: "center", marginBottom: "12px" }}>
             <WaitlistForm />
           </div>
           <p style={{ fontSize: "13px", color: T.faint, margin: "0 0 52px" }}>
             Free forever — no credit card — works with all Indian banks
           </p>
-
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "18px", flexWrap: "wrap" }}>
             <span style={{ fontSize: "11px", color: "#CBD5E1", fontWeight: "700", letterSpacing: "0.08em", textTransform: "uppercase" }}>Works with</span>
             {["SBI", "HDFC", "ICICI", "Axis", "Kotak", "UPI", "GPay", "PhonePe"].map(b => (
@@ -220,9 +241,8 @@ export default function Home() {
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "188px 1fr" }}>
               <div style={{ background: T.white, borderRight: `1px solid ${T.border}`, padding: "16px 10px" }}>
-                {/* Sidebar logo — uses real logo */}
                 <div style={{ padding: "0 6px", marginBottom: "20px" }}>
-                  <CashaLogo size={22} textSize={13} />
+                  <CashaLogo height={20} fontSize={13} />
                 </div>
                 {["Overview", "Transactions", "Budget", "Debts", "Tax Genius", "AI Advisor", "Settings"].map((n, i) => (
                   <div key={n} style={{ padding: "8px 10px", borderRadius: "7px", marginBottom: "1px", background: i === 0 ? "#F4F4F5" : "transparent", fontSize: "13px", color: i === 0 ? T.black : T.faint, fontWeight: i === 0 ? "600" : "400" }}>{n}</div>
@@ -334,62 +354,97 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 50/30/20 */}
-      <section id="rule" style={{ background: T.black }}>
+      {/* ── 50/30/20 — COMPLETELY REDESIGNED ── */}
+      <section id="rule" style={{ background: "#0A0A0A" }}>
         <div style={W}>
           <Fade>
-            <div style={{ textAlign: "center", maxWidth: "540px", margin: "0 auto 48px" }}>
+            <div style={{ textAlign: "center", maxWidth: "560px", margin: "0 auto 56px" }}>
               <span style={LBL(true)}>Built-in framework</span>
-              <h2 style={{ ...H2, color: T.white }}>The 50/30/20 rule —<br />adapted for India.</h2>
+              <h2 style={{ ...H2, color: "#fff" }}>The 50/30/20 rule — adapted for India.</h2>
               <p style={{ fontSize: "17px", color: "rgba(255,255,255,0.45)", lineHeight: "1.7", margin: 0 }}>
-                The most proven budgeting framework, tuned for Indian salaries and tax laws. Applied automatically.
+                The most proven budgeting framework in the world, tuned for Indian salaries, tax laws, and investment habits. Casha applies it automatically.
               </p>
             </div>
           </Fade>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px", marginBottom: "28px" }}>
-            {rule.map((r, i) => (
-              <Fade key={i} delay={i * 0.09}>
-                <div style={{ background: r.bg, border: `1px solid ${r.border}`, borderRadius: "14px", padding: "26px" }}>
-                  <div style={{ marginBottom: "10px" }}>
-                    <span style={{ fontSize: "48px", fontWeight: "800", color: r.color, letterSpacing: "-0.04em", lineHeight: 1 }}>{r.pct}</span>
-                    <span style={{ fontSize: "20px", fontWeight: "800", color: r.color }}>%</span>
-                  </div>
-                  <p style={{ fontSize: "16px", fontWeight: "700", color: T.white, margin: "0 0 4px 0" }}>{r.label}</p>
-                  <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)", margin: "0 0 16px 0" }}>
-                    On Rs.75K: <strong style={{ color: r.color }}>{r.amount}</strong>
-                  </p>
-                  <div style={{ height: "1px", background: "rgba(255,255,255,0.06)", marginBottom: "14px" }} />
-                  {r.items.map((item, j) => (
-                    <div key={j} style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "7px" }}>
-                      <div style={{ width: "4px", height: "4px", borderRadius: "50%", background: r.color, flexShrink: 0 }} />
-                      <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)" }}>{item}</span>
+
+          {/* ── 3 rule cards — horizontal bar style ── */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "2px", marginBottom: "40px", borderRadius: "16px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.06)" }}>
+            {[
+              {
+                pct: "50", label: "Needs", color: "#22C55E", amount: "Rs.37,500",
+                desc: "The non-negotiables. Money you must spend every month to live.",
+                items: ["Housing & Rent", "Groceries & Food", "EMI Payments", "Insurance Premiums", "Electricity & Utilities", "Daily Transport"],
+              },
+              {
+                pct: "30", label: "Wants", color: "#86EFAC", amount: "Rs.22,500",
+                desc: "The quality-of-life spends. Enjoy life while staying within limits.",
+                items: ["Dining Out & Delivery", "Shopping & Clothing", "Entertainment & OTT", "Subscriptions", "Travel & Holidays", "Personal Care"],
+              },
+              {
+                pct: "20", label: "Savings & Investments", color: "#4ADE80", amount: "Rs.15,000",
+                desc: "The wealth builders. Every rupee here works for your future.",
+                items: ["Emergency Fund", "SIP & Mutual Funds", "PPF & NPS", "ELSS (Tax Saving)", "Fixed Deposit", "Gold"],
+              },
+            ].map((r, i) => (
+              <Fade key={i} delay={i * 0.08}>
+                <div style={{
+                  background: i === 0 ? "rgba(34,197,94,0.06)" : i === 1 ? "rgba(134,239,172,0.04)" : "rgba(74,222,128,0.03)",
+                  borderBottom: i < 2 ? "1px solid rgba(255,255,255,0.04)" : "none",
+                  padding: "28px 32px",
+                  display: "grid", gridTemplateColumns: "100px 1fr auto", gap: "32px", alignItems: "center",
+                }}>
+                  {/* Percentage */}
+                  <div>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: "2px" }}>
+                      <span style={{ fontSize: "52px", fontWeight: "800", color: r.color, letterSpacing: "-0.04em", lineHeight: 1 }}>{r.pct}</span>
+                      <span style={{ fontSize: "22px", fontWeight: "800", color: r.color }}>%</span>
                     </div>
-                  ))}
+                    <p style={{ fontSize: "13px", fontWeight: "700", color: r.color, margin: "4px 0 0 0", opacity: 0.8 }}>{r.label}</p>
+                  </div>
+
+                  {/* Description + items */}
+                  <div>
+                    <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.5)", margin: "0 0 12px 0", lineHeight: "1.5" }}>{r.desc}</p>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                      {r.items.map((item, j) => (
+                        <span key={j} style={{ fontSize: "12px", color: "rgba(255,255,255,0.45)", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "6px", padding: "3px 10px" }}>
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Amount */}
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.25)", margin: "0 0 4px 0", letterSpacing: "0.05em", textTransform: "uppercase" }}>On Rs.75K</p>
+                    <p style={{ fontSize: "22px", fontWeight: "800", color: "#fff", margin: 0, letterSpacing: "-0.02em" }}>{r.amount}</p>
+                    <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.25)", margin: "2px 0 0 0" }}>per month</p>
+                  </div>
                 </div>
               </Fade>
             ))}
           </div>
-          <Fade delay={0.25}>
-            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "14px", padding: "26px 30px" }}>
-              <p style={{ fontSize: "11px", fontWeight: "700", color: "rgba(255,255,255,0.28)", letterSpacing: "0.08em", textTransform: "uppercase", margin: "0 0 18px 0" }}>Income: Rs.75,000/month</p>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0" }}>
-                {rule.map((r, i) => (
-                  <div key={i} style={{ paddingRight: i < 2 ? "24px" : "0", borderRight: i < 2 ? "1px solid rgba(255,255,255,0.06)" : "none", paddingLeft: i > 0 ? "24px" : "0" }}>
-                    <p style={{ fontSize: "11px", fontWeight: "700", color: r.color, letterSpacing: "0.07em", textTransform: "uppercase", margin: "0 0 6px 0" }}>{r.label} — {r.pct}%</p>
-                    <p style={{ fontSize: "24px", fontWeight: "800", color: T.white, margin: "0 0 3px 0", letterSpacing: "-0.02em" }}>{r.amount}</p>
-                    <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.25)", margin: 0 }}>per month</p>
-                  </div>
-                ))}
+
+          {/* ── Summary bar ── */}
+          <Fade delay={0.28}>
+            <div style={{ background: "rgba(34,197,94,0.07)", border: "1px solid rgba(34,197,94,0.15)", borderRadius: "14px", padding: "24px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "20px", flexWrap: "wrap" }}>
+              <div>
+                <p style={{ fontSize: "14px", fontWeight: "700", color: "#fff", margin: "0 0 4px 0" }}>
+                  Your budget, generated automatically.
+                </p>
+                <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", margin: 0 }}>
+                  Casha reads your actual income and builds this budget for you — one click, every month.
+                </p>
               </div>
-              <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.18)", margin: "18px 0 0 0", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "16px" }}>
-                Casha generates this budget automatically from your actual income — one click, no manual work.
-              </p>
+              <a href="/auth/signup" style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "#22C55E", color: "#0A0A0A", padding: "11px 22px", borderRadius: "10px", textDecoration: "none", fontWeight: "700", fontSize: "14px", whiteSpace: "nowrap", flexShrink: 0, boxShadow: "0 4px 12px rgba(34,197,94,0.3)" }}>
+                Try it free →
+              </a>
             </div>
           </Fade>
         </div>
       </section>
 
-      {/* FEATURES */}
+      {/* FEATURES — fixed tag+icon alignment */}
       <section id="features" style={{ background: T.white }}>
         <div style={W}>
           <Fade>
@@ -404,9 +459,12 @@ export default function Home() {
                 <Fade key={i} delay={0.04}>
                   <div style={{ ...CARD, padding: "40px 44px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "48px", alignItems: "center" }}>
                     <div style={{ order: flip ? 2 : 1 }}>
-                      <div style={{ display: "inline-flex", alignItems: "center", gap: "7px", marginBottom: "14px" }}>
-                        <div style={{ color: T.green }}>{f.icon}</div>
-                        <span style={LBL()}>{f.tag}</span>
+                      {/* ── Fixed: icon and tag on same line ── */}
+                      <div style={{ display: "flex", alignItems: "center", gap: "7px", marginBottom: "14px" }}>
+                        <div style={{ color: T.green, display: "flex", alignItems: "center" }}>{f.icon}</div>
+                        <span style={{ fontSize: "11px", fontWeight: "700", letterSpacing: "0.1em", textTransform: "uppercase", color: T.green }}>
+                          {f.tag}
+                        </span>
                       </div>
                       <h3 style={{ fontSize: "21px", fontWeight: "800", color: T.black, margin: "0 0 12px 0", letterSpacing: "-0.02em", lineHeight: "1.2" }}>{f.h}</h3>
                       <p style={{ fontSize: "15px", color: T.muted, margin: 0, lineHeight: "1.7" }}>{f.p}</p>
@@ -463,10 +521,7 @@ export default function Home() {
           <Fade>
             <div style={{ textAlign: "center", maxWidth: "480px", margin: "0 auto 48px" }}>
               <span style={LBL()}>Why Casha</span>
-              <h2 style={H2}>
-                Built for India.<br />
-                <span style={{ color: T.green }}>Built better.</span>
-              </h2>
+              <h2 style={H2}>Built for India.<br /><span style={{ color: T.green }}>Built better.</span></h2>
               <p style={{ fontSize: "17px", color: T.muted, lineHeight: "1.7", margin: 0 }}>No other app covers your complete financial life for Indian users.</p>
             </div>
           </Fade>
@@ -540,9 +595,7 @@ export default function Home() {
                 <Fade key={i} delay={i * 0.07}>
                   <div style={{ background: plan.highlight ? T.black : T.white, border: plan.highlight ? `2px solid ${T.green}` : `1px solid ${T.border}`, borderRadius: "16px", padding: "28px", display: "flex", flexDirection: "column", position: "relative" }}>
                     {plan.badge && (
-                      <div style={{ position: "absolute", top: "-11px", left: "50%", transform: "translateX(-50%)", background: T.green, color: T.white, fontSize: "11px", fontWeight: "700", padding: "3px 14px", borderRadius: "999px", whiteSpace: "nowrap" }}>
-                        {plan.badge}
-                      </div>
+                      <div style={{ position: "absolute", top: "-11px", left: "50%", transform: "translateX(-50%)", background: T.green, color: T.white, fontSize: "11px", fontWeight: "700", padding: "3px 14px", borderRadius: "999px", whiteSpace: "nowrap" }}>{plan.badge}</div>
                     )}
                     <p style={{ fontSize: "13px", fontWeight: "600", color: plan.highlight ? "rgba(255,255,255,0.35)" : T.muted, margin: "0 0 8px 0" }}>{plan.name}</p>
                     <p style={{ fontSize: "38px", fontWeight: "800", letterSpacing: "-0.03em", color: plan.highlight ? T.white : T.black, margin: "0 0 4px 0" }}>{plan.price}</p>
@@ -672,8 +725,7 @@ export default function Home() {
       <footer style={{ background: T.black, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
         <div style={{ maxWidth: "1080px", margin: "0 auto", padding: "32px 24px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px", marginBottom: "22px" }}>
-            {/* Footer logo — uses real logo */}
-            <CashaLogo size={28} textSize={15} light />
+            <CashaLogo height={26} fontSize={15} light />
             <div style={{ display: "flex", gap: "22px", flexWrap: "wrap" }}>
               {[["Features", "#features"], ["50/30/20", "#rule"], ["Pricing", "#pricing"], ["FAQ", "#faq"], ["Sign in", "/auth/login"], ["Sign up", "/auth/signup"]].map(([l, h]) => (
                 <a key={l} href={h} style={{ fontSize: "13px", color: "rgba(255,255,255,0.28)", textDecoration: "none" }}
