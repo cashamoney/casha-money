@@ -2,23 +2,19 @@
 import { useState } from "react";
 import { supabase } from "../../../lib/supabase";
 
-// ── Indian Bank SMS Patterns ──
 const SMS_PATTERNS = [
-  // HDFC Bank
   {
     bank: "HDFC Bank",
     pattern: /(?:Rs\.?|INR\.?|₹)\s*([\d,]+\.?\d*)\s+(?:debited|credited)\s+(?:from|to)\s+(?:A\/c|Acct|account)\s*(?:XX|x{2})?(\d+)/i,
     amountGroup: 1,
     type: (sms: string) => sms.toLowerCase().includes("debited") ? "expense" : "income",
   },
-  // SBI
   {
     bank: "SBI",
     pattern: /(?:Rs\.?|INR\.?|₹)\s*([\d,]+\.?\d*)\s+(?:debited|credited)/i,
     amountGroup: 1,
     type: (sms: string) => sms.toLowerCase().includes("debited") ? "expense" : "income",
   },
-  // ICICI Bank
   {
     bank: "ICICI Bank",
     pattern: /(?:INR|Rs\.?|₹)\s*([\d,]+\.?\d*)\s+(?:debited|credited|spent|received)/i,
@@ -28,14 +24,12 @@ const SMS_PATTERNS = [
       return (lower.includes("debited") || lower.includes("spent")) ? "expense" : "income";
     },
   },
-  // Axis Bank
   {
     bank: "Axis Bank",
     pattern: /(?:INR|Rs\.?|₹)\s*([\d,]+\.?\d*)\s+(?:debited|credited|transferred)/i,
     amountGroup: 1,
     type: (sms: string) => sms.toLowerCase().includes("debited") ? "expense" : "income",
   },
-  // Kotak Bank
   {
     bank: "Kotak",
     pattern: /(?:INR|Rs\.?|₹)\s*([\d,]+\.?\d*)\s+(?:debited|credited|paid|received)/i,
@@ -45,7 +39,6 @@ const SMS_PATTERNS = [
       return (lower.includes("debited") || lower.includes("paid")) ? "expense" : "income";
     },
   },
-  // Generic UPI
   {
     bank: "UPI",
     pattern: /(?:INR|Rs\.?|₹)\s*([\d,]+\.?\d*)\s+(?:debited|credited|paid|received|sent)/i,
@@ -55,14 +48,12 @@ const SMS_PATTERNS = [
       return (lower.includes("debited") || lower.includes("paid") || lower.includes("sent")) ? "expense" : "income";
     },
   },
-  // Credit Card
   {
     bank: "Credit Card",
     pattern: /(?:INR|Rs\.?|₹)\s*([\d,]+\.?\d*)\s+(?:spent|used|charged|debited)/i,
     amountGroup: 1,
     type: () => "expense",
   },
-  // Generic pattern (fallback)
   {
     bank: "Bank",
     pattern: /([\d,]+\.?\d*)\s+(?:debited|credited|paid|received|sent|transferred)/i,
@@ -74,64 +65,52 @@ const SMS_PATTERNS = [
   },
 ];
 
-// ── Extract merchant from SMS ──
 const extractMerchant = (sms: string): string => {
   const patterns = [
     /(?:at|to|from|@)\s+([A-Za-z0-9\s]+?)(?:\s+on|\s+via|\s+Ref|\s+UPI|\.|,|$)/i,
-    /(?:merchant|payee|beneficiary)[:\s]+([A-Za-z0-9\s]+?)(?:\s+on|\s+Ref|\.|,|$)/i,
+    /(?:Info:|Info -|trf to|transfer to)\s*([A-Za-z0-9\s]+?)(?:\s+on|\s+Ref|\.|,|$)/i,
     /(?:paid to|sent to|transferred to)\s+([A-Za-z0-9\s]+?)(?:\s+on|\s+Ref|\.|,|$)/i,
     /VPA\s+([A-Za-z0-9@.]+)/i,
   ];
-
   for (const pattern of patterns) {
     const match = sms.match(pattern);
     if (match && match[1]?.trim().length > 2) {
       return match[1].trim().substring(0, 50);
     }
   }
-  return "Unknown";
+  return "Bank Transaction";
 };
 
-// ── Auto categorize by merchant/keyword ──
 const autoCategory = (sms: string, merchant: string, type: string): string => {
   if (type === "income") return "Salary";
-
   const text = (sms + " " + merchant).toLowerCase();
-
-  if (text.match(/swiggy|zomato|uber eat|food|restaurant|pizza|burger|cafe|dhaba|hotel/)) return "Food Delivery";
-  if (text.match(/grocery|bigbasket|grofer|blinkit|jiomart|supermarket|kirana/)) return "Groceries";
-  if (text.match(/uber|ola|rapido|metro|bus|train|cab|taxi|auto|petrol|fuel|hp|bpcl|indian oil/)) return "Transportation";
-  if (text.match(/netflix|hotstar|prime|spotify|zee5|sonyliv|youtube|jiocinema/)) return "Streaming/OTT";
-  if (text.match(/amazon|flipkart|myntra|ajio|meesho|nykaa|shopping/)) return "Shopping";
-  if (text.match(/hospital|clinic|pharmacy|medicine|apollo|medplus|health/)) return "Healthcare";
-  if (text.match(/electricity|water|gas|bill|bsnl|airtel|jio|vi |vodafone/)) return "Electricity";
+  if (text.match(/swiggy|zomato|uber eat|food|restaurant|pizza|burger|cafe/)) return "Food Delivery";
+  if (text.match(/grocery|bigbasket|grofer|blinkit|jiomart|supermarket/)) return "Groceries";
+  if (text.match(/uber|ola|rapido|metro|bus|train|cab|taxi|petrol|fuel/)) return "Transportation";
+  if (text.match(/netflix|hotstar|prime|spotify|zee5|sonyliv|youtube/)) return "Streaming/OTT";
+  if (text.match(/amazon|flipkart|myntra|ajio|meesho|nykaa/)) return "Shopping";
+  if (text.match(/hospital|clinic|pharmacy|medicine|apollo|medplus/)) return "Healthcare";
+  if (text.match(/electricity|water|gas|bill|bsnl|airtel|jio|vodafone/)) return "Electricity";
   if (text.match(/emi|loan|hdfc|icici|sbi|bank|bajaj|finance/)) return "EMI Payment";
   if (text.match(/school|college|university|coaching|course|education/)) return "Education";
-  if (text.match(/gym|fitness|cult|yoga|sport/)) return "Healthcare";
+  if (text.match(/gym|fitness|cult|yoga/)) return "Healthcare";
   if (text.match(/insurance|lic|policy/)) return "Insurance";
   if (text.match(/rent|landlord|housing/)) return "Housing/Rent";
-
   return "Other Expense";
 };
 
-// ── Parse SMS ──
 const parseSMS = (sms: string) => {
   const trimmed = sms.trim();
   if (!trimmed) return null;
-
   for (const pattern of SMS_PATTERNS) {
     const match = trimmed.match(pattern.pattern);
     if (match) {
       const amountStr = match[pattern.amountGroup]?.replace(/,/g, "") || "0";
       const amount = parseFloat(amountStr);
-
       if (amount <= 0 || amount > 10000000) continue;
-
       const type = pattern.type(trimmed);
       const merchant = extractMerchant(trimmed);
       const category = autoCategory(trimmed, merchant, type);
-
-      // Extract date
       const dateMatch = trimmed.match(/(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})/);
       let date = new Date().toISOString().split("T")[0];
       if (dateMatch) {
@@ -142,19 +121,9 @@ const parseSMS = (sms: string) => {
           }
         } catch { }
       }
-
-      return {
-        amount,
-        type,
-        merchant: merchant !== "Unknown" ? merchant : pattern.bank,
-        category,
-        date,
-        bank: pattern.bank,
-        raw: trimmed,
-      };
+      return { amount, type, merchant, category, date, bank: pattern.bank, raw: trimmed };
     }
   }
-
   return null;
 };
 
@@ -162,8 +131,15 @@ const EXAMPLE_SMS = [
   "Rs.2500.00 debited from A/c XX1234 on 19-04-26. Info: Swiggy. Avl Bal:Rs.47500.00 -HDFC Bank",
   "INR 15000.00 debited from your HDFC Bank A/c XX5678 towards EMI. Ref No 123456789",
   "Your A/c XX1234 is credited with INR 75000.00 on 19-Apr-26 by NEFT. Avl Bal: INR 1,25,000",
-  "Rs 499.00 spent on HDFC Bank Credit Card XX9012 at Netflix on 2026-04-19. Available limit: Rs 49501",
-  "UPI: Rs.1200.00 debited from A/c XX3456 to Amazon@upi on 19/04/2026. Ref: 12345678901",
+  "Rs 499.00 spent on HDFC Bank Credit Card XX9012 at Netflix on 2026-04-19.",
+  "UPI: Rs.1200.00 debited from A/c XX3456 to Amazon@upi on 19/04/2026.",
+];
+
+const ALL_CATEGORIES = [
+  "Salary", "Food Delivery", "Groceries", "Transportation", "EMI Payment",
+  "Entertainment", "Shopping", "Healthcare", "Education", "Subscription",
+  "Streaming/OTT", "Insurance", "Housing/Rent", "Electricity",
+  "Other Expense", "Other Income",
 ];
 
 export default function SMSParserPage() {
@@ -171,17 +147,17 @@ export default function SMSParserPage() {
   const [parsed, setParsed] = useState<any>(null);
   const [parseError, setParseError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
   const [bulkSMS, setBulkSMS] = useState("");
   const [bulkResults, setBulkResults] = useState<any[]>([]);
   const [bulkSaving, setBulkSaving] = useState(false);
-  const [bulkSaved, setBulkSaved] = useState(0);
+  const [bulkSavedCount, setBulkSavedCount] = useState(0);
   const [activeTab, setActiveTab] = useState<"single" | "bulk">("single");
 
   const handleParse = () => {
     setParseError("");
     setParsed(null);
-    setSaved(false);
+    setSaveStatus("idle");
 
     if (!smsText.trim()) {
       setParseError("Please paste an SMS message first.");
@@ -192,16 +168,19 @@ export default function SMSParserPage() {
     if (result) {
       setParsed(result);
     } else {
-      setParseError("Could not parse this SMS. Try a different format or add manually in Transactions.");
+      setParseError("Could not parse this SMS. Please try a different SMS or add the transaction manually.");
     }
   };
 
   const handleSave = async () => {
     if (!parsed) return;
-    setSaving(true);
+    setSaveStatus("saving");
 
     const { data: authData } = await supabase.auth.getUser();
-    if (!authData.user) { setSaving(false); return; }
+    if (!authData.user) {
+      setSaveStatus("error");
+      return;
+    }
 
     const { error } = await supabase.from("transactions").insert({
       user_id: authData.user.id,
@@ -215,23 +194,27 @@ export default function SMSParserPage() {
       currency: "INR",
     });
 
-    setSaving(false);
     if (!error) {
-      setSaved(true);
-      setSmsText("");
-      setParsed(null);
+      setSaveStatus("success");
+      // Reset after 3 seconds
+      setTimeout(() => {
+        setSmsText("");
+        setParsed(null);
+        setSaveStatus("idle");
+      }, 3000);
+    } else {
+      console.error("Save error:", error);
+      setSaveStatus("error");
     }
   };
 
   const handleBulkParse = () => {
     const lines = bulkSMS.split("\n").filter(l => l.trim().length > 10);
-    const results = lines.map(line => ({
-      raw: line,
-      parsed: parseSMS(line),
-    })).filter(r => r.parsed !== null);
-
+    const results = lines
+      .map(line => ({ raw: line, parsed: parseSMS(line) }))
+      .filter(r => r.parsed !== null);
     setBulkResults(results);
-    setBulkSaved(0);
+    setBulkSavedCount(0);
   };
 
   const handleBulkSave = async () => {
@@ -239,7 +222,7 @@ export default function SMSParserPage() {
     const { data: authData } = await supabase.auth.getUser();
     if (!authData.user) { setBulkSaving(false); return; }
 
-    let saved = 0;
+    let count = 0;
     for (const result of bulkResults) {
       if (!result.parsed) continue;
       const { error } = await supabase.from("transactions").insert({
@@ -253,10 +236,10 @@ export default function SMSParserPage() {
         source: "sms",
         currency: "INR",
       });
-      if (!error) saved++;
+      if (!error) count++;
     }
 
-    setBulkSaved(saved);
+    setBulkSavedCount(count);
     setBulkSaving(false);
     setBulkResults([]);
     setBulkSMS("");
@@ -282,10 +265,10 @@ export default function SMSParserPage() {
       {/* Supported Banks */}
       <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: "12px", padding: "14px 18px", marginBottom: "24px" }}>
         <p style={{ fontSize: "12px", fontWeight: "600", color: "#166534", margin: "0 0 8px 0" }}>
-          ✅ Supported Banks & Payment Methods
+          ✅ Works with all Indian banks and payment apps
         </p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-          {["SBI", "HDFC Bank", "ICICI Bank", "Axis Bank", "Kotak Bank", "PNB", "BOB", "Canara", "IndusInd", "Yes Bank", "UPI / GPay", "PhonePe", "Paytm", "Credit Cards"].map(bank => (
+          {["SBI", "HDFC", "ICICI", "Axis", "Kotak", "PNB", "BOB", "Canara", "IndusInd", "Yes Bank", "UPI", "GPay", "PhonePe", "Paytm", "Credit Cards"].map(bank => (
             <span key={bank} style={{
               fontSize: "11px", fontWeight: "500", padding: "3px 10px",
               borderRadius: "999px", background: "#DCFCE7", color: "#166534"
@@ -317,17 +300,23 @@ export default function SMSParserPage() {
         ))}
       </div>
 
-      {/* Single SMS Tab */}
+      {/* ── SINGLE SMS TAB ── */}
       {activeTab === "single" && (
-        <div>
-          {/* Input */}
-          <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "16px", padding: "24px", marginBottom: "16px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+
+          {/* Input Box */}
+          <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "16px", padding: "24px" }}>
             <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "10px" }}>
               Paste your bank SMS here
             </label>
             <textarea
               value={smsText}
-              onChange={e => { setSmsText(e.target.value); setParsed(null); setParseError(""); setSaved(false); }}
+              onChange={e => {
+                setSmsText(e.target.value);
+                setParsed(null);
+                setParseError("");
+                setSaveStatus("idle");
+              }}
               placeholder="Example: Rs.2500.00 debited from A/c XX1234 on 19-04-26. Info: Swiggy. Avl Bal:Rs.47500.00 -HDFC Bank"
               rows={4}
               style={{
@@ -338,7 +327,7 @@ export default function SMSParserPage() {
                 boxSizing: "border-box", lineHeight: "1.5"
               }}
             />
-            <div style={{ display: "flex", gap: "8px", marginTop: "12px", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
               <button
                 onClick={handleParse}
                 style={{
@@ -350,7 +339,7 @@ export default function SMSParserPage() {
                 🔍 Parse SMS
               </button>
               <button
-                onClick={() => { setSmsText(""); setParsed(null); setParseError(""); setSaved(false); }}
+                onClick={() => { setSmsText(""); setParsed(null); setParseError(""); setSaveStatus("idle"); }}
                 style={{
                   padding: "10px 16px", borderRadius: "10px",
                   border: "1px solid #E5E7EB", background: "#fff",
@@ -362,54 +351,103 @@ export default function SMSParserPage() {
             </div>
           </div>
 
-          {/* Error */}
+          {/* Error Message */}
           {parseError && (
-            <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "12px", padding: "14px 18px", marginBottom: "16px" }}>
+            <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "12px", padding: "16px" }}>
               <p style={{ fontSize: "13px", color: "#DC2626", margin: 0 }}>
                 ❌ {parseError}
               </p>
             </div>
           )}
 
-          {/* Parsed Result */}
-          {parsed && !saved && (
-            <div style={{ background: "#fff", border: "2px solid #22C55E", borderRadius: "16px", padding: "24px", marginBottom: "16px" }}>
-              <p style={{ fontSize: "13px", fontWeight: "700", color: "#166534", margin: "0 0 16px 0" }}>
-                ✅ SMS Parsed Successfully!
+          {/* ── SUCCESS: Saved ── */}
+          {saveStatus === "success" && (
+            <div style={{
+              background: "#F0FDF4", border: "2px solid #22C55E",
+              borderRadius: "16px", padding: "28px", textAlign: "center"
+            }}>
+              <div style={{ fontSize: "48px", marginBottom: "12px" }}>🎉</div>
+              <p style={{ fontSize: "20px", fontWeight: "700", color: "#166534", margin: "0 0 8px 0" }}>
+                Transaction Saved Successfully!
               </p>
+              <p style={{ fontSize: "13px", color: "#16A34A", margin: "0 0 16px 0" }}>
+                Your transaction has been added. Paste another SMS to continue.
+              </p>
+              <div style={{ background: "#DCFCE7", borderRadius: "10px", padding: "12px", display: "inline-block" }}>
+                <p style={{ fontSize: "13px", color: "#166534", margin: 0, fontWeight: "500" }}>
+                  ✅ Check your Transactions page to see it
+                </p>
+              </div>
+            </div>
+          )}
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
-                {[
-                  { label: "Amount", value: fmt(parsed.amount), highlight: true },
-                  { label: "Type", value: parsed.type === "income" ? "💵 Income" : "💸 Expense" },
-                  { label: "Merchant", value: parsed.merchant },
-                  { label: "Category", value: parsed.category },
-                  { label: "Date", value: new Date(parsed.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) },
-                  { label: "Bank Detected", value: parsed.bank },
-                ].map(item => (
-                  <div key={item.label} style={{ background: "#F9FAFB", borderRadius: "10px", padding: "12px" }}>
-                    <p style={{ fontSize: "11px", color: "#9CA3AF", margin: "0 0 4px 0", fontWeight: "600", textTransform: "uppercase" }}>
-                      {item.label}
-                    </p>
-                    <p style={{ fontSize: "14px", fontWeight: "700", color: item.highlight ? "#16A34A" : "#0C0D10", margin: 0 }}>
-                      {item.value}
-                    </p>
-                  </div>
-                ))}
+          {/* ── ERROR: Save failed ── */}
+          {saveStatus === "error" && (
+            <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "12px", padding: "16px" }}>
+              <p style={{ fontSize: "13px", color: "#DC2626", margin: 0 }}>
+                ❌ Could not save transaction. Please try again or add manually in Transactions.
+              </p>
+            </div>
+          )}
+
+          {/* ── Parsed Result ── */}
+          {parsed && saveStatus !== "success" && (
+            <div style={{ background: "#fff", border: "2px solid #22C55E", borderRadius: "16px", padding: "24px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "20px" }}>
+                <span style={{ fontSize: "20px" }}>✅</span>
+                <p style={{ fontSize: "14px", fontWeight: "700", color: "#166534", margin: 0 }}>
+                  SMS Parsed Successfully! Review and save below.
+                </p>
               </div>
 
-              {/* Edit before saving */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
+              {/* Parsed data cards */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "20px" }}>
+                <div style={{ background: "#F0FDF4", borderRadius: "12px", padding: "14px" }}>
+                  <p style={{ fontSize: "11px", color: "#9CA3AF", margin: "0 0 4px 0", fontWeight: "600", textTransform: "uppercase" }}>
+                    Amount
+                  </p>
+                  <p style={{ fontSize: "22px", fontWeight: "700", color: "#16A34A", margin: 0 }}>
+                    {fmt(parsed.amount)}
+                  </p>
+                </div>
+                <div style={{ background: parsed.type === "income" ? "#F0FDF4" : "#FEF2F2", borderRadius: "12px", padding: "14px" }}>
+                  <p style={{ fontSize: "11px", color: "#9CA3AF", margin: "0 0 4px 0", fontWeight: "600", textTransform: "uppercase" }}>
+                    Type
+                  </p>
+                  <p style={{ fontSize: "18px", fontWeight: "700", color: parsed.type === "income" ? "#16A34A" : "#DC2626", margin: 0 }}>
+                    {parsed.type === "income" ? "💵 Income" : "💸 Expense"}
+                  </p>
+                </div>
+                <div style={{ background: "#F9FAFB", borderRadius: "12px", padding: "14px" }}>
+                  <p style={{ fontSize: "11px", color: "#9CA3AF", margin: "0 0 4px 0", fontWeight: "600", textTransform: "uppercase" }}>
+                    Date
+                  </p>
+                  <p style={{ fontSize: "15px", fontWeight: "600", color: "#0C0D10", margin: 0 }}>
+                    {new Date(parsed.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                  </p>
+                </div>
+                <div style={{ background: "#F9FAFB", borderRadius: "12px", padding: "14px" }}>
+                  <p style={{ fontSize: "11px", color: "#9CA3AF", margin: "0 0 4px 0", fontWeight: "600", textTransform: "uppercase" }}>
+                    Bank
+                  </p>
+                  <p style={{ fontSize: "15px", fontWeight: "600", color: "#0C0D10", margin: 0 }}>
+                    {parsed.bank}
+                  </p>
+                </div>
+              </div>
+
+              {/* Edit merchant and category */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px" }}>
                 <div>
                   <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>
-                    Edit Merchant
+                    Merchant / Payee
                   </label>
                   <input
                     type="text"
                     value={parsed.merchant}
                     onChange={e => setParsed({ ...parsed, merchant: e.target.value })}
                     style={{
-                      width: "100%", height: "38px", borderRadius: "10px",
+                      width: "100%", height: "40px", borderRadius: "10px",
                       padding: "0 12px", fontSize: "13px", border: "1px solid #E5E7EB",
                       background: "#F9FAFB", color: "#0C0D10", outline: "none",
                       boxSizing: "border-box"
@@ -418,70 +456,62 @@ export default function SMSParserPage() {
                 </div>
                 <div>
                   <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>
-                    Edit Category
+                    Category
                   </label>
                   <select
                     value={parsed.category}
                     onChange={e => setParsed({ ...parsed, category: e.target.value })}
                     style={{
-                      width: "100%", height: "38px", borderRadius: "10px",
+                      width: "100%", height: "40px", borderRadius: "10px",
                       padding: "0 12px", fontSize: "13px", border: "1px solid #E5E7EB",
                       background: "#F9FAFB", color: "#0C0D10", outline: "none",
                       boxSizing: "border-box"
                     }}
                   >
-                    {["Salary", "Food Delivery", "Groceries", "Transportation", "EMI Payment",
-                      "Entertainment", "Shopping", "Healthcare", "Education", "Subscription",
-                      "Streaming/OTT", "Insurance", "Housing/Rent", "Electricity",
-                      "Other Expense", "Other Income"].map(c => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
+                    {ALL_CATEGORIES.map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
                   </select>
                 </div>
               </div>
 
+              {/* Save Button */}
               <button
                 onClick={handleSave}
-                disabled={saving}
+                disabled={saveStatus === "saving"}
                 style={{
-                  width: "100%", height: "46px", borderRadius: "12px", border: "none",
-                  background: "#22C55E", color: "#fff", fontSize: "14px",
-                  fontWeight: "600", cursor: "pointer", opacity: saving ? 0.7 : 1
+                  width: "100%", height: "50px", borderRadius: "12px", border: "none",
+                  background: saveStatus === "saving" ? "#9CA3AF" : "#22C55E",
+                  color: "#fff", fontSize: "15px", fontWeight: "700",
+                  cursor: saveStatus === "saving" ? "not-allowed" : "pointer",
+                  transition: "all 0.2s"
                 }}
               >
-                {saving ? "Saving..." : "✅ Save Transaction"}
+                {saveStatus === "saving" ? "⏳ Saving transaction..." : "✅ Save Transaction"}
               </button>
-            </div>
-          )}
-
-          {/* Saved confirmation */}
-          {saved && (
-            <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: "12px", padding: "18px", marginBottom: "16px", textAlign: "center" }}>
-              <p style={{ fontSize: "18px", margin: "0 0 4px 0" }}>🎉</p>
-              <p style={{ fontSize: "14px", fontWeight: "700", color: "#166534", margin: "0 0 4px 0" }}>
-                Transaction Saved!
-              </p>
-              <p style={{ fontSize: "12px", color: "#16A34A", margin: 0 }}>
-                Paste another SMS to continue importing
-              </p>
             </div>
           )}
 
           {/* Example SMS */}
           <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "16px", padding: "20px" }}>
             <p style={{ fontSize: "13px", fontWeight: "600", color: "#0C0D10", margin: "0 0 12px 0" }}>
-              💡 Try these example SMS messages:
+              💡 Try these example SMS messages (click to fill):
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {EXAMPLE_SMS.map((sms, i) => (
                 <button
                   key={i}
-                  onClick={() => { setSmsText(sms); setParsed(null); setParseError(""); setSaved(false); }}
+                  onClick={() => {
+                    setSmsText(sms);
+                    setParsed(null);
+                    setParseError("");
+                    setSaveStatus("idle");
+                  }}
                   style={{
                     padding: "10px 14px", borderRadius: "10px",
                     border: "1px solid #E5E7EB", background: "#F9FAFB",
                     color: "#374151", fontSize: "11px", cursor: "pointer",
-                    textAlign: "left", lineHeight: "1.4"
+                    textAlign: "left", lineHeight: "1.5", fontFamily: "monospace"
                   }}
                 >
                   {sms}
@@ -492,19 +522,19 @@ export default function SMSParserPage() {
         </div>
       )}
 
-      {/* Bulk Import Tab */}
+      {/* ── BULK IMPORT TAB ── */}
       {activeTab === "bulk" && (
-        <div>
-          <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "16px", padding: "24px", marginBottom: "16px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "16px", padding: "24px" }}>
             <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>
               Paste multiple SMS messages (one per line)
             </label>
             <p style={{ fontSize: "12px", color: "#9CA3AF", margin: "0 0 10px 0" }}>
-              Paste all your bank SMS messages at once. Each line = one SMS.
+              Copy all your bank SMS messages and paste them here. Each line = one SMS.
             </p>
             <textarea
               value={bulkSMS}
-              onChange={e => { setBulkSMS(e.target.value); setBulkResults([]); setBulkSaved(0); }}
+              onChange={e => { setBulkSMS(e.target.value); setBulkResults([]); setBulkSavedCount(0); }}
               placeholder={`Rs.2500.00 debited from A/c XX1234. Info: Swiggy -HDFC Bank\nINR 75000.00 credited to your account by NEFT\nRs 1200.00 spent at Netflix on HDFC Credit Card`}
               rows={8}
               style={{
@@ -521,7 +551,8 @@ export default function SMSParserPage() {
               style={{
                 marginTop: "12px", padding: "10px 24px", borderRadius: "10px", border: "none",
                 background: "#0C0D10", color: "#fff", fontSize: "13px",
-                fontWeight: "600", cursor: "pointer", opacity: !bulkSMS.trim() ? 0.5 : 1
+                fontWeight: "600", cursor: !bulkSMS.trim() ? "not-allowed" : "pointer",
+                opacity: !bulkSMS.trim() ? 0.5 : 1
               }}
             >
               🔍 Parse All SMS
@@ -531,13 +562,13 @@ export default function SMSParserPage() {
           {/* Bulk Results */}
           {bulkResults.length > 0 && (
             <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "16px", padding: "24px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
                 <div>
-                  <p style={{ fontSize: "14px", fontWeight: "700", color: "#0C0D10", margin: "0 0 2px 0" }}>
-                    ✅ {bulkResults.length} transactions found
+                  <p style={{ fontSize: "15px", fontWeight: "700", color: "#0C0D10", margin: "0 0 2px 0" }}>
+                    ✅ {bulkResults.length} transactions detected
                   </p>
                   <p style={{ fontSize: "12px", color: "#6B7280", margin: 0 }}>
-                    Review and save all at once
+                    Review below then save all at once
                   </p>
                 </div>
                 <button
@@ -549,14 +580,14 @@ export default function SMSParserPage() {
                     fontWeight: "600", cursor: "pointer", opacity: bulkSaving ? 0.7 : 1
                   }}
                 >
-                  {bulkSaving ? "Saving..." : `💾 Save All ${bulkResults.length}`}
+                  {bulkSaving ? "Saving..." : `💾 Save All ${bulkResults.length} Transactions`}
                 </button>
               </div>
 
-              {bulkSaved > 0 && (
-                <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: "10px", padding: "12px", marginBottom: "16px", textAlign: "center" }}>
-                  <p style={{ fontSize: "14px", fontWeight: "700", color: "#166534", margin: 0 }}>
-                    🎉 {bulkSaved} transactions saved successfully!
+              {bulkSavedCount > 0 && (
+                <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: "10px", padding: "14px", marginBottom: "16px", textAlign: "center" }}>
+                  <p style={{ fontSize: "15px", fontWeight: "700", color: "#166534", margin: 0 }}>
+                    🎉 {bulkSavedCount} transactions saved successfully!
                   </p>
                 </div>
               )}
@@ -565,25 +596,24 @@ export default function SMSParserPage() {
                 {bulkResults.map((result, i) => (
                   <div key={i} style={{
                     padding: "12px 16px", borderRadius: "10px",
-                    border: "1px solid #E5E7EB", background: "#F9FAFB"
+                    border: "1px solid #E5E7EB", background: "#F9FAFB",
+                    display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px"
                   }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: "13px", fontWeight: "600", color: "#0C0D10", margin: "0 0 2px 0" }}>
-                          {result.parsed.merchant} · {result.parsed.category}
-                        </p>
-                        <p style={{ fontSize: "11px", color: "#9CA3AF", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {result.raw.substring(0, 80)}...
-                        </p>
-                      </div>
-                      <div style={{ textAlign: "right", flexShrink: 0, marginLeft: "12px" }}>
-                        <p style={{ fontSize: "14px", fontWeight: "700", margin: 0, color: result.parsed.type === "income" ? "#16A34A" : "#0C0D10" }}>
-                          {result.parsed.type === "income" ? "+" : "-"}{fmt(result.parsed.amount)}
-                        </p>
-                        <p style={{ fontSize: "11px", color: "#9CA3AF", margin: 0 }}>
-                          {new Date(result.parsed.date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-                        </p>
-                      </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: "13px", fontWeight: "600", color: "#0C0D10", margin: "0 0 2px 0" }}>
+                        {result.parsed.merchant} · {result.parsed.category}
+                      </p>
+                      <p style={{ fontSize: "11px", color: "#9CA3AF", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {result.raw.substring(0, 70)}...
+                      </p>
+                    </div>
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <p style={{ fontSize: "14px", fontWeight: "700", margin: 0, color: result.parsed.type === "income" ? "#16A34A" : "#DC2626" }}>
+                        {result.parsed.type === "income" ? "+" : "-"}{fmt(result.parsed.amount)}
+                      </p>
+                      <p style={{ fontSize: "11px", color: "#9CA3AF", margin: 0 }}>
+                        {new Date(result.parsed.date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                      </p>
                     </div>
                   </div>
                 ))}
