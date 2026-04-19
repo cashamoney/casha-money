@@ -55,16 +55,16 @@ export default function SignupPage() {
     setLoading(false);
   };
 
-  const input = (focused: boolean): React.CSSProperties => ({
+  const inp = (isFocused: boolean): React.CSSProperties => ({
     width: "100%",
-    height: "48px",
-    borderRadius: "11px",
-    padding: "0 16px",
-    fontSize: "15px",
+    height: "42px",
+    borderRadius: "10px",
+    padding: "0 14px",
+    fontSize: "14px",
     outline: "none",
     fontFamily: "inherit",
     background: "#FAFAFA",
-    border: `1.5px solid ${focused ? "#22C55E" : "#E4E4E7"}`,
+    border: `1.5px solid ${isFocused ? "#22C55E" : "#E4E4E7"}`,
     color: "#0A0A0A",
     boxSizing: "border-box",
     transition: "border-color 0.15s",
@@ -74,91 +74,106 @@ export default function SignupPage() {
   const strengthLabels = ["", "Weak", "Fair", "Good", "Strong"];
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", fontFamily: "'Inter', system-ui, sans-serif", background: "#FAFAFA" }}>
+    <div style={{
+      height: "100vh",
+      display: "flex",
+      fontFamily: "'Inter', system-ui, sans-serif",
+      background: "#FAFAFA",
+      overflow: "hidden",
+    }}>
 
       {/* LEFT — dark branding panel */}
-      <div style={{ width: "44%", background: "#0A0A0A", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "48px", position: "relative", overflow: "hidden" }}>
+      <div style={{
+        width: "42%",
+        background: "#0A0A0A",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        padding: "36px 40px",
+        position: "relative",
+        overflow: "hidden",
+        flexShrink: 0,
+      }}>
 
         {/* Background glow */}
-        <div style={{ position: "absolute", top: "-120px", right: "-120px", width: "420px", height: "420px", borderRadius: "50%", background: "radial-gradient(circle, rgba(34,197,94,0.07) 0%, transparent 70%)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", bottom: "-80px", left: "-80px", width: "300px", height: "300px", borderRadius: "50%", background: "radial-gradient(circle, rgba(34,197,94,0.04) 0%, transparent 70%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", top: "-100px", right: "-100px", width: "380px", height: "380px", borderRadius: "50%", background: "radial-gradient(circle, rgba(34,197,94,0.07) 0%, transparent 70%)", pointerEvents: "none" }} />
 
-        {/* Logo */}
+        {/* Logo — tight */}
         <div style={{ display: "flex", alignItems: "center", lineHeight: 1, position: "relative" }}>
-          <img src="/logo.png" alt="Casha" style={{ width: "52px", height: "52px", objectFit: "contain", display: "block", flexShrink: 0, marginRight: "-10px" }} />
-          <span style={{ fontSize: "20px", fontWeight: 800, color: "#FFFFFF", letterSpacing: "-0.03em", lineHeight: 1 }}>
+          <img src="/logo.png" alt="Casha" style={{ width: "48px", height: "48px", objectFit: "contain", display: "block", flexShrink: 0, marginRight: "-10px" }} />
+          <span style={{ fontSize: "19px", fontWeight: 800, color: "#FFFFFF", letterSpacing: "-0.03em", lineHeight: 1 }}>
             casha<span style={{ color: "#22C55E" }}>.money</span>
           </span>
         </div>
 
-        {/* Main quote */}
+        {/* Center content */}
         <div style={{ position: "relative" }}>
-          <p style={{ fontSize: "clamp(24px, 2.8vw, 36px)", fontWeight: "800", color: "#FFFFFF", letterSpacing: "-0.03em", lineHeight: "1.15", margin: "0 0 24px 0" }}>
+          <p style={{ fontSize: "clamp(20px, 2.4vw, 30px)", fontWeight: "800", color: "#FFFFFF", letterSpacing: "-0.03em", lineHeight: "1.2", margin: "0 0 20px 0" }}>
             Your complete<br />
             <span style={{ color: "#22C55E" }}>financial picture</span><br />
             in one place.
           </p>
 
           {/* Benefits */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginBottom: "36px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "28px" }}>
             {[
               { title: "Free forever", desc: "No credit card. No hidden charges." },
               { title: "All Indian banks", desc: "SMS Parser works with SBI, HDFC, ICICI and more." },
-              { title: "AI advisor 24/7", desc: "Answers based on your real data, not generic tips." },
+              { title: "AI advisor 24/7", desc: "Answers based on your real data." },
               { title: "Tax optimizer", desc: "Old vs New regime. Find every deduction." },
             ].map((b, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
-                <div style={{ width: "20px", height: "20px", borderRadius: "50%", background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: "2px" }}>
-                  <svg width="10" height="10" fill="none" stroke="#22C55E" strokeWidth="2.5" viewBox="0 0 24 24">
+              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                <div style={{ width: "18px", height: "18px", borderRadius: "50%", background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: "2px" }}>
+                  <svg width="9" height="9" fill="none" stroke="#22C55E" strokeWidth="2.5" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
                 <div>
-                  <p style={{ fontSize: "14px", fontWeight: "700", color: "#FFFFFF", margin: "0 0 2px 0" }}>{b.title}</p>
-                  <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.38)", margin: 0 }}>{b.desc}</p>
+                  <p style={{ fontSize: "13px", fontWeight: "700", color: "#FFFFFF", margin: "0 0 1px 0" }}>{b.title}</p>
+                  <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.35)", margin: 0 }}>{b.desc}</p>
                 </div>
               </div>
             ))}
           </div>
 
           {/* Stats */}
-          <div style={{ display: "flex", gap: "28px" }}>
+          <div style={{ display: "flex", gap: "24px" }}>
             {[{ n: "Rs.42K", l: "avg. tax saved" }, { n: "Rs.2,400", l: "monthly waste found" }, { n: "Free", l: "forever" }].map((s, i) => (
               <div key={i}>
-                <p style={{ fontSize: "18px", fontWeight: "800", color: "#22C55E", margin: "0 0 2px 0", letterSpacing: "-0.02em" }}>{s.n}</p>
-                <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", margin: 0 }}>{s.l}</p>
+                <p style={{ fontSize: "16px", fontWeight: "800", color: "#22C55E", margin: "0 0 2px 0", letterSpacing: "-0.02em" }}>{s.n}</p>
+                <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.28)", margin: 0 }}>{s.l}</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Legal */}
-        <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.15)", margin: 0, lineHeight: "1.5", position: "relative" }}>
-          Financial education platform only. Not investment advice.<br />
-          Consult a qualified CA for tax and investment decisions.
+        <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.14)", margin: 0, lineHeight: "1.5", position: "relative" }}>
+          Financial education platform only. Not investment advice.
         </p>
       </div>
 
-      {/* RIGHT — form */}
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 48px", background: "#FFFFFF", overflowY: "auto" }}>
-        <div style={{ width: "100%", maxWidth: "400px" }}>
+      {/* RIGHT — form, no scroll */}
+      <div style={{
+        flex: 1,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "32px 48px",
+        background: "#FFFFFF",
+        overflow: "hidden",
+      }}>
+        <div style={{ width: "100%", maxWidth: "380px" }}>
 
-          {/* Progress bar */}
-          <div style={{ display: "flex", gap: "5px", marginBottom: "36px" }}>
-            {[1, 2, 3].map(s => (
-              <div key={s} style={{ height: "3px", flex: 1, borderRadius: "999px", background: s === 1 ? "#22C55E" : "#E4E4E7", transition: "background 0.3s" }} />
-            ))}
-          </div>
-
-          <h1 style={{ fontSize: "26px", fontWeight: "800", color: "#0A0A0A", letterSpacing: "-0.03em", margin: "0 0 6px 0" }}>
+          <h1 style={{ fontSize: "24px", fontWeight: "800", color: "#0A0A0A", letterSpacing: "-0.03em", margin: "0 0 4px 0" }}>
             Create your account
           </h1>
-          <p style={{ fontSize: "15px", color: "#71717A", margin: "0 0 28px 0" }}>
+          <p style={{ fontSize: "14px", color: "#71717A", margin: "0 0 22px 0" }}>
             Free forever — no credit card required
           </p>
 
           {error && (
-            <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "10px", padding: "11px 14px", marginBottom: "18px" }}>
+            <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "9px", padding: "10px 13px", marginBottom: "14px" }}>
               <p style={{ fontSize: "13px", color: "#DC2626", margin: 0 }}>{error}</p>
             </div>
           )}
@@ -166,61 +181,61 @@ export default function SignupPage() {
           <form onSubmit={handleSignup}>
 
             {/* Full name */}
-            <div style={{ marginBottom: "14px" }}>
-              <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>Full name</label>
+            <div style={{ marginBottom: "12px" }}>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#374151", marginBottom: "5px" }}>Full name</label>
               <input
                 type="text" required value={form.fullName}
                 onChange={e => setForm({ ...form, fullName: e.target.value })}
                 placeholder="Rahul Mehta"
-                style={input(focused === "name")}
+                style={inp(focused === "name")}
                 onFocus={() => setFocused("name")}
                 onBlur={() => setFocused("")}
               />
             </div>
 
             {/* Email */}
-            <div style={{ marginBottom: "14px" }}>
-              <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>Email address</label>
+            <div style={{ marginBottom: "12px" }}>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#374151", marginBottom: "5px" }}>Email address</label>
               <input
                 type="email" required value={form.email}
                 onChange={e => setForm({ ...form, email: e.target.value })}
                 placeholder="you@example.com"
-                style={input(focused === "email")}
+                style={inp(focused === "email")}
                 onFocus={() => setFocused("email")}
                 onBlur={() => setFocused("")}
               />
             </div>
 
             {/* Password */}
-            <div style={{ marginBottom: "14px" }}>
-              <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>Password</label>
+            <div style={{ marginBottom: "12px" }}>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#374151", marginBottom: "5px" }}>Password</label>
               <input
                 type="password" required value={form.password} minLength={8}
                 onChange={e => { setForm({ ...form, password: e.target.value }); setStrength(calcStrength(e.target.value)); }}
                 placeholder="Minimum 8 characters"
-                style={input(focused === "password")}
+                style={inp(focused === "password")}
                 onFocus={() => setFocused("password")}
                 onBlur={() => setFocused("")}
               />
               {form.password.length > 0 && (
-                <div style={{ marginTop: "8px" }}>
-                  <div style={{ display: "flex", gap: "4px", marginBottom: "4px" }}>
+                <div style={{ marginTop: "6px", display: "flex", alignItems: "center", gap: "8px" }}>
+                  <div style={{ display: "flex", gap: "3px", flex: 1 }}>
                     {[1, 2, 3, 4].map(i => (
                       <div key={i} style={{ flex: 1, height: "3px", borderRadius: "999px", background: i <= strength ? strengthColors[strength] : "#E4E4E7", transition: "background 0.2s" }} />
                     ))}
                   </div>
-                  <p style={{ fontSize: "11px", color: strengthColors[strength], margin: 0, fontWeight: "600" }}>{strengthLabels[strength]}</p>
+                  <span style={{ fontSize: "11px", color: strengthColors[strength], fontWeight: "600", whiteSpace: "nowrap" }}>{strengthLabels[strength]}</span>
                 </div>
               )}
             </div>
 
             {/* Country */}
-            <div style={{ marginBottom: "24px" }}>
-              <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>Country</label>
+            <div style={{ marginBottom: "18px" }}>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#374151", marginBottom: "5px" }}>Country</label>
               <select
                 value={form.country}
                 onChange={e => setForm({ ...form, country: e.target.value })}
-                style={{ ...input(focused === "country"), appearance: "none", cursor: "pointer" }}
+                style={{ ...inp(focused === "country"), appearance: "none", cursor: "pointer" }}
                 onFocus={() => setFocused("country")}
                 onBlur={() => setFocused("")}
               >
@@ -232,44 +247,45 @@ export default function SignupPage() {
             <button
               type="submit" disabled={loading}
               style={{
-                width: "100%", height: "50px", borderRadius: "12px", border: "none",
+                width: "100%", height: "46px", borderRadius: "11px", border: "none",
                 background: "#22C55E", color: "#FFFFFF", fontSize: "15px", fontWeight: "700",
                 cursor: loading ? "wait" : "pointer", fontFamily: "inherit",
                 opacity: loading ? 0.8 : 1, transition: "opacity 0.15s",
-                boxShadow: "0 4px 14px rgba(34,197,94,0.32)",
+                boxShadow: "0 4px 14px rgba(34,197,94,0.30)",
               }}
             >
               {loading ? "Creating account..." : "Create free account"}
             </button>
           </form>
 
-          <p style={{ textAlign: "center", fontSize: "14px", color: "#71717A", margin: "20px 0 0 0" }}>
+          {/* Links */}
+          <p style={{ textAlign: "center", fontSize: "13px", color: "#71717A", margin: "14px 0 0 0" }}>
             Already have an account?{" "}
             <Link href="/auth/login" style={{ color: "#22C55E", fontWeight: "700", textDecoration: "none" }}>Sign in</Link>
           </p>
 
-          <p style={{ textAlign: "center", fontSize: "12px", color: "#A1A1AA", margin: "16px 0 0 0", lineHeight: "1.5" }}>
-            By creating an account you agree to our{" "}
+          <p style={{ textAlign: "center", fontSize: "11px", color: "#A1A1AA", margin: "10px 0 0 0", lineHeight: "1.5" }}>
+            By signing up you agree to our{" "}
             <a href="/terms" style={{ color: "#71717A", textDecoration: "underline" }}>Terms</a>
             {" "}and{" "}
             <a href="/privacy" style={{ color: "#71717A", textDecoration: "underline" }}>Privacy Policy</a>
           </p>
 
-          {/* Security note */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", marginTop: "24px" }}>
-            <svg width="12" height="12" fill="none" stroke="#A1A1AA" strokeWidth="2" viewBox="0 0 24 24">
+          {/* Security */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", marginTop: "14px" }}>
+            <svg width="11" height="11" fill="none" stroke="#A1A1AA" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
-            <span style={{ fontSize: "12px", color: "#A1A1AA" }}>AES-256 encrypted — your data is safe</span>
+            <span style={{ fontSize: "11px", color: "#A1A1AA" }}>AES-256 encrypted — your data is safe</span>
           </div>
         </div>
       </div>
 
       <style>{`
-        ::selection { background: rgba(34,197,94,0.22); color: #0A0A0A; }
-        ::-moz-selection { background: rgba(34,197,94,0.22); color: #0A0A0A; }
         * { box-sizing: border-box; }
         body { margin: 0; }
+        ::selection { background: rgba(34,197,94,0.22); color: #0A0A0A; }
+        ::-moz-selection { background: rgba(34,197,94,0.22); color: #0A0A0A; }
       `}</style>
     </div>
   );
