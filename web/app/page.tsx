@@ -66,10 +66,15 @@ function Xmk({ s = 15 }: { s?: number }) {
   return <svg width={s} height={s} fill="none" stroke="#EF4444" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>;
 }
 
+// ── Logo: negative margin compensates PNG transparent padding, gap=8 gives slight space ──
 function CashaLogo({ size = 58, fontSize = 21, light = false }: { size?: number; fontSize?: number; light?: boolean }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "0px", lineHeight: 1 }}>
-      <img src="/logo.png" alt="Casha" style={{ width: `${size}px`, height: `${size}px`, objectFit: "contain", display: "block", flexShrink: 0, marginRight: "-10px" }} />
+    <div style={{ display: "flex", alignItems: "center", lineHeight: 1 }}>
+      <img
+        src="/logo.png"
+        alt="Casha"
+        style={{ width: `${size}px`, height: `${size}px`, objectFit: "contain", display: "block", flexShrink: 0, marginRight: "-4px" }}
+      />
       <span style={{ fontSize: `${fontSize}px`, fontWeight: 800, color: light ? "#FFFFFF" : "#0A0A0A", letterSpacing: "-0.03em", lineHeight: 1 }}>
         casha<span style={{ color: "#22C55E" }}>.money</span>
       </span>
@@ -209,7 +214,7 @@ export default function Home() {
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "5px", background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: "999px", padding: "4px 10px" }}>
                     <div style={{ width: "5px", height: "5px", borderRadius: "50%", background: T.green }} />
-                    <span style={{ fontSize: "11px", fontWeight: "600", color: "#166534" }}>AI Active</span>
+                    <span style={{ fontSize: "11px", fontWeight: "600", color: "#166634" }}>AI Active</span>
                   </div>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "9px", marginBottom: "10px" }}>
@@ -460,14 +465,14 @@ export default function Home() {
         </div>
       </section>
 
-      {/* PRICING — EQUAL HEIGHT CARDS */}
+      {/* PRICING — equal height all 3 cards */}
       <section id="pricing" style={{ background: T.white, borderTop: `1px solid ${T.border}` }}>
         <div style={W}>
           <Fade>
             <div style={{ textAlign: "center", maxWidth: "440px", margin: "0 auto 52px" }}>
               <span style={LBL()}>Pricing</span>
               <h2 style={H2}>Simple, honest pricing.</h2>
-              <p style={BODY}>Start free. Upgrade when ready. No contracts, no surprise charges.</p>
+              <p style={BODY}>Start free. Upgrade when ready. No contracts, no surprises.</p>
             </div>
           </Fade>
           <div style={{ display: "flex", justifyContent: "center" }}>
@@ -616,20 +621,24 @@ export default function Home() {
           </div>
           <div style={{ height: "1px", background: "rgba(255,255,255,0.05)", marginBottom: "20px" }} />
           <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
-            <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.18)", margin: 0 }}>2026 Casha Money Technologies Private Limited. All rights reserved.</p>
-            <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.1)", margin: 0, maxWidth: "480px", textAlign: "right", lineHeight: "1.55" }}>Financial education platform only. Not a SEBI-registered advisor or licensed tax professional. All AI recommendations are educational. Consult a qualified CA before financial decisions.</p>
+            {/* Footer copyright — now readable white */}
+            <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.35)", margin: 0 }}>
+              © 2026 Casha Money Technologies Private Limited. All rights reserved.
+            </p>
+            <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.18)", margin: 0, maxWidth: "480px", textAlign: "right", lineHeight: "1.55" }}>
+              Financial education platform only. Not a SEBI-registered advisor or licensed tax professional. All AI recommendations are educational. Consult a qualified CA before financial decisions.
+            </p>
           </div>
         </div>
       </footer>
 
-      {/* Selection color = green instead of blue */}
       <style>{`
         * { box-sizing: border-box; }
         html { scroll-behavior: smooth; }
         body { margin: 0; }
         input::placeholder { color: #9CA3AF; }
-        ::selection { background: rgba(34,197,94,0.25); color: #0A0A0A; }
-        ::-moz-selection { background: rgba(34,197,94,0.25); color: #0A0A0A; }
+        ::selection { background: rgba(34,197,94,0.22); color: #0A0A0A; }
+        ::-moz-selection { background: rgba(34,197,94,0.22); color: #0A0A0A; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
         @media (max-width: 900px) { nav { display: none; } }
       `}</style>
