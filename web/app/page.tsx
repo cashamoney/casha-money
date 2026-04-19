@@ -1,21 +1,50 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 function useFadeIn() {
   const ref = useRef<HTMLDivElement>(null);
-  const [v, setV] = useState(false);
+  const [visible, setVisible] = useState(false);
+
   useEffect(() => {
-    const el = ref.current; if (!el) return;
-    const o = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setV(true); o.disconnect(); } }, { threshold: 0.08 });
-    o.observe(el); return () => o.disconnect();
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.08 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
   }, []);
-  return { ref, v };
+
+  return { ref, visible };
 }
 
-function Fade({ children, delay = 0, style = {} }: { children: React.ReactNode; delay?: number; style?: React.CSSProperties }) {
-  const { ref, v } = useFadeIn();
+function Fade({
+  children,
+  delay = 0,
+  style = {},
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  style?: React.CSSProperties;
+}) {
+  const { ref, visible } = useFadeIn();
+
   return (
-    <div ref={ref} style={{ opacity: v ? 1 : 0, transform: v ? "none" : "translateY(20px)", transition: `opacity 0.6s ease ${delay}s, transform 0.6s ease ${delay}s`, ...style }}>
+    <div
+      ref={ref}
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0)" : "translateY(20px)",
+        transition: `opacity 0.6s ease ${delay}s, transform 0.6s ease ${delay}s`,
+        ...style,
+      }}
+    >
       {children}
     </div>
   );
@@ -25,48 +54,203 @@ function WaitlistForm({ dark = false }: { dark?: boolean }) {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "loading" | "done">("idle");
   const [pos, setPos] = useState(0);
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || state !== "idle") return;
     setState("loading");
     try {
-      const r = await fetch("/api/waitlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
-      const d = await r.json(); setPos(d.position || 1); setState("done");
-    } catch { setState("idle"); }
+      const r = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const d = await r.json();
+      setPos(d.position || 1);
+      setState("done");
+    } catch {
+      setState("idle");
+    }
   };
-  if (state === "done") return (
-    <div style={{ display: "inline-flex", alignItems: "center", gap: "12px", background: dark ? "rgba(34,197,94,0.1)" : "#F0FDF4", border: "1px solid rgba(34,197,94,0.25)", borderRadius: "12px", padding: "14px 20px" }}>
-      <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "#22C55E", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-        <svg width="14" height="14" fill="none" stroke="#fff" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+
+  if (state === "done") {
+    return (
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "12px",
+          background: dark ? "rgba(34,197,94,0.10)" : "#F0FDF4",
+          border: "1px solid rgba(34,197,94,0.24)",
+          borderRadius: "12px",
+          padding: "14px 20px",
+        }}
+      >
+        <div
+          style={{
+            width: "32px",
+            height: "32px",
+            borderRadius: "999px",
+            background: "#22C55E",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <svg
+            width="14"
+            height="14"
+            fill="none"
+            stroke="#fff"
+            strokeWidth="2.5"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M5 13l4 4L19 7"
+            />
+          </svg>
+        </div>
+        <div style={{ textAlign: "left" }}>
+          <p
+            style={{
+              fontSize: "14px",
+              fontWeight: 700,
+              color: dark ? "#4ADE80" : "#166534",
+              margin: "0 0 2px 0",
+            }}
+          >
+            You are #{pos} on the waitlist
+          </p>
+          <p
+            style={{
+              fontSize: "12px",
+              color: dark ? "rgba(74,222,128,0.75)" : "#16A34A",
+              margin: 0,
+            }}
+          >
+            We will email you when Casha launches.
+          </p>
+        </div>
       </div>
-      <div>
-        <p style={{ fontSize: "14px", fontWeight: "700", color: dark ? "#4ADE80" : "#166534", margin: "0 0 2px 0" }}>You are #{pos} on the waitlist</p>
-        <p style={{ fontSize: "12px", color: dark ? "rgba(74,222,128,0.7)" : "#16A34A", margin: 0 }}>We will email you when Casha launches.</p>
-      </div>
-    </div>
-  );
+    );
+  }
+
   return (
-    <form onSubmit={submit} style={{ display: "flex", gap: "8px", width: "100%", maxWidth: "440px" }}>
-      <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="Enter your email" disabled={state === "loading"}
-        style={{ flex: 1, height: "50px", borderRadius: "11px", padding: "0 18px", fontSize: "15px", outline: "none", fontFamily: "inherit", background: dark ? "rgba(255,255,255,0.07)" : "#fff", border: dark ? "1px solid rgba(255,255,255,0.12)" : "1px solid #D1D5DB", color: dark ? "#fff" : "#0A0A0A" }} />
-      <button type="submit" disabled={state === "loading"} style={{ height: "50px", padding: "0 22px", borderRadius: "11px", border: "none", background: "#22C55E", color: "#fff", fontSize: "15px", fontWeight: "700", cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit", boxShadow: "0 4px 12px rgba(34,197,94,0.3)", opacity: state === "loading" ? 0.8 : 1 }}>
+    <form
+      onSubmit={submit}
+      style={{
+        display: "flex",
+        gap: "8px",
+        width: "100%",
+        maxWidth: "460px",
+      }}
+    >
+      <input
+        type="email"
+        required
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="Enter your email"
+        disabled={state === "loading"}
+        style={{
+          flex: 1,
+          height: "50px",
+          borderRadius: "12px",
+          padding: "0 18px",
+          fontSize: "15px",
+          outline: "none",
+          fontFamily: "inherit",
+          background: dark ? "rgba(255,255,255,0.06)" : "#FFFFFF",
+          border: dark
+            ? "1px solid rgba(255,255,255,0.12)"
+            : "1px solid #D4D4D8",
+          color: dark ? "#FFFFFF" : "#0A0A0A",
+        }}
+      />
+      <button
+        type="submit"
+        disabled={state === "loading"}
+        style={{
+          height: "50px",
+          padding: "0 22px",
+          borderRadius: "12px",
+          border: "none",
+          background: "#22C55E",
+          color: "#FFFFFF",
+          fontSize: "15px",
+          fontWeight: 700,
+          cursor: "pointer",
+          whiteSpace: "nowrap",
+          fontFamily: "inherit",
+          boxShadow: "0 6px 16px rgba(34,197,94,0.30)",
+          opacity: state === "loading" ? 0.8 : 1,
+        }}
+      >
         {state === "loading" ? "Joining..." : "Get early access"}
       </button>
     </form>
   );
 }
 
-const Chk = ({ c = "#22C55E", s = 15 }: { c?: string; s?: number }) => (
-  <svg width={s} height={s} fill="none" stroke={c} strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-);
-const Xmk = ({ s = 15 }: { s?: number }) => (
-  <svg width={s} height={s} fill="none" stroke="#EF4444" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-);
-
-// ── Logo — size 44px, proper gap ──
-function CashaLogo({ size = 44, fontSize = 19, light = false }: { size?: number; fontSize?: number; light?: boolean }) {
+function Check({ color = "#22C55E", size = 15 }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "10px", lineHeight: 1 }}>
+    <svg
+      width={size}
+      height={size}
+      fill="none"
+      stroke={color}
+      strokeWidth="2.5"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M5 13l4 4L19 7"
+      />
+    </svg>
+  );
+}
+
+function Cross({ size = 15 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      fill="none"
+      stroke="#EF4444"
+      strokeWidth="2.5"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M6 18L18 6M6 6l12 12"
+      />
+    </svg>
+  );
+}
+
+function CashaLogo({
+  size = 52,
+  fontSize = 20,
+  light = false,
+}: {
+  size?: number;
+  fontSize?: number;
+  light?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "6px",
+        lineHeight: 1,
+      }}
+    >
       <img
         src="/logo.png"
         alt="Casha"
@@ -78,13 +262,15 @@ function CashaLogo({ size = 44, fontSize = 19, light = false }: { size?: number;
           flexShrink: 0,
         }}
       />
-      <span style={{
-        fontSize: `${fontSize}px`,
-        fontWeight: "800",
-        color: light ? "#FFFFFF" : "#0A0A0A",
-        letterSpacing: "-0.03em",
-        lineHeight: 1,
-      }}>
+      <span
+        style={{
+          fontSize: `${fontSize}px`,
+          fontWeight: 800,
+          color: light ? "#FFFFFF" : "#0A0A0A",
+          letterSpacing: "-0.03em",
+          lineHeight: 1,
+        }}
+      >
         casha<span style={{ color: "#22C55E" }}>.money</span>
       </span>
     </div>
@@ -94,6 +280,7 @@ function CashaLogo({ size = 44, fontSize = 19, light = false }: { size?: number;
 export default function Home() {
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
   const [scrolled, setScrolled] = useState(false);
+
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 16);
     window.addEventListener("scroll", fn, { passive: true });
@@ -101,59 +288,170 @@ export default function Home() {
   }, []);
 
   const T = {
-    black: "#0A0A0A", white: "#FFFFFF", green: "#22C55E",
-    text: "#18181B", muted: "#71717A", faint: "#A1A1AA",
-    border: "#E4E4E7", surface: "#F9FAFB", card: "#FFFFFF"
+    black: "#0A0A0A",
+    white: "#FFFFFF",
+    green: "#22C55E",
+    text: "#18181B",
+    muted: "#71717A",
+    faint: "#A1A1AA",
+    border: "#E4E4E7",
+    surface: "#F9FAFB",
   };
-  const W: React.CSSProperties = { maxWidth: "1080px", margin: "0 auto", padding: "88px 24px" };
-  const H2: React.CSSProperties = { fontSize: "clamp(26px, 3.8vw, 44px)", fontWeight: "800", color: T.text, letterSpacing: "-0.03em", lineHeight: "1.1", margin: "0 0 14px 0" };
-  const LBL = (light = false): React.CSSProperties => ({ fontSize: "11px", fontWeight: "700", letterSpacing: "0.1em", textTransform: "uppercase", color: light ? "rgba(34,197,94,0.8)" : T.green, margin: "0 0 12px 0", display: "block" });
-  const BODY: React.CSSProperties = { fontSize: "17px", color: T.muted, lineHeight: "1.7", margin: "0 0 36px 0" };
-  const CARD: React.CSSProperties = { background: T.card, border: `1px solid ${T.border}`, borderRadius: "14px", padding: "26px" };
+
+  const W: React.CSSProperties = {
+    maxWidth: "1080px",
+    margin: "0 auto",
+    padding: "88px 24px",
+  };
+
+  const H2: React.CSSProperties = {
+    fontSize: "clamp(26px, 3.8vw, 44px)",
+    fontWeight: 800,
+    color: T.text,
+    letterSpacing: "-0.03em",
+    lineHeight: "1.1",
+    margin: "0 0 14px 0",
+  };
+
+  const Label = (light = false): React.CSSProperties => ({
+    fontSize: "11px",
+    fontWeight: 700,
+    letterSpacing: "0.10em",
+    textTransform: "uppercase",
+    color: light ? "rgba(34,197,94,0.80)" : T.green,
+    margin: "0 0 12px 0",
+    display: "block",
+  });
+
+  const Card: React.CSSProperties = {
+    background: T.white,
+    border: `1px solid ${T.border}`,
+    borderRadius: "14px",
+    padding: "26px",
+  };
 
   const features = [
     {
-      tag: "AI Advisor", h: "Your personal CFO. Always available.",
-      p: "Ask anything about your money. Get specific answers based on your actual transactions — not generic advice.",
-      icon: <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={{ display: "block", flexShrink: 0 }}><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>,
-      code: `Casha AI  —  20 Apr 2026\n\nSavings rate: 65% (target: 20% exceeded)\n\nAction: Redirect Rs.33,750/month\nto HDFC loan. Debt-free 14 months\nearly. Interest saved: Rs.28,400`
+      tag: "AI Advisor",
+      title: "Your personal CFO. Always available.",
+      desc: "Ask anything about your money. Get specific answers based on your real transactions — not generic advice.",
+      code: `Casha AI  —  20 Apr 2026
+
+Savings rate: 65% (target: 20% exceeded)
+
+Action: Redirect Rs.33,750/month
+to HDFC loan. Debt-free 14 months
+early. Interest saved: Rs.28,400`,
     },
     {
-      tag: "Tax Genius", h: "Stop overpaying taxes. Every year.",
-      p: "Compares Old vs New regime in real time. Tracks 80C, 80D, HRA, NPS deductions. Shows your exact savings before filing.",
-      icon: <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={{ display: "block", flexShrink: 0 }}><path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>,
-      code: `FY 2025-26  —  Tax Analysis\n\nOld Regime saves Rs.42,000 vs New.\n80C remaining: Rs.94,000 of Rs.1.5L\n\nAction: Invest in ELSS before 31 Mar\nEstimated saving: Rs.42,000`
+      tag: "Tax Genius",
+      title: "Stop overpaying taxes. Every year.",
+      desc: "Compares Old vs New regime in real time. Tracks 80C, 80D, HRA, and NPS deductions. Shows exact savings before filing.",
+      code: `FY 2025-26  —  Tax Analysis
+
+Old Regime saves Rs.42,000 vs New.
+80C remaining: Rs.94,000 of Rs.1.5L
+
+Action: Invest in ELSS before 31 Mar
+Estimated saving: Rs.42,000`,
     },
     {
-      tag: "Debt Destroyer", h: "See your debt-free date. Today.",
-      p: "Add your loans and credit cards. Casha calculates the optimal payoff order and shows your exact debt-free date.",
-      icon: <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={{ display: "block", flexShrink: 0 }}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>,
-      code: `Avalanche strategy\n\n1. HDFC Credit Card  43% APR\n   Pay Rs.8,000/month\n2. SBI Personal Loan  14% APR\n   Continue minimum\n\nDebt-free: March 2027\nSaved: Rs.28,400 in interest`
+      tag: "Debt Destroyer",
+      title: "See your debt-free date. Today.",
+      desc: "Add your loans and credit cards. Casha calculates the optimal payoff order and shows your exact debt-free date.",
+      code: `Avalanche strategy
+
+1. HDFC Credit Card  43% APR
+   Pay Rs.8,000/month
+2. SBI Personal Loan  14% APR
+   Continue minimum
+
+Debt-free: March 2027
+Saved: Rs.28,400 in interest`,
     },
     {
-      tag: "SMS Parser", h: "Paste bank SMS. Transaction created.",
-      p: "Works with every Indian bank. Paste any message — amount, merchant, and category extracted in one second.",
-      icon: <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={{ display: "block", flexShrink: 0 }}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>,
-      code: `HDFC SMS input:\nRs.2,500.00 debited from A/c XX1234\non 19-04-26. Info: Swiggy.\n\nParsed:\nAmount    Rs.2,500\nMerchant  Swiggy\nCategory  Food Delivery\nDate      19 Apr 2026`
+      tag: "SMS Parser",
+      title: "Paste bank SMS. Transaction created.",
+      desc: "Works with every Indian bank. Paste any message — amount, merchant, and category extracted in one second.",
+      code: `HDFC SMS input:
+Rs.2,500.00 debited from A/c XX1234
+on 19-04-26. Info: Swiggy.
+
+Parsed:
+Amount    Rs.2,500
+Merchant  Swiggy
+Category  Food Delivery
+Date      19 Apr 2026`,
     },
     {
-      tag: "Budget AI", h: "AI builds your budget. One click.",
-      p: "Based on your income and the India-adapted 50/30/20 rule, Casha generates a complete monthly budget automatically.",
-      icon: <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={{ display: "block", flexShrink: 0 }}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>,
-      code: `Budget  —  April 2026\nIncome: Rs.75,000/month\n\nNeeds   50%  Rs.37,500\n  Housing + EMI + Groceries\nWants   30%  Rs.22,500\n  Dining + Shopping + Travel\nSavings 20%  Rs.15,000\n  SIP + PPF + Emergency Fund`
+      tag: "Budget AI",
+      title: "AI builds your budget. One click.",
+      desc: "Based on your income and the India-adapted 50/30/20 rule, Casha generates a complete monthly budget automatically.",
+      code: `Budget  —  April 2026
+Income: Rs.75,000/month
+
+Needs   50%  Rs.37,500
+Wants   30%  Rs.22,500
+Savings 20%  Rs.15,000`,
     },
     {
-      tag: "Subscriptions", h: "Find money you forgot you were spending.",
-      p: "Automatically detects every active subscription from your transactions — even ones completely forgotten.",
-      icon: <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={{ display: "block", flexShrink: 0 }}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>,
-      code: `Detected  —  April 2026\n\nNetflix       Rs.499/month\nHotstar       Rs.299/month\nSpotify       Rs.119/month\nGym (unused)  Rs.1,999/month\n\nMonthly waste:  Rs.2,916\nAnnually:       Rs.34,992`
+      tag: "Subscriptions",
+      title: "Find money you forgot you were spending.",
+      desc: "Automatically detects active subscriptions from your transactions — even the ones you forgot months ago.",
+      code: `Detected  —  April 2026
+
+Netflix       Rs.499/month
+Hotstar       Rs.299/month
+Spotify       Rs.119/month
+Gym (unused)  Rs.1,999/month
+
+Monthly waste:  Rs.2,916`,
     },
   ];
 
-  const ruleRows = [
-    { pct: "50%", label: "Needs", color: "#22C55E", amount: "Rs.37,500", tags: ["Housing & Rent", "Groceries", "EMI Payments", "Utilities", "Insurance", "Transport"] },
-    { pct: "30%", label: "Wants", color: "#4ADE80", amount: "Rs.22,500", tags: ["Dining & Delivery", "Shopping", "Entertainment", "Subscriptions", "Travel", "Personal Care"] },
-    { pct: "20%", label: "Savings", color: "#86EFAC", amount: "Rs.15,000", tags: ["Emergency Fund", "SIP / Mutual Funds", "PPF & NPS", "ELSS", "Fixed Deposit", "Gold"] },
+  const rows503020 = [
+    {
+      pct: "50%",
+      title: "Needs",
+      amount: "Rs.37,500",
+      color: "#22C55E",
+      tags: [
+        "Housing & Rent",
+        "Groceries",
+        "EMI Payments",
+        "Utilities",
+        "Insurance",
+        "Transport",
+      ],
+    },
+    {
+      pct: "30%",
+      title: "Wants",
+      amount: "Rs.22,500",
+      color: "#4ADE80",
+      tags: [
+        "Dining & Delivery",
+        "Shopping",
+        "Entertainment",
+        "Subscriptions",
+        "Travel",
+        "Personal Care",
+      ],
+    },
+    {
+      pct: "20%",
+      title: "Savings",
+      amount: "Rs.15,000",
+      color: "#86EFAC",
+      tags: [
+        "Emergency Fund",
+        "SIP / Mutual Funds",
+        "PPF & NPS",
+        "ELSS",
+        "Fixed Deposit",
+        "Gold",
+      ],
+    },
   ];
 
   const compare = [
@@ -169,47 +467,176 @@ export default function Home() {
   ];
 
   const plans = [
-    { name: "Free", price: "Rs.0", sub: "Forever, no credit card", highlight: false, badge: null, features: ["Financial health score", "Unlimited transactions", "SMS Parser — all banks", "Budget AI (50/30/20)", "Debt payoff planner", "Savings goals", "India tax optimizer", "AI Advisor — 10/day", "Subscription detector"], cta: "Create free account", href: "/auth/signup" },
-    { name: "Plus", price: "Rs.149", sub: "Per month, cancel anytime", highlight: true, badge: "Most popular", features: ["Everything in Free", "Unlimited AI Advisor", "Investment tracker", "Retirement planner", "Insurance tracker", "WhatsApp alerts", "Tax reports PDF", "Priority support"], cta: "Start free trial", href: "/auth/signup" },
-    { name: "Business", price: "Rs.499", sub: "Per month, for teams", highlight: false, badge: null, features: ["Everything in Plus", "GST invoice generator", "Cash flow forecasting", "P&L statements", "Client management", "Team access (5 users)", "Tally / QuickBooks sync", "Dedicated support"], cta: "Contact us", href: "mailto:casha.moneyofficial@gmail.com" },
+    {
+      name: "Free",
+      price: "Rs.0",
+      sub: "Forever, no credit card",
+      highlight: false,
+      badge: null,
+      features: [
+        "Financial health score",
+        "Unlimited transactions",
+        "SMS Parser — all banks",
+        "Budget AI (50/30/20)",
+        "Debt payoff planner",
+        "Savings goals",
+        "India tax optimizer",
+        "AI Advisor — 10/day",
+        "Subscription detector",
+      ],
+      cta: "Create free account",
+      href: "/auth/signup",
+    },
+    {
+      name: "Plus",
+      price: "Rs.149",
+      sub: "Per month, cancel anytime",
+      highlight: true,
+      badge: "Most popular",
+      features: [
+        "Everything in Free",
+        "Unlimited AI Advisor",
+        "Investment tracker",
+        "Retirement planner",
+        "Insurance tracker",
+        "WhatsApp alerts",
+        "Tax reports PDF",
+        "Priority support",
+      ],
+      cta: "Start free trial",
+      href: "/auth/signup",
+    },
+    {
+      name: "Business",
+      price: "Rs.499",
+      sub: "Per month, for teams",
+      highlight: false,
+      badge: null,
+      features: [
+        "Everything in Plus",
+        "GST invoice generator",
+        "Cash flow forecasting",
+        "P&L statements",
+        "Client management",
+        "Team access (5 users)",
+        "Tally / QuickBooks sync",
+        "Dedicated support",
+      ],
+      cta: "Contact us",
+      href: "mailto:casha.moneyofficial@gmail.com",
+    },
   ];
 
   const testimonials = [
-    { text: "Found Rs.2,916/month in forgotten subscriptions. Tax optimizer found Rs.38,000 in deductions my CA had missed for two years.", name: "Rahul Mehta", role: "Software Engineer, Bangalore" },
-    { text: "SMS parser is the best feature in any Indian finance app. Transactions appear with the right category every single time.", name: "Priya Sharma", role: "Marketing Manager, Mumbai" },
-    { text: "Switched to Old Regime after Casha's analysis. Invested in ELSS. Saved Rs.42,000 in taxes. My CA confirmed everything.", name: "Arun Kumar", role: "Startup Founder, Hyderabad" },
+    {
+      text: "Found Rs.2,916/month in forgotten subscriptions. Tax optimizer found Rs.38,000 in deductions my CA had missed for two years.",
+      name: "Rahul Mehta",
+      role: "Software Engineer, Bangalore",
+    },
+    {
+      text: "SMS parser is the best feature in any Indian finance app. Transactions appear with the right category every single time.",
+      name: "Priya Sharma",
+      role: "Marketing Manager, Mumbai",
+    },
+    {
+      text: "Switched to Old Regime after Casha's analysis. Invested in ELSS. Saved Rs.42,000 in taxes. My CA confirmed everything.",
+      name: "Arun Kumar",
+      role: "Startup Founder, Hyderabad",
+    },
   ];
 
   const faqs = [
-    { q: "Is the free plan actually free — forever?", a: "Yes. No credit card, no trial expiry, no hidden charges. The free plan includes transaction tracking, tax optimizer, debt planner, budget AI, and 10 AI questions per day — permanently." },
-    { q: "How does Casha access my bank transactions?", a: "It does not access your bank directly. You add transactions by pasting bank SMS messages — works with all Indian banks — or by entering manually. We never ask for your internet banking password or OTP." },
-    { q: "Is my financial data safe?", a: "We use AES-256 encryption, the same standard used by SBI and HDFC. Each user's data is completely isolated. We never sell your data to any third party." },
-    { q: "Which banks does the SMS Parser support?", a: "All major Indian banks — SBI, HDFC, ICICI, Axis, Kotak, PNB, Bank of Baroda, Canara, IndusInd, Yes Bank — and UPI apps including Google Pay, PhonePe, Paytm, and BHIM." },
-    { q: "What is the 50/30/20 rule and how does Casha use it?", a: "50% of income goes to needs (rent, EMI, groceries), 30% to wants (dining, shopping, entertainment), and 20% to savings and investments. Casha generates your budget automatically from your actual income with one click." },
-    { q: "How is Casha different from CRED or Jupiter?", a: "CRED works only with credit cards. Jupiter requires a new bank account. Casha works with all your existing accounts, covers your complete financial life, and provides an AI advisor — all free." },
-    { q: "Is Casha a registered financial advisor?", a: "No. Casha is a financial education platform, not a SEBI-registered advisor or licensed tax professional. All AI recommendations are educational only. Please consult a qualified CA before making significant financial decisions." },
+    {
+      q: "Is the free plan actually free — forever?",
+      a: "Yes. No credit card, no hidden expiry, no surprise charge. The free plan includes transactions, budget AI, tax optimizer, debt planner, and 10 AI questions every day.",
+    },
+    {
+      q: "How does Casha access my bank transactions?",
+      a: "It does not connect directly to your bank. You add transactions by pasting bank SMS messages or by entering them manually. We never ask for your internet banking password or OTP.",
+    },
+    {
+      q: "Is my financial data safe?",
+      a: "We use AES-256 encryption, the same standard used by banks. Each user's data is isolated and never sold to third parties.",
+    },
+    {
+      q: "Which banks does the SMS Parser support?",
+      a: "All major Indian banks — SBI, HDFC, ICICI, Axis, Kotak, PNB, Bank of Baroda, Canara, IndusInd, Yes Bank — and UPI apps like Google Pay, PhonePe, Paytm, and BHIM.",
+    },
+    {
+      q: "What is the 50/30/20 rule and how does Casha use it?",
+      a: "It divides your income into needs, wants, and savings. Casha adapts that framework for Indian salaries and generates your monthly budget automatically from your income.",
+    },
+    {
+      q: "How is Casha different from CRED or Jupiter?",
+      a: "CRED is built around credit cards. Jupiter needs you to use their banking stack. Casha works with all your existing accounts and covers your complete financial life — for free.",
+    },
+    {
+      q: "Is Casha a registered financial advisor?",
+      a: "No. Casha is a financial education platform. AI recommendations are educational and should be reviewed with a qualified CA or advisor before important decisions.",
+    },
   ];
 
   return (
     <div style={{ fontFamily: "'Inter', 'Helvetica Neue', system-ui, sans-serif", background: T.white, color: T.text, overflowX: "hidden" }}>
 
       {/* NAV */}
-      <header style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 999, height: "66px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 40px", background: scrolled ? "rgba(255,255,255,0.96)" : "transparent", backdropFilter: scrolled ? "blur(16px)" : "none", borderBottom: scrolled ? `1px solid ${T.border}` : "none", transition: "all 0.25s" }}>
+      <header
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 999,
+          height: "66px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 40px",
+          background: scrolled ? "rgba(255,255,255,0.96)" : "transparent",
+          backdropFilter: scrolled ? "blur(16px)" : "none",
+          borderBottom: scrolled ? `1px solid ${T.border}` : "none",
+          transition: "all 0.25s",
+        }}
+      >
         <a href="/" style={{ textDecoration: "none" }}>
-          <CashaLogo size={44} fontSize={19} />
+          <CashaLogo size={52} fontSize={19} />
         </a>
+
         <nav style={{ display: "flex", alignItems: "center", gap: "32px" }}>
           {[["Features", "#features"], ["50/30/20", "#rule"], ["Pricing", "#pricing"], ["FAQ", "#faq"]].map(([l, href]) => (
-            <a key={l} href={href} style={{ fontSize: "14px", color: T.muted, textDecoration: "none", fontWeight: "500" }}
-              onMouseEnter={e => e.currentTarget.style.color = T.text}
-              onMouseLeave={e => e.currentTarget.style.color = T.muted}>{l}</a>
+            <a
+              key={l}
+              href={href}
+              style={{
+                fontSize: "14px",
+                color: T.muted,
+                textDecoration: "none",
+                fontWeight: "500",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = T.text)}
+              onMouseLeave={(e) => (e.currentTarget.style.color = T.muted)}
+            >
+              {l}
+            </a>
           ))}
         </nav>
+
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <a href="/auth/login" style={{ fontSize: "14px", color: T.muted, textDecoration: "none", fontWeight: "500" }}>Sign in</a>
-          <a href="/auth/signup" style={{ fontSize: "14px", fontWeight: "700", padding: "9px 20px", borderRadius: "10px", textDecoration: "none", background: T.black, color: T.white }}
-            onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
-            onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
+          <a href="/auth/login" style={{ fontSize: "14px", color: T.muted, textDecoration: "none", fontWeight: "500" }}>
+            Sign in
+          </a>
+          <a
+            href="/auth/signup"
+            style={{
+              fontSize: "14px",
+              fontWeight: "700",
+              padding: "9px 20px",
+              borderRadius: "10px",
+              textDecoration: "none",
+              background: T.black,
+              color: T.white,
+            }}
+          >
             Get started free
           </a>
         </div>
@@ -222,26 +649,36 @@ export default function Home() {
             <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: T.green, display: "inline-block", animation: "pulse 2s infinite" }} />
             <span style={{ fontSize: "13px", fontWeight: "600", color: "#166534" }}>618+ people on the early access list</span>
           </div>
+
           <h1 style={{ fontSize: "clamp(44px, 7vw, 82px)", fontWeight: "800", color: T.black, letterSpacing: "-0.04em", lineHeight: "1.03", margin: "0 0 20px 0" }}>
-            Your money,<br />
+            Your money,
+            <br />
             <span style={{ color: T.green, fontStyle: "italic" }}>finally</span>{" "}
             <span style={{ color: T.black }}>making sense.</span>
           </h1>
+
           <p style={{ fontSize: "19px", color: T.muted, lineHeight: "1.65", maxWidth: "500px", margin: "0 auto 36px" }}>
             Track every rupee, destroy debt, save{" "}
-            <strong style={{ color: T.text }}>Rs.20,000–50,000 in taxes</strong>
-            {" "}annually, and get an AI financial advisor — free, forever.
+            <strong style={{ color: T.text }}>Rs.20,000–50,000 in taxes</strong>{" "}
+            annually, and get an AI financial advisor — free, forever.
           </p>
+
           <div style={{ display: "flex", justifyContent: "center", marginBottom: "12px" }}>
             <WaitlistForm />
           </div>
+
           <p style={{ fontSize: "13px", color: T.faint, margin: "0 0 52px" }}>
             Free forever — no credit card — works with all Indian banks
           </p>
+
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "18px", flexWrap: "wrap" }}>
-            <span style={{ fontSize: "11px", color: "#CBD5E1", fontWeight: "700", letterSpacing: "0.08em", textTransform: "uppercase" }}>Works with</span>
-            {["SBI", "HDFC", "ICICI", "Axis", "Kotak", "UPI", "GPay", "PhonePe"].map(b => (
-              <span key={b} style={{ fontSize: "13px", color: "#94A3B8", fontWeight: "600" }}>{b}</span>
+            <span style={{ fontSize: "11px", color: "#CBD5E1", fontWeight: "700", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              Works with
+            </span>
+            {["SBI", "HDFC", "ICICI", "Axis", "Kotak", "UPI", "GPay", "PhonePe"].map((b) => (
+              <span key={b} style={{ fontSize: "13px", color: "#94A3B8", fontWeight: "600" }}>
+                {b}
+              </span>
             ))}
           </div>
         </div>
@@ -253,23 +690,41 @@ export default function Home() {
           <div style={{ border: `1px solid ${T.border}`, borderRadius: "16px", overflow: "hidden", boxShadow: "0 2px 4px rgba(0,0,0,0.04), 0 16px 48px rgba(0,0,0,0.08)" }}>
             <div style={{ background: "#F4F4F5", borderBottom: `1px solid ${T.border}`, padding: "10px 16px", display: "flex", alignItems: "center", gap: "10px" }}>
               <div style={{ display: "flex", gap: "5px" }}>
-                {["#FC5D57", "#FDBC40", "#33C948"].map(c => <div key={c} style={{ width: "10px", height: "10px", borderRadius: "50%", background: c }} />)}
+                {["#FC5D57", "#FDBC40", "#33C948"].map((c) => (
+                  <div key={c} style={{ width: "10px", height: "10px", borderRadius: "50%", background: c }} />
+                ))}
               </div>
               <div style={{ flex: 1, background: T.white, borderRadius: "6px", padding: "4px 12px", maxWidth: "190px", margin: "0 auto", display: "flex", alignItems: "center", gap: "5px" }}>
-                <svg width="9" height="9" fill="none" stroke={T.green} strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                <svg width="9" height="9" fill="none" stroke={T.green} strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
                 <span style={{ fontSize: "11px", color: "#94A3B8" }}>app.casha.money</span>
               </div>
             </div>
+
             <div style={{ display: "grid", gridTemplateColumns: "188px 1fr" }}>
               <div style={{ background: T.white, borderRight: `1px solid ${T.border}`, padding: "16px 10px" }}>
-                {/* Sidebar logo — 32px */}
                 <div style={{ padding: "0 6px", marginBottom: "20px" }}>
-                  <CashaLogo size={28} fontSize={13} />
+                  <CashaLogo size={32} fontSize={14} />
                 </div>
                 {["Overview", "Transactions", "Budget", "Debts", "Tax Genius", "AI Advisor", "Settings"].map((n, i) => (
-                  <div key={n} style={{ padding: "8px 10px", borderRadius: "7px", marginBottom: "1px", background: i === 0 ? "#F4F4F5" : "transparent", fontSize: "13px", color: i === 0 ? T.black : T.faint, fontWeight: i === 0 ? "600" : "400" }}>{n}</div>
+                  <div
+                    key={n}
+                    style={{
+                      padding: "8px 10px",
+                      borderRadius: "7px",
+                      marginBottom: "1px",
+                      background: i === 0 ? "#F4F4F5" : "transparent",
+                      fontSize: "13px",
+                      color: i === 0 ? T.black : T.faint,
+                      fontWeight: i === 0 ? "600" : "400",
+                    }}
+                  >
+                    {n}
+                  </div>
                 ))}
               </div>
+
               <div style={{ background: T.surface, padding: "22px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px" }}>
                   <div>
@@ -281,6 +736,7 @@ export default function Home() {
                     <span style={{ fontSize: "11px", fontWeight: "600", color: "#166534" }}>AI Active</span>
                   </div>
                 </div>
+
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "9px", marginBottom: "10px" }}>
                   {[
                     { l: "Health Score", v: "800", s: "Excellent — top 10%", dark: true, vc: T.green },
@@ -294,10 +750,13 @@ export default function Home() {
                     </div>
                   ))}
                 </div>
+
                 <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: "10px", padding: "12px 14px", marginBottom: "9px" }}>
                   <div style={{ display: "flex", gap: "10px" }}>
                     <div style={{ width: "26px", height: "26px", borderRadius: "7px", background: T.black, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <svg width="13" height="13" fill="none" stroke={T.green} strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                      <svg width="13" height="13" fill="none" stroke={T.green} strokeWidth="1.5" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      </svg>
                     </div>
                     <div>
                       <p style={{ fontSize: "12px", fontWeight: "700", color: T.black, margin: "0 0 3px 0" }}>AI found Rs.42,000 in tax savings</p>
@@ -305,11 +764,16 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
+
                 <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: "10px", overflow: "hidden" }}>
                   <div style={{ padding: "9px 13px", borderBottom: `1px solid ${T.border}` }}>
                     <p style={{ fontSize: "10px", fontWeight: "700", color: T.faint, margin: 0, letterSpacing: "0.06em", textTransform: "uppercase" }}>Recent transactions</p>
                   </div>
-                  {[{ n: "Company Salary", c: "Salary", a: "+Rs.75,000", pos: true }, { n: "HDFC Home Loan EMI", c: "EMI Payment", a: "-Rs.15,000", pos: false }, { n: "Swiggy", c: "Food Delivery", a: "-Rs.2,500", pos: false }].map((t, i) => (
+                  {[
+                    { n: "Company Salary", c: "Salary", a: "+Rs.75,000", pos: true },
+                    { n: "HDFC Home Loan EMI", c: "EMI Payment", a: "-Rs.15,000", pos: false },
+                    { n: "Swiggy", c: "Food Delivery", a: "-Rs.2,500", pos: false },
+                  ].map((t, i) => (
                     <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 13px", borderBottom: i < 2 ? `1px solid ${T.border}` : "none" }}>
                       <div>
                         <p style={{ fontSize: "12px", fontWeight: "600", color: T.black, margin: "0 0 1px 0" }}>{t.n}</p>
@@ -376,7 +840,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 50/30/20 — PROFESSIONAL HORIZONTAL ROWS */}
+      {/* 50/30/20 */}
       <section id="rule" style={{ background: T.black }}>
         <div style={W}>
           <Fade>
@@ -388,25 +852,19 @@ export default function Home() {
               </p>
             </div>
           </Fade>
-
           <Fade delay={0.1}>
             <div style={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px", overflow: "hidden", marginBottom: "24px" }}>
               {ruleRows.map((row, i) => (
                 <div key={row.label} style={{ display: "grid", gridTemplateColumns: "120px 1fr 160px", gap: "32px", alignItems: "center", padding: "28px 32px", background: i === 0 ? "rgba(34,197,94,0.05)" : i === 1 ? "rgba(74,222,128,0.03)" : "rgba(134,239,172,0.02)", borderBottom: i < ruleRows.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
-                  {/* Left */}
                   <div>
                     <p style={{ fontSize: "44px", fontWeight: "800", color: row.color, margin: "0 0 4px 0", letterSpacing: "-0.04em", lineHeight: 1 }}>{row.pct}</p>
                     <p style={{ fontSize: "14px", fontWeight: "700", color: "#fff", margin: 0 }}>{row.label}</p>
                   </div>
-                  {/* Middle — tags */}
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                     {row.tags.map(tag => (
-                      <span key={tag} style={{ fontSize: "12px", color: "rgba(255,255,255,0.65)", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "999px", padding: "5px 12px", whiteSpace: "nowrap", lineHeight: 1.3 }}>
-                        {tag}
-                      </span>
+                      <span key={tag} style={{ fontSize: "12px", color: "rgba(255,255,255,0.65)", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "999px", padding: "5px 12px", whiteSpace: "nowrap", lineHeight: 1.3 }}>{tag}</span>
                     ))}
                   </div>
-                  {/* Right */}
                   <div style={{ textAlign: "right" }}>
                     <p style={{ fontSize: "22px", fontWeight: "800", color: "#fff", margin: "0 0 4px 0", letterSpacing: "-0.02em" }}>{row.amount}</p>
                     <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.25)", margin: 0 }}>on Rs.75K income</p>
@@ -415,7 +873,6 @@ export default function Home() {
               ))}
             </div>
           </Fade>
-
           <Fade delay={0.22}>
             <div style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.16)", borderRadius: "14px", padding: "22px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "20px", flexWrap: "wrap" }}>
               <div>
@@ -424,9 +881,7 @@ export default function Home() {
               </div>
               <a href="/auth/signup" style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "12px 22px", borderRadius: "10px", background: T.green, color: T.black, textDecoration: "none", fontWeight: "700", fontSize: "14px", whiteSpace: "nowrap", flexShrink: 0, boxShadow: "0 4px 14px rgba(34,197,94,0.3)" }}
                 onMouseEnter={e => e.currentTarget.style.opacity = "0.88"}
-                onMouseLeave={e => e.currentTarget.style.opacity = "1"}>
-                Try it free →
-              </a>
+                onMouseLeave={e => e.currentTarget.style.opacity = "1"}>Try it free →</a>
             </div>
           </Fade>
         </div>
@@ -447,7 +902,6 @@ export default function Home() {
                 <Fade key={i} delay={0.04}>
                   <div style={{ ...CARD, padding: "40px 44px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "48px", alignItems: "center" }}>
                     <div style={{ order: flip ? 2 : 1 }}>
-                      {/* icon + tag — SAME LINE */}
                       <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "6px", marginBottom: "14px" }}>
                         <span style={{ color: T.green, display: "flex", alignItems: "center", flexShrink: 0 }}>{f.icon}</span>
                         <span style={{ fontSize: "11px", fontWeight: "700", letterSpacing: "0.1em", textTransform: "uppercase", color: T.green, lineHeight: 1 }}>{f.tag}</span>
@@ -711,8 +1165,7 @@ export default function Home() {
       <footer style={{ background: T.black, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
         <div style={{ maxWidth: "1080px", margin: "0 auto", padding: "32px 24px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px", marginBottom: "22px" }}>
-            {/* Footer logo — 36px */}
-            <CashaLogo size={36} fontSize={16} light />
+            <CashaLogo size={38} fontSize={16} light />
             <div style={{ display: "flex", gap: "22px", flexWrap: "wrap" }}>
               {[["Features", "#features"], ["50/30/20", "#rule"], ["Pricing", "#pricing"], ["FAQ", "#faq"], ["Sign in", "/auth/login"], ["Sign up", "/auth/signup"]].map(([l, href]) => (
                 <a key={l} href={href} style={{ fontSize: "13px", color: "rgba(255,255,255,0.28)", textDecoration: "none" }}
