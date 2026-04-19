@@ -10,54 +10,7 @@ const COUNTRIES = [
   { code: "GB", name: "United Kingdom", currency: "GBP" },
   { code: "AE", name: "UAE", currency: "AED" },
   { code: "SG", name: "Singapore", currency: "SGD" },
-  { code: "AU", name: "Australia", currency: "AUD" },
-  { code: "CA", name: "Canada", currency: "CAD" },
-  { code: "DE", name: "Germany", currency: "EUR" },
 ];
-
-function CashaLogo({
-  size = 44,
-  fontSize = 18,
-  light = false,
-}: {
-  size?: number;
-  fontSize?: number;
-  light?: boolean;
-}) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        lineHeight: 1,
-      }}
-    >
-      <img
-        src="/logo.png"
-        alt="Casha"
-        style={{
-          width: `${size}px`,
-          height: `${size}px`,
-          objectFit: "contain",
-          display: "block",
-          flexShrink: 0,
-          marginRight: "-6px",
-        }}
-      />
-      <span
-        style={{
-          fontSize: `${fontSize}px`,
-          fontWeight: 800,
-          color: light ? "#FFFFFF" : "#0A0A0A",
-          letterSpacing: "-0.03em",
-          lineHeight: 1,
-        }}
-      >
-        casha<span style={{ color: "#22C55E" }}>.money</span>
-      </span>
-    </div>
-  );
-}
 
 function PasswordStrength({ password }: { password: string }) {
   if (!password) return null;
@@ -72,7 +25,7 @@ function PasswordStrength({ password }: { password: string }) {
   const labels = ["", "Weak", "Fair", "Good", "Strong"];
 
   return (
-    <div style={{ marginTop: "8px" }}>
+    <div style={{ marginTop: "7px" }}>
       <div style={{ display: "flex", gap: "4px", marginBottom: "4px" }}>
         {[1, 2, 3, 4].map((i) => (
           <div
@@ -97,6 +50,43 @@ function PasswordStrength({ password }: { password: string }) {
       >
         {labels[score]}
       </p>
+    </div>
+  );
+}
+
+function Logo({ light = false }: { light?: boolean }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        lineHeight: 1,
+        justifyContent: "center",
+      }}
+    >
+      <img
+        src="/logo.png"
+        alt="Casha"
+        style={{
+          width: "56px",
+          height: "56px",
+          objectFit: "contain",
+          display: "block",
+          marginRight: "-8px",
+          flexShrink: 0,
+        }}
+      />
+      <span
+        style={{
+          fontSize: "20px",
+          fontWeight: 800,
+          color: light ? "#FFFFFF" : "#0A0A0A",
+          letterSpacing: "-0.03em",
+          lineHeight: 1,
+        }}
+      >
+        casha<span style={{ color: "#22C55E" }}>.money</span>
+      </span>
     </div>
   );
 }
@@ -152,7 +142,7 @@ export default function SignupPage() {
 
   const inputStyle = (name: string): React.CSSProperties => ({
     width: "100%",
-    height: "46px",
+    height: "44px",
     borderRadius: "10px",
     padding: "0 14px",
     fontSize: "14px",
@@ -168,33 +158,35 @@ export default function SignupPage() {
   return (
     <div
       style={{
-        minHeight: "100vh",
-        display: "flex",
+        height: "100vh",
+        width: "100%",
+        display: "grid",
+        gridTemplateColumns: "42% 58%",
         fontFamily: "'Inter', system-ui, sans-serif",
         background: "#F8FAFC",
+        overflow: "hidden",
       }}
     >
       {/* LEFT PANEL */}
       <div
         style={{
-          width: "44%",
           background: "#0A0A0A",
           color: "#FFFFFF",
-          padding: "40px 44px",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
           position: "relative",
           overflow: "hidden",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "40px",
         }}
       >
         <div
           style={{
             position: "absolute",
-            top: "-120px",
-            right: "-120px",
-            width: "360px",
-            height: "360px",
+            top: "-100px",
+            right: "-100px",
+            width: "320px",
+            height: "320px",
             borderRadius: "50%",
             background:
               "radial-gradient(circle, rgba(34,197,94,0.08) 0%, transparent 70%)",
@@ -202,112 +194,83 @@ export default function SignupPage() {
           }}
         />
 
-        <div style={{ position: "relative" }}>
-          <CashaLogo size={46} fontSize={18} light />
-        </div>
+        <div
+          style={{
+            maxWidth: "360px",
+            width: "100%",
+            textAlign: "center",
+            position: "relative",
+          }}
+        >
+          <div style={{ marginBottom: "28px" }}>
+            <Logo light />
+          </div>
 
-        <div style={{ position: "relative" }}>
           <p
             style={{
-              margin: "0 0 14px 0",
+              margin: "0 0 12px 0",
               fontSize: "11px",
               fontWeight: 700,
               letterSpacing: "0.10em",
               textTransform: "uppercase",
-              color: "rgba(34,197,94,0.80)",
+              color: "rgba(34,197,94,0.8)",
             }}
           >
-            Financial OS for modern life
+            Financial OS for India
           </p>
 
           <h1
             style={{
-              margin: "0 0 18px 0",
-              fontSize: "clamp(26px, 3vw, 38px)",
+              margin: "0 0 16px 0",
+              fontSize: "clamp(28px, 3vw, 38px)",
               fontWeight: 800,
               letterSpacing: "-0.03em",
               lineHeight: "1.12",
               color: "#FFFFFF",
             }}
           >
-            Everything your
+            Your complete
             <br />
-            money needs,
+            <span style={{ color: "#22C55E" }}>financial picture</span>
             <br />
-            <span style={{ color: "#22C55E" }}>in one place.</span>
+            in one place.
           </h1>
 
           <p
             style={{
-              margin: "0 0 28px 0",
+              margin: "0 auto 26px",
               fontSize: "14px",
               lineHeight: "1.65",
               color: "rgba(255,255,255,0.42)",
-              maxWidth: "320px",
+              maxWidth: "300px",
             }}
           >
-            Track spending, save taxes, destroy debt, and get an AI financial
-            advisor that actually knows your numbers.
+            Track spending, save taxes, destroy debt, and get an AI advisor that
+            actually knows your numbers.
           </p>
 
-          {/* Better stats block */}
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: "18px",
-              marginBottom: "28px",
-              paddingTop: "20px",
-              borderTop: "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            {[
-              { n: "618+", l: "early members" },
-              { n: "Rs.42K", l: "avg. tax saved" },
-              { n: "Free", l: "forever plan" },
-            ].map((s, i) => (
-              <div key={i}>
-                <p
-                  style={{
-                    margin: "0 0 3px 0",
-                    fontSize: "18px",
-                    fontWeight: 800,
-                    letterSpacing: "-0.02em",
-                    color: "#FFFFFF",
-                  }}
-                >
-                  {s.n}
-                </p>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: "11px",
-                    color: "rgba(255,255,255,0.28)",
-                  }}
-                >
-                  {s.l}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          {/* Compact trust points */}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
               gap: "10px",
+              textAlign: "left",
+              maxWidth: "300px",
+              margin: "0 auto 26px",
             }}
           >
             {[
               "Works with all Indian banks",
-              "Old vs New regime tax optimizer",
-              "AI budget from your real income",
-              "No credit card needed",
+              "Tax optimizer built for India",
+              "AI budget using 50/30/20",
+              "No credit card required",
             ].map((item, i) => (
               <div
                 key={i}
-                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "9px",
+                }}
               >
                 <div
                   style={{
@@ -329,34 +292,63 @@ export default function SignupPage() {
               </div>
             ))}
           </div>
-        </div>
 
-        <p
-          style={{
-            margin: 0,
-            fontSize: "11px",
-            color: "rgba(255,255,255,0.16)",
-            lineHeight: "1.5",
-            position: "relative",
-          }}
-        >
-          Educational platform only. Not a SEBI-registered investment advisor.
-        </p>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: "14px",
+              paddingTop: "18px",
+              borderTop: "1px solid rgba(255,255,255,0.08)",
+              maxWidth: "320px",
+              margin: "0 auto",
+            }}
+          >
+            {[
+              { n: "618+", l: "early members" },
+              { n: "Rs.42K", l: "avg. tax saved" },
+              { n: "Free", l: "forever plan" },
+            ].map((s, i) => (
+              <div key={i}>
+                <p
+                  style={{
+                    margin: "0 0 2px 0",
+                    fontSize: "17px",
+                    fontWeight: 800,
+                    letterSpacing: "-0.02em",
+                    color: "#FFFFFF",
+                  }}
+                >
+                  {s.n}
+                </p>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: "11px",
+                    color: "rgba(255,255,255,0.28)",
+                  }}
+                >
+                  {s.l}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* RIGHT PANEL */}
       <div
         style={{
-          flex: 1,
           background: "#FFFFFF",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: "36px 44px",
+          padding: "32px 40px",
+          overflow: "hidden",
         }}
       >
         <div style={{ width: "100%", maxWidth: "360px" }}>
-          <div style={{ marginBottom: "24px" }}>
+          <div style={{ marginBottom: "22px" }}>
             <h2
               style={{
                 margin: "0 0 6px 0",
@@ -373,10 +365,9 @@ export default function SignupPage() {
                 margin: 0,
                 fontSize: "14px",
                 color: "#71717A",
-                lineHeight: "1.5",
               }}
             >
-              Start free. No credit card required.
+              Free forever — no credit card required
             </p>
           </div>
 
@@ -385,18 +376,12 @@ export default function SignupPage() {
               style={{
                 background: "#FEF2F2",
                 border: "1px solid #FECACA",
-                borderRadius: "10px",
+                borderRadius: "9px",
                 padding: "10px 12px",
-                marginBottom: "16px",
+                marginBottom: "14px",
               }}
             >
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: "13px",
-                  color: "#DC2626",
-                }}
-              >
+              <p style={{ margin: 0, fontSize: "13px", color: "#DC2626" }}>
                 {error}
               </p>
             </div>
@@ -404,7 +389,11 @@ export default function SignupPage() {
 
           <form
             onSubmit={handleSignup}
-            style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+            }}
           >
             <div>
               <label
@@ -544,7 +533,7 @@ export default function SignupPage() {
 
           <p
             style={{
-              margin: "18px 0 0 0",
+              margin: "16px 0 0 0",
               textAlign: "center",
               fontSize: "13px",
               color: "#71717A",
@@ -568,7 +557,7 @@ export default function SignupPage() {
               display: "flex",
               alignItems: "center",
               gap: "10px",
-              margin: "18px 0",
+              margin: "16px 0",
             }}
           >
             <div style={{ flex: 1, height: "1px", background: "#F0F0F0" }} />
@@ -585,11 +574,7 @@ export default function SignupPage() {
               gap: "18px",
             }}
           >
-            {[
-              "AES-256",
-              "DPDPA",
-              "No spam",
-            ].map((item) => (
+            {["AES-256", "DPDPA", "No spam"].map((item) => (
               <div
                 key={item}
                 style={{
@@ -620,7 +605,7 @@ export default function SignupPage() {
 
           <p
             style={{
-              margin: "14px 0 0 0",
+              margin: "12px 0 0 0",
               textAlign: "center",
               fontSize: "11px",
               color: "#A1A1AA",
@@ -628,11 +613,17 @@ export default function SignupPage() {
             }}
           >
             By signing up you agree to our{" "}
-            <a href="/terms" style={{ color: "#71717A", textDecoration: "underline" }}>
+            <a
+              href="/terms"
+              style={{ color: "#71717A", textDecoration: "underline" }}
+            >
               Terms
             </a>{" "}
             and{" "}
-            <a href="/privacy" style={{ color: "#71717A", textDecoration: "underline" }}>
+            <a
+              href="/privacy"
+              style={{ color: "#71717A", textDecoration: "underline" }}
+            >
               Privacy Policy
             </a>
           </p>
@@ -642,6 +633,7 @@ export default function SignupPage() {
       <style>{`
         * { box-sizing: border-box; }
         body { margin: 0; }
+        input::placeholder, textarea::placeholder { color: #C4C4C4; }
         ::selection { background: rgba(34,197,94,0.22); color: #0A0A0A; }
         ::-moz-selection { background: rgba(34,197,94,0.22); color: #0A0A0A; }
       `}</style>
