@@ -1,18 +1,54 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import { supabase } from "../../../lib/supabase";
 
 const CATEGORIES = [
-  "Salary", "Freelance Income", "Business Income", "Bonus", "Refund",
-  "Housing/Rent", "EMI Payment", "Groceries", "Electricity", "Internet/WiFi",
-  "Phone/Mobile", "Insurance", "Food & Dining", "Food Delivery",
-  "Fuel/Petrol", "Uber/Ola", "Shopping", "Clothing", "Electronics",
-  "Healthcare", "Medicine", "Gym/Fitness", "Education", "Entertainment",
-  "Streaming/OTT", "Travel", "Kids", "Charity", "Taxes", "Subscription",
-  "Other Income", "Other Expense", "UPI Transfer", "Bank Transfer",
-  "Mutual Funds", "Stocks", "Fixed Deposit", "PPF", "Gold", "Crypto",
+  // Income
+  { value: "Salary", type: "income", emoji: "💵" },
+  { value: "Freelance Income", type: "income", emoji: "💻" },
+  { value: "Business Income", type: "income", emoji: "💼" },
+  { value: "Bonus", type: "income", emoji: "🎁" },
+  { value: "Other Income", type: "income", emoji: "📥" },
+  // Expenses
+  { value: "Food & Dining", type: "expense", emoji: "🍽️" },
+  { value: "Groceries", type: "expense", emoji: "🛒" },
+  { value: "Food Delivery", type: "expense", emoji: "🛵" },
+  { value: "Housing/Rent", type: "expense", emoji: "🏠" },
+  { value: "EMI Payment", type: "expense", emoji: "📅" },
+  { value: "Electricity", type: "expense", emoji: "💡" },
+  { value: "Internet/WiFi", type: "expense", emoji: "📶" },
+  { value: "Phone/Mobile", type: "expense", emoji: "📱" },
+  { value: "Fuel/Petrol", type: "expense", emoji: "⛽" },
+  { value: "Uber/Ola/Auto", type: "expense", emoji: "🚖" },
+  { value: "Shopping", type: "expense", emoji: "🛍️" },
+  { value: "Clothing", type: "expense", emoji: "👕" },
+  { value: "Electronics", type: "expense", emoji: "📱" },
+  { value: "Healthcare", type: "expense", emoji: "🏥" },
+  { value: "Medicine", type: "expense", emoji: "💊" },
+  { value: "Education", type: "expense", emoji: "📚" },
+  { value: "Entertainment", type: "expense", emoji: "🎬" },
+  { value: "Streaming/OTT", type: "expense", emoji: "📺" },
+  { value: "Travel", type: "expense", emoji: "✈️" },
+  { value: "Insurance", type: "expense", emoji: "🛡️" },
+  { value: "Subscription", type: "expense", emoji: "🔄" },
+  { value: "Taxes", type: "expense", emoji: "🧾" },
+  { value: "Charity/Donation", type: "expense", emoji: "🤲" },
+  { value: "Other Expense", type: "expense", emoji: "📦" },
+  // Investment
+  { value: "Mutual Funds/SIP", type: "investment", emoji: "📊" },
+  { value: "Stocks", type: "investment", emoji: "📈" },
+  { value: "Fixed Deposit", type: "investment", emoji: "🏦" },
+  { value: "PPF", type: "investment", emoji: "🏛️" },
+  { value: "Gold", type: "investment", emoji: "🥇" },
+  // Transfer
+  { value: "UPI Transfer", type: "transfer", emoji: "📲" },
+  { value: "Bank Transfer", type: "transfer", emoji: "🏦" },
 ];
+
+const getCategoryEmoji = (category: string) => {
+  const found = CATEGORIES.find(c => c.value === category);
+  return found?.emoji || "💳";
+};
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -20,42 +56,36 @@ export default function TransactionsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState("all");
-
   const [form, setForm] = useState({
     transaction_date: new Date().toISOString().split("T")[0],
     amount: "",
     transaction_type: "expense",
     merchant_name: "",
-    description: "",
-    category: "",
-    source: "manual",
+    category: "Food & Dining",
+    notes: "",
   });
 
-  useEffect(() => {
-    loadTransactions();
-  }, []);
+  useEffect(() => { loadTransactions(); }, []);
 
   const loadTransactions = async () => {
     const { data: authData } = await supabase.auth.getUser();
     if (!authData.user) return;
-
     const { data } = await supabase
       .from("transactions")
       .select("*")
       .eq("user_id", authData.user.id)
       .order("transaction_date", { ascending: false })
       .limit(100);
-
     setTransactions(data || []);
     setLoading(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.amount || parseFloat(form.amount) <= 0) return;
     setSaving(true);
-
     const { data: authData } = await supabase.auth.getUser();
-    if (!authData.user) return;
+    if (!authData.user) { setSaving(false); return; }
 
     const { error } = await supabase.from("transactions").insert({
       user_id: authData.user.id,
@@ -63,26 +93,26 @@ export default function TransactionsPage() {
       amount: parseFloat(form.amount),
       transaction_type: form.transaction_type,
       merchant_name: form.merchant_name || null,
-      description: form.description || null,
-      category: form.category || null,
+      category: form.category,
+      description: form.notes || null,
       source: "manual",
       currency: "INR",
     });
 
-    if (!error) {
+    if (error) {
+      alert("Error: " + error.message);
+    } else {
       setForm({
         transaction_date: new Date().toISOString().split("T")[0],
         amount: "",
         transaction_type: "expense",
         merchant_name: "",
-        description: "",
-        category: "",
-        source: "manual",
+        category: "Food & Dining",
+        notes: "",
       });
       setShowForm(false);
       loadTransactions();
     }
-
     setSaving(false);
   };
 
@@ -92,163 +122,225 @@ export default function TransactionsPage() {
     loadTransactions();
   };
 
-  const formatMoney = (amount: number) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(amount);
+  const fmt = (n: number) => new Intl.NumberFormat("en-IN", {
+    style: "currency", currency: "INR", maximumFractionDigits: 0
+  }).format(n);
+
+  // Auto-set category based on type change
+  const handleTypeChange = (type: string) => {
+    const defaultCat = type === "income" ? "Salary" 
+      : type === "investment" ? "Mutual Funds/SIP"
+      : type === "transfer" ? "UPI Transfer"
+      : "Food & Dining";
+    setForm({ ...form, transaction_type: type, category: defaultCat });
   };
 
-  const filtered = filter === "all"
-    ? transactions
-    : transactions.filter((t) => t.transaction_type === filter);
+  const filtered = filter === "all" 
+    ? transactions 
+    : transactions.filter(t => t.transaction_type === filter);
 
   const totalIncome = transactions
-    .filter((t) => t.transaction_type === "income")
-    .reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
-  const totalExpense = transactions
-    .filter((t) => t.transaction_type === "expense")
+    .filter(t => t.transaction_type === "income")
     .reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-sm" style={{ color: "#9CA3AF" }}>Loading transactions...</p>
-      </div>
-    );
-  }
+  const totalExpense = transactions
+    .filter(t => t.transaction_type === "expense")
+    .reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
+
+  const filteredCategories = CATEGORIES.filter(c => 
+    c.type === form.transaction_type
+  );
+
+  if (loading) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
+      <p style={{ color: "#9CA3AF", fontSize: "14px" }}>Loading...</p>
+    </div>
+  );
 
   return (
-    <div className="max-w-[900px] mx-auto">
+    <div style={{ maxWidth: "900px", margin: "0 auto", fontFamily: "system-ui, sans-serif" }}>
+      
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px" }}>
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: "#0C0D10" }}>Transactions</h1>
-          <p className="text-sm mt-1" style={{ color: "#6B7280" }}>
+          <h1 style={{ fontSize: "22px", fontWeight: "700", color: "#0C0D10", margin: "0 0 4px 0" }}>
+            Transactions
+          </h1>
+          <p style={{ fontSize: "13px", color: "#6B7280", margin: 0 }}>
             Track every rupee that comes in and goes out
           </p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
-          style={{ background: "#0C0D10", color: "#FFFFFF" }}
+          style={{
+            padding: "10px 20px", borderRadius: "12px", border: "none",
+            background: "#0C0D10", color: "#fff", fontSize: "13px",
+            fontWeight: "600", cursor: "pointer"
+          }}
         >
           {showForm ? "✕ Close" : "+ Add Transaction"}
         </button>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="rounded-xl p-4" style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}>
-          <p className="text-xs font-medium" style={{ color: "#166534" }}>Total Income</p>
-          <p className="text-xl font-bold mt-1" style={{ color: "#166534" }}>{formatMoney(totalIncome)}</p>
+      {/* Summary */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "24px" }}>
+        <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: "16px", padding: "20px" }}>
+          <p style={{ fontSize: "11px", fontWeight: "600", color: "#166534", margin: "0 0 6px 0", textTransform: "uppercase" }}>Total Income</p>
+          <p style={{ fontSize: "22px", fontWeight: "700", color: "#166534", margin: 0 }}>{fmt(totalIncome)}</p>
         </div>
-        <div className="rounded-xl p-4" style={{ background: "#FEF2F2", border: "1px solid #FECACA" }}>
-          <p className="text-xs font-medium" style={{ color: "#991B1B" }}>Total Expenses</p>
-          <p className="text-xl font-bold mt-1" style={{ color: "#991B1B" }}>{formatMoney(totalExpense)}</p>
+        <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "16px", padding: "20px" }}>
+          <p style={{ fontSize: "11px", fontWeight: "600", color: "#991B1B", margin: "0 0 6px 0", textTransform: "uppercase" }}>Total Expenses</p>
+          <p style={{ fontSize: "22px", fontWeight: "700", color: "#DC2626", margin: 0 }}>{fmt(totalExpense)}</p>
         </div>
-        <div className="rounded-xl p-4" style={{ background: "#EFF6FF", border: "1px solid #BFDBFE" }}>
-          <p className="text-xs font-medium" style={{ color: "#1E40AF" }}>Net</p>
-          <p className="text-xl font-bold mt-1" style={{ color: "#1E40AF" }}>{formatMoney(totalIncome - totalExpense)}</p>
+        <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: "16px", padding: "20px" }}>
+          <p style={{ fontSize: "11px", fontWeight: "600", color: "#1E40AF", margin: "0 0 6px 0", textTransform: "uppercase" }}>Net Savings</p>
+          <p style={{ fontSize: "22px", fontWeight: "700", color: "#1D4ED8", margin: 0 }}>{fmt(totalIncome - totalExpense)}</p>
         </div>
       </div>
 
       {/* Add Transaction Form */}
       {showForm && (
-        <div className="rounded-2xl p-6 mb-6" style={{ background: "#FFFFFF", border: "1px solid #E5E7EB" }}>
-          <h2 className="text-sm font-bold mb-4" style={{ color: "#0C0D10" }}>Add Transaction</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Type selector */}
-            <div className="flex gap-2">
-              {["expense", "income", "transfer", "investment"].map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => setForm({ ...form, transaction_type: type })}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold capitalize transition-all"
-                  style={{
-                    background: form.transaction_type === type ? "#0C0D10" : "#F3F4F6",
-                    color: form.transaction_type === type ? "#FFFFFF" : "#6B7280",
-                  }}
-                >
-                  {type}
-                </button>
-              ))}
+        <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "16px", padding: "24px", marginBottom: "24px" }}>
+          <h2 style={{ fontSize: "15px", fontWeight: "700", color: "#0C0D10", margin: "0 0 20px 0" }}>Add Transaction</h2>
+          
+          <form onSubmit={handleSubmit}>
+            {/* Type Selector */}
+            <div style={{ marginBottom: "16px" }}>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#374151", marginBottom: "8px" }}>
+                Transaction Type
+              </label>
+              <div style={{ display: "flex", gap: "8px" }}>
+                {["expense", "income", "investment", "transfer"].map(type => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => handleTypeChange(type)}
+                    style={{
+                      padding: "8px 16px", borderRadius: "8px", border: "1px solid",
+                      fontSize: "12px", fontWeight: "600", cursor: "pointer",
+                      textTransform: "capitalize",
+                      background: form.transaction_type === type ? "#0C0D10" : "#F9FAFB",
+                      color: form.transaction_type === type ? "#fff" : "#6B7280",
+                      borderColor: form.transaction_type === type ? "#0C0D10" : "#E5E7EB",
+                    }}
+                  >
+                    {type === "expense" ? "💸 Expense" 
+                      : type === "income" ? "💵 Income"
+                      : type === "investment" ? "📈 Investment"
+                      : "↔️ Transfer"}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
               <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: "#374151" }}>Amount (₹)</label>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>
+                  Amount (₹) *
+                </label>
                 <input
                   type="number"
                   required
+                  min="0.01"
                   step="0.01"
                   value={form.amount}
-                  onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                  onChange={e => setForm({ ...form, amount: e.target.value })}
                   placeholder="0.00"
-                  className="w-full h-11 rounded-xl px-4 text-sm outline-none"
-                  style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", color: "#0C0D10" }}
+                  style={{
+                    width: "100%", height: "44px", borderRadius: "10px",
+                    padding: "0 14px", fontSize: "14px", border: "1px solid #E5E7EB",
+                    background: "#F9FAFB", color: "#0C0D10", outline: "none",
+                    boxSizing: "border-box"
+                  }}
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: "#374151" }}>Date</label>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>
+                  Date *
+                </label>
                 <input
                   type="date"
                   required
                   value={form.transaction_date}
-                  onChange={(e) => setForm({ ...form, transaction_date: e.target.value })}
-                  className="w-full h-11 rounded-xl px-4 text-sm outline-none"
-                  style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", color: "#0C0D10" }}
+                  onChange={e => setForm({ ...form, transaction_date: e.target.value })}
+                  style={{
+                    width: "100%", height: "44px", borderRadius: "10px",
+                    padding: "0 14px", fontSize: "14px", border: "1px solid #E5E7EB",
+                    background: "#F9FAFB", color: "#0C0D10", outline: "none",
+                    boxSizing: "border-box"
+                  }}
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
               <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: "#374151" }}>Merchant / Payee</label>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>
+                  Merchant / Payee
+                </label>
                 <input
                   type="text"
                   value={form.merchant_name}
-                  onChange={(e) => setForm({ ...form, merchant_name: e.target.value })}
-                  placeholder="Swiggy, Amazon, Rent..."
-                  className="w-full h-11 rounded-xl px-4 text-sm outline-none"
-                  style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", color: "#0C0D10" }}
+                  onChange={e => setForm({ ...form, merchant_name: e.target.value })}
+                  placeholder="Swiggy, Amazon, Salary..."
+                  style={{
+                    width: "100%", height: "44px", borderRadius: "10px",
+                    padding: "0 14px", fontSize: "14px", border: "1px solid #E5E7EB",
+                    background: "#F9FAFB", color: "#0C0D10", outline: "none",
+                    boxSizing: "border-box"
+                  }}
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: "#374151" }}>Category</label>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>
+                  Category *
+                </label>
                 <select
                   value={form.category}
-                  onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  className="w-full h-11 rounded-xl px-4 text-sm outline-none"
-                  style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", color: "#0C0D10" }}
+                  onChange={e => setForm({ ...form, category: e.target.value })}
+                  style={{
+                    width: "100%", height: "44px", borderRadius: "10px",
+                    padding: "0 14px", fontSize: "14px", border: "1px solid #E5E7EB",
+                    background: "#F9FAFB", color: "#0C0D10", outline: "none",
+                    boxSizing: "border-box"
+                  }}
                 >
-                  <option value="">Select category</option>
-                  {CATEGORIES.map((c) => (
-                    <option key={c} value={c}>{c}</option>
+                  {filteredCategories.map(c => (
+                    <option key={c.value} value={c.value}>
+                      {c.emoji} {c.value}
+                    </option>
                   ))}
                 </select>
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: "#374151" }}>Note (optional)</label>
+            <div style={{ marginBottom: "20px" }}>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#374151", marginBottom: "6px" }}>
+                Note (optional)
+              </label>
               <input
                 type="text"
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                value={form.notes}
+                onChange={e => setForm({ ...form, notes: e.target.value })}
                 placeholder="Add a note..."
-                className="w-full h-11 rounded-xl px-4 text-sm outline-none"
-                style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", color: "#0C0D10" }}
+                style={{
+                  width: "100%", height: "44px", borderRadius: "10px",
+                  padding: "0 14px", fontSize: "14px", border: "1px solid #E5E7EB",
+                  background: "#F9FAFB", color: "#0C0D10", outline: "none",
+                  boxSizing: "border-box"
+                }}
               />
             </div>
 
             <button
               type="submit"
               disabled={saving}
-              className="w-full h-12 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
-              style={{ background: "#0C0D10", color: "#FFFFFF" }}
+              style={{
+                width: "100%", height: "46px", borderRadius: "12px", border: "none",
+                background: "#0C0D10", color: "#fff", fontSize: "14px",
+                fontWeight: "600", cursor: saving ? "not-allowed" : "pointer",
+                opacity: saving ? 0.5 : 1
+              }}
             >
               {saving ? "Saving..." : "Save Transaction"}
             </button>
@@ -256,16 +348,18 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      {/* Filter */}
-      <div className="flex gap-2 mb-4">
-        {["all", "income", "expense", "transfer", "investment"].map((f) => (
+      {/* Filter Tabs */}
+      <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+        {["all", "income", "expense", "investment", "transfer"].map(f => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all"
             style={{
+              padding: "6px 14px", borderRadius: "8px", border: "none",
+              fontSize: "12px", fontWeight: "600", cursor: "pointer",
+              textTransform: "capitalize",
               background: filter === f ? "#0C0D10" : "#F3F4F6",
-              color: filter === f ? "#FFFFFF" : "#6B7280",
+              color: filter === f ? "#fff" : "#6B7280",
             }}
           >
             {f === "all" ? "All" : f}
@@ -274,51 +368,70 @@ export default function TransactionsPage() {
       </div>
 
       {/* Transaction List */}
-      <div className="rounded-2xl overflow-hidden" style={{ background: "#FFFFFF", border: "1px solid #E5E7EB" }}>
+      <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "16px", overflow: "hidden" }}>
         {filtered.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-3xl mb-3">💳</p>
-            <p className="text-sm" style={{ color: "#6B7280" }}>No transactions yet</p>
+          <div style={{ textAlign: "center", padding: "48px" }}>
+            <p style={{ fontSize: "32px", margin: "0 0 12px 0" }}>💳</p>
+            <p style={{ fontSize: "15px", fontWeight: "600", color: "#0C0D10", margin: "0 0 8px 0" }}>
+              No transactions yet
+            </p>
+            <p style={{ fontSize: "13px", color: "#6B7280", margin: "0 0 20px 0" }}>
+              Add your first transaction to start tracking
+            </p>
             <button
               onClick={() => setShowForm(true)}
-              className="mt-3 text-xs font-semibold px-4 py-2 rounded-lg"
-              style={{ background: "#0C0D10", color: "#FFFFFF" }}
+              style={{
+                padding: "10px 24px", borderRadius: "10px", border: "none",
+                background: "#0C0D10", color: "#fff", fontSize: "13px",
+                fontWeight: "600", cursor: "pointer"
+              }}
             >
-              Add your first transaction
+              Add Transaction
             </button>
           </div>
         ) : (
           filtered.map((txn, i) => (
             <div
               key={txn.id}
-              className="flex items-center justify-between px-5 py-4 transition-all hover:bg-gray-50"
-              style={{ borderBottom: i < filtered.length - 1 ? "1px solid #F3F4F6" : "none" }}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "14px 20px",
+                borderBottom: i < filtered.length - 1 ? "1px solid #F9FAFB" : "none",
+              }}
             >
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium" style={{ color: "#0C0D10" }}>
-                  {txn.merchant_name || txn.description || txn.category || "Transaction"}
-                </p>
-                <p className="text-xs mt-0.5" style={{ color: "#9CA3AF" }}>
-                  {new Date(txn.transaction_date).toLocaleDateString("en-IN", {
-                    day: "numeric", month: "short", year: "numeric"
-                  })}
-                  {txn.category && ` · ${txn.category}`}
-                  {txn.source !== "manual" && ` · via ${txn.source}`}
-                </p>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{
+                  width: "40px", height: "40px", borderRadius: "12px",
+                  background: txn.transaction_type === "income" ? "#F0FDF4" 
+                    : txn.transaction_type === "investment" ? "#EFF6FF" : "#F9FAFB",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: "18px", flexShrink: 0
+                }}>
+                  {getCategoryEmoji(txn.category)}
+                </div>
+                <div>
+                  <p style={{ fontSize: "14px", fontWeight: "600", color: "#0C0D10", margin: "0 0 2px 0" }}>
+                    {txn.merchant_name || txn.category || "Transaction"}
+                  </p>
+                  <p style={{ fontSize: "11px", color: "#9CA3AF", margin: 0 }}>
+                    {new Date(txn.transaction_date).toLocaleDateString("en-IN", {
+                      day: "numeric", month: "short", year: "numeric"
+                    })}
+                    {txn.category && ` · ${txn.category}`}
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <p
-                  className="text-sm font-bold"
-                  style={{ color: txn.transaction_type === "income" ? "#22C55E" : "#0C0D10" }}
-                >
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <p style={{
+                  fontSize: "15px", fontWeight: "700", margin: 0,
+                  color: txn.transaction_type === "income" ? "#16A34A" : "#0C0D10"
+                }}>
                   {txn.transaction_type === "income" ? "+" : "-"}
-                  {formatMoney(Math.abs(Number(txn.amount)))}
+                  {fmt(Math.abs(Number(txn.amount)))}
                 </p>
                 <button
                   onClick={() => deleteTransaction(txn.id)}
-                  className="text-xs p-1.5 rounded-lg transition-all hover:bg-red-50"
-                  style={{ color: "#D1D5DB" }}
-                  title="Delete"
+                  style={{ background: "none", border: "none", cursor: "pointer", fontSize: "14px", color: "#D1D5DB", padding: "4px" }}
                 >
                   🗑️
                 </button>
