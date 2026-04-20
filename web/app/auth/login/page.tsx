@@ -4,208 +4,563 @@ import { supabase } from "../../../lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+function LoginLogo({ light = false }: { light?: boolean }) {
+  return (
+    <div
+      style={{
+        width: "100%",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "2px",
+          lineHeight: 1,
+        }}
+      >
+        <img
+          src="/logo.png"
+          alt="Casha"
+          style={{
+            width: "50px",
+            height: "50px",
+            objectFit: "contain",
+            display: "block",
+            flexShrink: 0,
+            marginRight: "-8px",
+          }}
+        />
+        <span
+          style={{
+            fontSize: "20px",
+            fontWeight: 800,
+            color: light ? "#FFFFFF" : "#0A0A0A",
+            letterSpacing: "-0.03em",
+            lineHeight: 1,
+            display: "inline-block",
+          }}
+        >
+          casha<span style={{ color: "#22C55E" }}>.money</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
+  const [focused, setFocused] = useState("");
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
-    if (err) { setError(err.message); setLoading(false); return; }
-    if (data.user) router.push("/dashboard/overview");
+
+    const { data, error: err } = await supabase.auth.signInWithPassword({
+      email: form.email,
+      password: form.password,
+    });
+
+    if (err) {
+      setError(err.message);
+      setLoading(false);
+      return;
+    }
+
+    if (data.user) {
+      router.push("/dashboard/overview");
+    }
+
     setLoading(false);
   };
 
+  const inputStyle = (name: string): React.CSSProperties => ({
+    width: "100%",
+    height: "46px",
+    borderRadius: "10px",
+    padding: "0 14px",
+    fontSize: "14px",
+    lineHeight: "46px",
+    outline: "none",
+    fontFamily: "inherit",
+    background: "#FAFAFA",
+    border: `1.5px solid ${focused === name ? "#22C55E" : "#E5E7EB"}`,
+    color: "#0A0A0A",
+    boxSizing: "border-box",
+    transition: "border-color 0.15s ease",
+  });
+
   return (
-    <div style={{
-      minHeight: "100vh", display: "flex",
-      fontFamily: "'Inter', system-ui, sans-serif",
-      background: "#FAFAFA",
-    }}>
-      {/* Left panel — branding */}
-      <div style={{
-        width: "50%", background: "#0A0A0A",
-        display: "flex", flexDirection: "column",
-        justifyContent: "space-between",
-        padding: "48px", position: "relative", overflow: "hidden",
-      }}>
-        {/* Background decoration */}
-        <div style={{
-          position: "absolute", top: "-100px", right: "-100px",
-          width: "400px", height: "400px", borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(34,197,94,0.08) 0%, transparent 70%)",
-          pointerEvents: "none",
-        }} />
-        <div style={{
-          position: "absolute", bottom: "-80px", left: "-80px",
-          width: "300px", height: "300px", borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(34,197,94,0.05) 0%, transparent 70%)",
-          pointerEvents: "none",
-        }} />
+    <div
+      style={{
+        minHeight: "100vh",
+        width: "100%",
+        display: "grid",
+        gridTemplateColumns: "43% 57%",
+        fontFamily: "'Inter', system-ui, sans-serif",
+        overflow: "hidden",
+      }}
+    >
+      {/* LEFT PANEL */}
+      <div
+        style={{
+          background: "#0A0A0A",
+          position: "relative",
+          overflow: "hidden",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "40px 42px",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            top: "-100px",
+            right: "-100px",
+            width: "320px",
+            height: "320px",
+            borderRadius: "50%",
+            background:
+              "radial-gradient(circle, rgba(34,197,94,0.08) 0%, transparent 70%)",
+            pointerEvents: "none",
+          }}
+        />
 
-        {/* Logo */}
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", position: "relative" }}>
-          <div style={{
-            width: "34px", height: "34px", borderRadius: "9px",
-            background: "#22C55E", display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <span style={{ fontSize: "17px", fontWeight: "900", color: "#0A0A0A" }}>c</span>
-          </div>
-          <span style={{ fontSize: "18px", fontWeight: "800", color: "#fff", letterSpacing: "-0.03em" }}>
-            casha<span style={{ color: "#22C55E" }}>.money</span>
-          </span>
-        </div>
+        <div
+          style={{
+            width: "100%",
+            maxWidth: "340px",
+            position: "relative",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            textAlign: "center",
+          }}
+        >
+          {/* Clickable logo back to homepage */}
+          <a
+            href="/"
+            style={{
+              display: "block",
+              textDecoration: "none",
+              marginBottom: "28px",
+            }}
+          >
+            <LoginLogo light />
+          </a>
 
-        {/* Center quote */}
-        <div style={{ position: "relative" }}>
-          <p style={{
-            fontSize: "clamp(28px, 3vw, 40px)", fontWeight: "800",
-            color: "#fff", letterSpacing: "-0.03em", lineHeight: "1.15",
-            margin: "0 0 20px 0",
-          }}>
-            "Your money,
-            <br />
-            <span style={{ color: "#22C55E" }}>finally</span> making
-            <br />
-            sense."
+          <p
+            style={{
+              margin: "0 0 12px 0",
+              fontSize: "11px",
+              fontWeight: 700,
+              letterSpacing: "0.10em",
+              textTransform: "uppercase",
+              color: "rgba(34,197,94,0.8)",
+            }}
+          >
+            Welcome back
           </p>
-          <p style={{ fontSize: "15px", color: "rgba(255,255,255,0.4)", margin: "0 0 32px 0", lineHeight: "1.6" }}>
-            Join 618+ people who stopped guessing with their finances.
+
+          <h1
+            style={{
+              margin: "0 0 16px 0",
+              fontSize: "clamp(24px, 2.8vw, 34px)",
+              fontWeight: 800,
+              letterSpacing: "-0.03em",
+              lineHeight: "1.14",
+              color: "#FFFFFF",
+            }}
+          >
+            Pick up exactly
+            <br />
+            where you left
+            <br />
+            <span style={{ color: "#22C55E" }}>your finances.</span>
+          </h1>
+
+          <p
+            style={{
+              margin: "0 0 24px 0",
+              fontSize: "13px",
+              lineHeight: "1.65",
+              color: "rgba(255,255,255,0.42)",
+              maxWidth: "300px",
+              alignSelf: "center",
+            }}
+          >
+            Your dashboard, goals, debts, budgets, and AI advisor are waiting.
           </p>
-          {/* Mini stats */}
-          <div style={{ display: "flex", gap: "32px" }}>
+
+          {/* Left panel bullets */}
+          <div
+            style={{
+              display: "inline-flex",
+              flexDirection: "column",
+              gap: "10px",
+              marginBottom: "26px",
+              alignSelf: "center",
+              textAlign: "left",
+            }}
+          >
             {[
-              { n: "Rs.42K", l: "avg. tax saved" },
-              { n: "Rs.2,400", l: "monthly waste found" },
-              { n: "Free", l: "forever" },
-            ].map((s, i) => (
-              <div key={i}>
-                <p style={{ fontSize: "20px", fontWeight: "800", color: "#22C55E", margin: "0 0 2px 0", letterSpacing: "-0.02em" }}>{s.n}</p>
-                <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.3)", margin: 0 }}>{s.l}</p>
+              "Review your financial health score",
+              "Track spending and subscriptions",
+              "Continue your debt payoff plan",
+              "Ask your AI advisor anything",
+            ].map((item, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <div
+                  style={{
+                    width: "18px",
+                    height: "18px",
+                    borderRadius: "999px",
+                    background: "rgba(34,197,94,0.14)",
+                    border: "1px solid rgba(34,197,94,0.28)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <svg
+                    width="9"
+                    height="9"
+                    fill="none"
+                    stroke="#22C55E"
+                    strokeWidth="2.5"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </div>
+                <span
+                  style={{
+                    fontSize: "12px",
+                    lineHeight: 1.4,
+                    color: "rgba(255,255,255,0.55)",
+                    fontWeight: 500,
+                  }}
+                >
+                  {item}
+                </span>
               </div>
             ))}
           </div>
-        </div>
 
-        {/* Legal */}
-        <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.15)", margin: 0, lineHeight: "1.5", position: "relative" }}>
-          Financial education platform only. Not investment advice.
-        </p>
+          {/* Stats */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: "16px",
+              paddingTop: "18px",
+              borderTop: "1px solid rgba(255,255,255,0.08)",
+              marginBottom: "28px",
+              textAlign: "left",
+            }}
+          >
+            {[
+              { n: "618+", l: "early members" },
+              { n: "Rs.42K", l: "avg. tax saved" },
+              { n: "Free", l: "forever plan" },
+            ].map((s, i) => (
+              <div key={i}>
+                <p
+                  style={{
+                    margin: "0 0 3px 0",
+                    fontSize: "16px",
+                    fontWeight: 800,
+                    letterSpacing: "-0.02em",
+                    color: "#FFFFFF",
+                  }}
+                >
+                  {s.n}
+                </p>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: "11px",
+                    color: "rgba(255,255,255,0.28)",
+                    lineHeight: "1.3",
+                  }}
+                >
+                  {s.l}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <p
+            style={{
+              margin: 0,
+              fontSize: "11px",
+              color: "rgba(255,255,255,0.15)",
+              lineHeight: "1.5",
+            }}
+          >
+            Educational platform only. Not investment advice.
+          </p>
+        </div>
       </div>
 
-      {/* Right panel — form */}
-      <div style={{
-        width: "50%", display: "flex", alignItems: "center",
-        justifyContent: "center", padding: "48px",
-        background: "#fff",
-      }}>
-        <div style={{ width: "100%", maxWidth: "380px" }}>
-
-          <h1 style={{
-            fontSize: "26px", fontWeight: "800", color: "#0A0A0A",
-            letterSpacing: "-0.03em", margin: "0 0 8px 0",
-          }}>
-            Welcome back
-          </h1>
-          <p style={{ fontSize: "15px", color: "#71717A", margin: "0 0 32px 0" }}>
-            Sign in to your Casha dashboard
-          </p>
+      {/* RIGHT PANEL */}
+      <div
+        style={{
+          background: "#FFFFFF",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "32px 40px",
+          overflow: "hidden",
+        }}
+      >
+        <div style={{ width: "100%", maxWidth: "340px" }}>
+          <div style={{ marginBottom: "22px" }}>
+            <h2
+              style={{
+                margin: "0 0 6px 0",
+                fontSize: "24px",
+                fontWeight: 800,
+                letterSpacing: "-0.03em",
+                color: "#0A0A0A",
+              }}
+            >
+              Sign in
+            </h2>
+            <p
+              style={{
+                margin: 0,
+                fontSize: "14px",
+                color: "#71717A",
+              }}
+            >
+              Access your dashboard and continue where you left off
+            </p>
+          </div>
 
           {error && (
-            <div style={{
-              background: "#FEF2F2", border: "1px solid #FECACA",
-              borderRadius: "10px", padding: "12px 16px",
-              marginBottom: "20px",
-            }}>
-              <p style={{ fontSize: "13px", color: "#DC2626", margin: 0 }}>{error}</p>
+            <div
+              style={{
+                background: "#FEF2F2",
+                border: "1px solid #FECACA",
+                borderRadius: "9px",
+                padding: "10px 12px",
+                marginBottom: "14px",
+              }}
+            >
+              <p style={{ margin: 0, fontSize: "13px", color: "#DC2626" }}>
+                {error}
+              </p>
             </div>
           )}
 
-          <form onSubmit={handleLogin}>
-            <div style={{ marginBottom: "16px" }}>
-              <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#374151", marginBottom: "7px" }}>
+          <form
+            onSubmit={handleLogin}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+            }}
+          >
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "5px",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  color: "#374151",
+                }}
+              >
                 Email address
               </label>
               <input
-                type="email" required value={email}
-                onChange={e => setEmail(e.target.value)}
+                type="email"
+                required
+                value={form.email}
+                onChange={(e) =>
+                  setForm({ ...form, email: e.target.value })
+                }
                 placeholder="you@example.com"
-                style={{
-                  width: "100%", height: "48px", borderRadius: "11px",
-                  padding: "0 16px", fontSize: "15px", outline: "none",
-                  border: "1px solid #E4E4E7", background: "#FAFAFA",
-                  color: "#0A0A0A", fontFamily: "inherit",
-                  boxSizing: "border-box",
-                  transition: "border-color 0.15s",
-                }}
-                onFocus={e => e.target.style.borderColor = "#22C55E"}
-                onBlur={e => e.target.style.borderColor = "#E4E4E7"}
+                style={inputStyle("email")}
+                onFocus={() => setFocused("email")}
+                onBlur={() => setFocused("")}
               />
             </div>
 
-            <div style={{ marginBottom: "24px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "7px" }}>
-                <label style={{ fontSize: "13px", fontWeight: "600", color: "#374151" }}>
+            <div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "5px",
+                }}
+              >
+                <label
+                  style={{
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    color: "#374151",
+                  }}
+                >
                   Password
                 </label>
-                <a href="#" style={{ fontSize: "13px", color: "#22C55E", textDecoration: "none", fontWeight: "500" }}>
-                  Forgot password?
+                <a
+                  href="#"
+                  style={{
+                    fontSize: "11px",
+                    color: "#22C55E",
+                    textDecoration: "none",
+                    fontWeight: 600,
+                  }}
+                >
+                  Forgot?
                 </a>
               </div>
               <input
-                type="password" required value={password}
-                onChange={e => setPassword(e.target.value)}
+                type="password"
+                required
+                value={form.password}
+                onChange={(e) =>
+                  setForm({ ...form, password: e.target.value })
+                }
                 placeholder="Enter your password"
-                style={{
-                  width: "100%", height: "48px", borderRadius: "11px",
-                  padding: "0 16px", fontSize: "15px", outline: "none",
-                  border: "1px solid #E4E4E7", background: "#FAFAFA",
-                  color: "#0A0A0A", fontFamily: "inherit",
-                  boxSizing: "border-box",
-                  transition: "border-color 0.15s",
-                }}
-                onFocus={e => e.target.style.borderColor = "#22C55E"}
-                onBlur={e => e.target.style.borderColor = "#E4E4E7"}
+                style={inputStyle("password")}
+                onFocus={() => setFocused("password")}
+                onBlur={() => setFocused("")}
               />
             </div>
 
             <button
-              type="submit" disabled={loading}
+              type="submit"
+              disabled={loading}
               style={{
-                width: "100%", height: "50px", borderRadius: "11px",
-                border: "none", background: "#0A0A0A", color: "#fff",
-                fontSize: "15px", fontWeight: "700", cursor: loading ? "wait" : "pointer",
-                fontFamily: "inherit", opacity: loading ? 0.8 : 1,
-                transition: "opacity 0.15s",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
+                width: "100%",
+                height: "46px",
+                borderRadius: "11px",
+                border: "none",
+                background: "#22C55E",
+                color: "#FFFFFF",
+                fontSize: "15px",
+                fontWeight: 700,
+                cursor: loading ? "wait" : "pointer",
+                fontFamily: "inherit",
+                opacity: loading ? 0.8 : 1,
+                marginTop: "4px",
+                boxShadow: "0 4px 14px rgba(34,197,94,0.28)",
               }}
             >
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? "Signing in..." : "Sign in →"}
             </button>
           </form>
 
-          <p style={{ textAlign: "center", fontSize: "14px", color: "#71717A", margin: "24px 0 0 0" }}>
-            Don't have an account?{" "}
-            <Link href="/auth/signup" style={{ color: "#22C55E", fontWeight: "700", textDecoration: "none" }}>
+          <p
+            style={{
+              margin: "16px 0 0 0",
+              textAlign: "center",
+              fontSize: "12px",
+              color: "#71717A",
+            }}
+          >
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/auth/signup"
+              style={{
+                color: "#22C55E",
+                fontWeight: 700,
+                textDecoration: "none",
+              }}
+            >
               Create one free
             </Link>
           </p>
 
-          {/* Security note */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", marginTop: "32px" }}>
-            <svg width="12" height="12" fill="none" stroke="#9CA3AF" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-            <span style={{ fontSize: "12px", color: "#9CA3AF" }}>AES-256 encrypted — your data is safe</span>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              margin: "16px 0",
+            }}
+          >
+            <div style={{ flex: 1, height: "1px", background: "#F0F0F0" }} />
+            <span style={{ fontSize: "10px", color: "#C4C4C4" }}>
+              secure login
+            </span>
+            <div style={{ flex: 1, height: "1px", background: "#F0F0F0" }} />
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: "18px",
+            }}
+          >
+            {["AES-256", "DPDPA", "Private"].map((item) => (
+              <div
+                key={item}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px",
+                }}
+              >
+                <div
+                  style={{
+                    width: "5px",
+                    height: "5px",
+                    borderRadius: "50%",
+                    background: "#22C55E",
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: "10px",
+                    color: "#A1A1AA",
+                  }}
+                >
+                  {item}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
+
+      <style>{`
+        * { box-sizing: border-box; }
+        body { margin: 0; }
+        input::placeholder { color: #C4C4C4; }
+        ::selection { background: rgba(34,197,94,0.22); color: #0A0A0A; }
+        ::-moz-selection { background: rgba(34,197,94,0.22); color: #0A0A0A; }
+      `}</style>
     </div>
   );
 }
