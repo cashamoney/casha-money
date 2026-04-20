@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../../lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -15,12 +15,6 @@ const COUNTRIES = [
   { code: "DE", name: "Germany", currency: "EUR" },
   { code: "NG", name: "Nigeria", currency: "NGN" },
   { code: "KE", name: "Kenya", currency: "KES" },
-  { code: "BR", name: "Brazil", currency: "BRL" },
-  { code: "ID", name: "Indonesia", currency: "IDR" },
-  { code: "PH", name: "Philippines", currency: "PHP" },
-  { code: "SA", name: "Saudi Arabia", currency: "SAR" },
-  { code: "FR", name: "France", currency: "EUR" },
-  { code: "MX", name: "Mexico", currency: "MXN" },
 ];
 
 const LEFT_POINTS = [
@@ -43,7 +37,7 @@ function PasswordStrength({ password }: { password: string }) {
   const labels = ["", "Weak", "Fair", "Good", "Strong"];
 
   return (
-    <div style={{ marginTop: "8px" }}>
+    <div style={{ marginTop: "6px" }}>
       <div style={{ display: "flex", gap: "4px", marginBottom: "4px" }}>
         {[1, 2, 3, 4].map((i) => (
           <div
@@ -126,38 +120,27 @@ export default function SignupPage() {
     password: "",
     country: "IN",
   });
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [focused, setFocused] = useState("");
   const [countryOpen, setCountryOpen] = useState(false);
-  const [countryQuery, setCountryQuery] = useState("");
-  const router = useRouter();
 
+  const router = useRouter();
   const countryRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
+    const close = (e: MouseEvent) => {
       if (countryRef.current && !countryRef.current.contains(e.target as Node)) {
         setCountryOpen(false);
       }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
   }, []);
 
   const selectedCountry =
     COUNTRIES.find((c) => c.code === form.country) || COUNTRIES[0];
-
-  const filteredCountries = useMemo(() => {
-    const q = countryQuery.trim().toLowerCase();
-    if (!q) return COUNTRIES;
-    return COUNTRIES.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.code.toLowerCase().includes(q) ||
-        c.currency.toLowerCase().includes(q)
-    );
-  }, [countryQuery]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -198,43 +181,42 @@ export default function SignupPage() {
 
   const inputStyle = (name: string): React.CSSProperties => ({
     width: "100%",
-    height: "46px",
+    height: "44px",
     borderRadius: "10px",
     padding: "0 14px",
     fontSize: "14px",
-    lineHeight: "46px",
+    lineHeight: "44px",
     outline: "none",
     fontFamily: "inherit",
     background: "#FAFAFA",
     border: `1.5px solid ${focused === name ? "#22C55E" : "#E5E7EB"}`,
     color: "#0A0A0A",
     boxSizing: "border-box",
-    transition: "border-color 0.15s ease, background 0.15s ease",
+    transition: "border-color 0.15s ease",
   });
 
   return (
     <div
       style={{
-        minHeight: "100vh",
+        height: "100vh",
         width: "100%",
         display: "grid",
         gridTemplateColumns: "43% 57%",
         fontFamily: "'Inter', system-ui, sans-serif",
-        background: "#F8FAFC",
         overflow: "hidden",
+        background: "#F8FAFC",
       }}
     >
       {/* LEFT PANEL */}
       <div
         style={{
           background: "#0A0A0A",
-          color: "#FFFFFF",
           position: "relative",
           overflow: "hidden",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: "40px 42px",
+          padding: "34px 40px",
         }}
       >
         <div
@@ -255,19 +237,20 @@ export default function SignupPage() {
           style={{
             width: "100%",
             maxWidth: "340px",
-            position: "relative",
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
             textAlign: "center",
+            position: "relative",
           }}
         >
+          {/* CLICKABLE LOGO */}
           <a
             href="/"
             style={{
               display: "block",
               textDecoration: "none",
-              marginBottom: "28px",
+              marginBottom: "24px",
             }}
           >
             <SignupLogo light />
@@ -275,7 +258,7 @@ export default function SignupPage() {
 
           <p
             style={{
-              margin: "0 0 12px 0",
+              margin: "0 0 10px 0",
               fontSize: "11px",
               fontWeight: 700,
               letterSpacing: "0.10em",
@@ -288,8 +271,8 @@ export default function SignupPage() {
 
           <h1
             style={{
-              margin: "0 0 16px 0",
-              fontSize: "clamp(24px, 2.8vw, 34px)",
+              margin: "0 0 14px 0",
+              fontSize: "clamp(23px, 2.7vw, 32px)",
               fontWeight: 800,
               letterSpacing: "-0.03em",
               lineHeight: "1.14",
@@ -305,9 +288,9 @@ export default function SignupPage() {
 
           <p
             style={{
-              margin: "0 auto 24px auto",
+              margin: "0 auto 20px auto",
               fontSize: "13px",
-              lineHeight: "1.6",
+              lineHeight: "1.58",
               color: "rgba(255,255,255,0.42)",
               maxWidth: "300px",
             }}
@@ -316,12 +299,13 @@ export default function SignupPage() {
             that actually knows your numbers.
           </p>
 
+          {/* PERFECTLY CENTERED BULLETS */}
           <div
             style={{
               display: "inline-flex",
               flexDirection: "column",
               gap: "10px",
-              marginBottom: "26px",
+              marginBottom: "22px",
               alignSelf: "center",
               textAlign: "left",
             }}
@@ -367,7 +351,7 @@ export default function SignupPage() {
                 <span
                   style={{
                     fontSize: "12px",
-                    lineHeight: 1.4,
+                    lineHeight: "1.4",
                     color: "rgba(255,255,255,0.55)",
                     fontWeight: 500,
                   }}
@@ -378,6 +362,7 @@ export default function SignupPage() {
             ))}
           </div>
 
+          {/* STATS */}
           <div
             style={{
               display: "grid",
@@ -385,7 +370,7 @@ export default function SignupPage() {
               gap: "14px",
               paddingTop: "16px",
               borderTop: "1px solid rgba(255,255,255,0.08)",
-              marginBottom: "24px",
+              marginBottom: "18px",
               textAlign: "left",
             }}
           >
@@ -420,7 +405,7 @@ export default function SignupPage() {
             ))}
           </div>
 
-          {/* LEGAL INFO ADDED */}
+          {/* LEGAL ONLY IN BLACK PANEL */}
           <p
             style={{
               margin: 0,
@@ -444,16 +429,16 @@ export default function SignupPage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: "32px 40px",
+          padding: "28px 40px",
           overflow: "hidden",
         }}
       >
         <div style={{ width: "100%", maxWidth: "340px" }}>
-          <div style={{ marginBottom: "22px" }}>
+          <div style={{ marginBottom: "20px" }}>
             <h2
               style={{
                 margin: "0 0 6px 0",
-                fontSize: "24px",
+                fontSize: "22px",
                 fontWeight: 800,
                 letterSpacing: "-0.03em",
                 color: "#0A0A0A",
@@ -479,7 +464,7 @@ export default function SignupPage() {
                 border: "1px solid #FECACA",
                 borderRadius: "8px",
                 padding: "10px 12px",
-                marginBottom: "14px",
+                marginBottom: "12px",
               }}
             >
               <p style={{ margin: 0, fontSize: "12px", color: "#DC2626" }}>
@@ -493,14 +478,14 @@ export default function SignupPage() {
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: "12px",
+              gap: "10px",
             }}
           >
             <div>
               <label
                 style={{
                   display: "block",
-                  marginBottom: "5px",
+                  marginBottom: "4px",
                   fontSize: "11px",
                   fontWeight: 600,
                   color: "#374151",
@@ -526,7 +511,7 @@ export default function SignupPage() {
               <label
                 style={{
                   display: "block",
-                  marginBottom: "5px",
+                  marginBottom: "4px",
                   fontSize: "11px",
                   fontWeight: 600,
                   color: "#374151",
@@ -552,7 +537,7 @@ export default function SignupPage() {
               <label
                 style={{
                   display: "block",
-                  marginBottom: "5px",
+                  marginBottom: "4px",
                   fontSize: "11px",
                   fontWeight: 600,
                   color: "#374151",
@@ -576,12 +561,12 @@ export default function SignupPage() {
               <PasswordStrength password={form.password} />
             </div>
 
-            {/* CUSTOM COUNTRY PICKER */}
-            <div style={{ position: "relative" }}>
+            {/* CLEAN COUNTRY PICKER */}
+            <div ref={countryRef}>
               <label
                 style={{
                   display: "block",
-                  marginBottom: "5px",
+                  marginBottom: "4px",
                   fontSize: "11px",
                   fontWeight: 600,
                   color: "#374151",
@@ -590,20 +575,67 @@ export default function SignupPage() {
                 Country
               </label>
 
-              <div
+              <button
+                type="button"
+                onClick={() => setCountryOpen((v) => !v)}
                 style={{
                   ...inputStyle("country"),
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
                   cursor: "pointer",
+                  textAlign: "left",
+                  lineHeight: 1,
                 }}
+                onFocus={() => setFocused("country")}
+                onBlur={() => setFocused("")}
               >
-                <span>
-                  {COUNTRIES.find((c) => c.code === form.country)?.name}
+                <span>{selectedCountry.name}</span>
+                <span style={{ fontSize: "11px", color: "#A1A1AA" }}>
+                  {countryOpen ? "▲" : "▼"}
                 </span>
-                <span style={{ color: "#A1A1AA", fontSize: "12px" }}>▼</span>
-              </div>
+              </button>
+
+              {countryOpen && (
+                <div
+                  style={{
+                    marginTop: "6px",
+                    border: "1px solid #E5E7EB",
+                    borderRadius: "10px",
+                    background: "#FFFFFF",
+                    boxShadow: "0 10px 24px rgba(0,0,0,0.08)",
+                    overflow: "hidden",
+                    maxHeight: "180px",
+                    overflowY: "auto",
+                    position: "relative",
+                    zIndex: 10,
+                  }}
+                >
+                  {COUNTRIES.map((c) => (
+                    <button
+                      key={c.code}
+                      type="button"
+                      onClick={() => {
+                        setForm({ ...form, country: c.code });
+                        setCountryOpen(false);
+                      }}
+                      style={{
+                        width: "100%",
+                        border: "none",
+                        background: c.code === form.country ? "#F0FDF4" : "#FFFFFF",
+                        padding: "10px 12px",
+                        textAlign: "left",
+                        fontSize: "13px",
+                        color: "#0A0A0A",
+                        cursor: "pointer",
+                        borderBottom: "1px solid #F4F4F5",
+                      }}
+                    >
+                      {c.name}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <button
@@ -700,45 +732,6 @@ export default function SignupPage() {
               </div>
             ))}
           </div>
-
-          {/* LEGAL INFO ON RIGHT TOO */}
-          <p
-            style={{
-              margin: "12px 0 0 0",
-              textAlign: "center",
-              fontSize: "10px",
-              color: "#A1A1AA",
-              lineHeight: "1.5",
-            }}
-          >
-            Casha is an educational financial management platform. Not
-            investment, legal, or tax advice.
-          </p>
-
-          <p
-            style={{
-              margin: "8px 0 0 0",
-              textAlign: "center",
-              fontSize: "10px",
-              color: "#C4C4C4",
-              lineHeight: "1.5",
-            }}
-          >
-            By signing up you agree to our{" "}
-            <a
-              href="/terms"
-              style={{ color: "#A1A1AA", textDecoration: "underline" }}
-            >
-              Terms
-            </a>{" "}
-            and{" "}
-            <a
-              href="/privacy"
-              style={{ color: "#A1A1AA", textDecoration: "underline" }}
-            >
-              Privacy Policy
-            </a>
-          </p>
         </div>
       </div>
 
