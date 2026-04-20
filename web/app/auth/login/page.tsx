@@ -4,6 +4,13 @@ import { supabase } from "../../../lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+const LEFT_POINTS = [
+  "Review your financial health score",
+  "Track spending and subscriptions",
+  "Continue your debt payoff plan",
+  "Ask your AI advisor anything",
+];
+
 function LoginLogo({ light = false }: { light?: boolean }) {
   return (
     <div
@@ -18,7 +25,6 @@ function LoginLogo({ light = false }: { light?: boolean }) {
         style={{
           display: "inline-flex",
           alignItems: "center",
-          justifyContent: "center",
           gap: "2px",
           lineHeight: 1,
         }}
@@ -27,8 +33,8 @@ function LoginLogo({ light = false }: { light?: boolean }) {
           src="/logo.png"
           alt="Casha"
           style={{
-            width: "48px",
-            height: "48px",
+            width: "50px",
+            height: "50px",
             objectFit: "contain",
             display: "block",
             flexShrink: 0,
@@ -52,10 +58,7 @@ function LoginLogo({ light = false }: { light?: boolean }) {
 }
 
 export default function LoginPage() {
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-  });
+  const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [focused, setFocused] = useState("");
@@ -109,6 +112,7 @@ export default function LoginPage() {
         gridTemplateColumns: "43% 57%",
         fontFamily: "'Inter', system-ui, sans-serif",
         overflow: "hidden",
+        background: "#F8FAFC",
       }}
     >
       {/* LEFT PANEL */}
@@ -120,7 +124,7 @@ export default function LoginPage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: "36px 40px",
+          padding: "34px 40px",
         }}
       >
         <div
@@ -131,8 +135,7 @@ export default function LoginPage() {
             width: "320px",
             height: "320px",
             borderRadius: "50%",
-            background:
-              "radial-gradient(circle, rgba(34,197,94,0.08) 0%, transparent 70%)",
+            background: "radial-gradient(circle, rgba(34,197,94,0.08) 0%, transparent 70%)",
             pointerEvents: "none",
           }}
         />
@@ -141,48 +144,23 @@ export default function LoginPage() {
           style={{
             width: "100%",
             maxWidth: "340px",
-            position: "relative",
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
             textAlign: "center",
+            position: "relative",
           }}
         >
-          {/* Clickable Logo */}
-          <a
-            href="/"
-            style={{
-              display: "block",
-              textDecoration: "none",
-              marginBottom: "28px",
-            }}
-          >
+          {/* CLICKABLE LOGO */}
+          <a href="/" style={{ display: "block", textDecoration: "none", marginBottom: "24px" }}>
             <LoginLogo light />
           </a>
 
-          <p
-            style={{
-              margin: "0 0 12px 0",
-              fontSize: "11px",
-              fontWeight: 700,
-              letterSpacing: "0.10em",
-              textTransform: "uppercase",
-              color: "rgba(34,197,94,0.8)",
-            }}
-          >
+          <p style={{ margin: "0 0 10px 0", fontSize: "11px", fontWeight: 700, letterSpacing: "0.10em", textTransform: "uppercase", color: "rgba(34,197,94,0.8)" }}>
             Welcome back
           </p>
 
-          <h1
-            style={{
-              margin: "0 0 16px 0",
-              fontSize: "clamp(24px, 2.8vw, 34px)",
-              fontWeight: 800,
-              letterSpacing: "-0.03em",
-              lineHeight: "1.14",
-              color: "#FFFFFF",
-            }}
-          >
+          <h1 style={{ margin: "0 0 14px 0", fontSize: "clamp(23px, 2.7vw, 32px)", fontWeight: 800, letterSpacing: "-0.03em", lineHeight: "1.14", color: "#FFFFFF" }}>
             Pick up exactly
             <br />
             where you left
@@ -190,42 +168,29 @@ export default function LoginPage() {
             <span style={{ color: "#22C55E" }}>your finances.</span>
           </h1>
 
-          <p
-            style={{
-              margin: "0 auto 22px auto",
-              fontSize: "13px",
-              lineHeight: "1.6",
-              color: "rgba(255,255,255,0.42)",
-              maxWidth: "290px",
-            }}
-          >
+          <p style={{ margin: "0 auto 20px auto", fontSize: "13px", lineHeight: "1.58", color: "rgba(255,255,255,0.42)", maxWidth: "300px" }}>
             Your dashboard, goals, debts, budgets, and AI advisor are waiting.
           </p>
 
-          {/* BULLETS */}
+          {/* BULLETS — perfectly centered using grid */}
           <div
             style={{
-              display: "inline-flex",
+              width: "100%",
+              maxWidth: "280px",
+              margin: "0 auto 22px",
+              display: "flex",
               flexDirection: "column",
               gap: "10px",
-              marginBottom: "24px",
-              alignSelf: "center",
-              textAlign: "left",
             }}
           >
-            {[
-              "Review your financial health score",
-              "Track spending and subscriptions",
-              "Continue your debt payoff plan",
-              "Ask your AI advisor anything",
-            ].map((item, i) => (
+            {LEFT_POINTS.map((item, i) => (
               <div
                 key={i}
                 style={{
-                  display: "flex",
+                  display: "grid",
+                  gridTemplateColumns: "18px 1fr",
                   alignItems: "center",
-                  gap: "10px",
-                  whiteSpace: "nowrap",
+                  columnGap: "10px",
                 }}
               >
                 <div
@@ -238,48 +203,39 @@ export default function LoginPage() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    flexShrink: 0,
                   }}
                 >
-                  <svg
-                    width="9"
-                    height="9"
-                    fill="none"
-                    stroke="#22C55E"
-                    strokeWidth="2.5"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M5 13l4 4L19 7"
-                    />
+                  <svg width="9" height="9" fill="none" stroke="#22C55E" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <span
+                <p
                   style={{
+                    margin: 0,
                     fontSize: "12px",
-                    lineHeight: 1.4,
+                    lineHeight: "1.4",
                     color: "rgba(255,255,255,0.55)",
                     fontWeight: 500,
+                    textAlign: "left",
                   }}
                 >
                   {item}
-                </span>
+                </p>
               </div>
             ))}
           </div>
 
-          {/* STATS */}
+          {/* STATS — perfectly centered */}
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: "14px",
+              width: "100%",
+              maxWidth: "300px",
+              margin: "0 auto 16px",
               paddingTop: "16px",
               borderTop: "1px solid rgba(255,255,255,0.08)",
-              marginBottom: "24px",
-              textAlign: "left",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
             }}
           >
             {[
@@ -287,41 +243,38 @@ export default function LoginPage() {
               { n: "Rs.42K", l: "avg. tax saved" },
               { n: "Free", l: "forever plan" },
             ].map((s, i) => (
-              <div key={i}>
-                <p
-                  style={{
-                    margin: "0 0 3px 0",
-                    fontSize: "16px",
-                    fontWeight: 800,
-                    letterSpacing: "-0.02em",
-                    color: "#FFFFFF",
-                  }}
-                >
+              <div
+                key={i}
+                style={{
+                  width: "90px",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  textAlign: "center",
+                }}
+              >
+                <p style={{ margin: "0 0 3px 0", fontSize: "16px", fontWeight: 800, letterSpacing: "-0.02em", color: "#FFFFFF" }}>
                   {s.n}
                 </p>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: "11px",
-                    color: "rgba(255,255,255,0.28)",
-                    lineHeight: "1.3",
-                  }}
-                >
+                <p style={{ margin: 0, fontSize: "11px", color: "rgba(255,255,255,0.28)", lineHeight: "1.3" }}>
                   {s.l}
                 </p>
               </div>
             ))}
           </div>
 
+          {/* LEGAL INFO — only in black panel */}
           <p
             style={{
               margin: 0,
               fontSize: "11px",
-              color: "rgba(255,255,255,0.15)",
+              color: "rgba(255,255,255,0.16)",
               lineHeight: "1.5",
+              maxWidth: "300px",
+              alignSelf: "center",
             }}
           >
-            Educational platform only. Not investment advice.
+            Casha is an educational financial management platform. Not investment, legal, or tax advice.
           </p>
         </div>
       </div>
@@ -333,31 +286,18 @@ export default function LoginPage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: "32px 40px",
+          padding: "28px 40px",
           overflow: "hidden",
         }}
       >
         <div style={{ width: "100%", maxWidth: "340px" }}>
-          <div style={{ marginBottom: "22px" }}>
-            <h2
-              style={{
-                margin: "0 0 6px 0",
-                fontSize: "24px",
-                fontWeight: 800,
-                letterSpacing: "-0.03em",
-                color: "#0A0A0A",
-              }}
-            >
+
+          <div style={{ marginBottom: "20px" }}>
+            <h2 style={{ margin: "0 0 6px 0", fontSize: "22px", fontWeight: 800, letterSpacing: "-0.03em", color: "#0A0A0A" }}>
               Sign in
             </h2>
-            <p
-              style={{
-                margin: 0,
-                fontSize: "13px",
-                color: "#71717A",
-              }}
-            >
-              Access your dashboard and continue where you left off
+            <p style={{ margin: 0, fontSize: "13px", color: "#71717A" }}>
+              Continue where you left off
             </p>
           </div>
 
@@ -368,42 +308,24 @@ export default function LoginPage() {
                 border: "1px solid #FECACA",
                 borderRadius: "8px",
                 padding: "10px 12px",
-                marginBottom: "14px",
+                marginBottom: "12px",
               }}
             >
-              <p style={{ margin: 0, fontSize: "12px", color: "#DC2626" }}>
-                {error}
-              </p>
+              <p style={{ margin: 0, fontSize: "12px", color: "#DC2626" }}>{error}</p>
             </div>
           )}
 
-          <form
-            onSubmit={handleLogin}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "12px",
-            }}
-          >
+          <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+
             <div>
-              <label
-                style={{
-                  display: "block",
-                  marginBottom: "5px",
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  color: "#374151",
-                }}
-              >
+              <label style={{ display: "block", marginBottom: "4px", fontSize: "11px", fontWeight: 600, color: "#374151" }}>
                 Email address
               </label>
               <input
                 type="email"
                 required
                 value={form.email}
-                onChange={(e) =>
-                  setForm({ ...form, email: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
                 placeholder="you@example.com"
                 style={inputStyle("email")}
                 onFocus={() => setFocused("email")}
@@ -412,32 +334,11 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "5px",
-                }}
-              >
-                <label
-                  style={{
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    color: "#374151",
-                  }}
-                >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                <label style={{ fontSize: "11px", fontWeight: 600, color: "#374151" }}>
                   Password
                 </label>
-                <a
-                  href="#"
-                  style={{
-                    fontSize: "11px",
-                    color: "#22C55E",
-                    textDecoration: "none",
-                    fontWeight: 600,
-                  }}
-                >
+                <a href="#" style={{ fontSize: "11px", color: "#22C55E", textDecoration: "none", fontWeight: 600 }}>
                   Forgot?
                 </a>
               </div>
@@ -445,9 +346,7 @@ export default function LoginPage() {
                 type="password"
                 required
                 value={form.password}
-                onChange={(e) =>
-                  setForm({ ...form, password: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
                 placeholder="Enter your password"
                 style={inputStyle("password")}
                 onFocus={() => setFocused("password")}
@@ -478,77 +377,47 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p
-            style={{
-              margin: "14px 0 0 0",
-              textAlign: "center",
-              fontSize: "12px",
-              color: "#71717A",
-            }}
-          >
+          <p style={{ margin: "12px 0 0 0", textAlign: "center", fontSize: "12px", color: "#71717A" }}>
             Don&apos;t have an account?{" "}
-            <Link
-              href="/auth/signup"
-              style={{
-                color: "#22C55E",
-                fontWeight: 700,
-                textDecoration: "none",
-              }}
-            >
+            <Link href="/auth/signup" style={{ color: "#22C55E", fontWeight: 700, textDecoration: "none" }}>
               Create one free
             </Link>
           </p>
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              margin: "14px 0",
-            }}
-          >
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "12px 0" }}>
             <div style={{ flex: 1, height: "1px", background: "#F0F0F0" }} />
-            <span style={{ fontSize: "10px", color: "#C4C4C4" }}>
-              secure login
-            </span>
+            <span style={{ fontSize: "10px", color: "#C4C4C4" }}>secure login</span>
             <div style={{ flex: 1, height: "1px", background: "#F0F0F0" }} />
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              gap: "16px",
-            }}
-          >
+          <div style={{ display: "flex", justifyContent: "center", gap: "16px" }}>
             {["AES-256", "DPDPA", "Private"].map((item) => (
-              <div
-                key={item}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "5px",
-                }}
-              >
-                <div
-                  style={{
-                    width: "4px",
-                    height: "4px",
-                    borderRadius: "50%",
-                    background: "#22C55E",
-                  }}
-                />
-                <span
-                  style={{
-                    fontSize: "10px",
-                    color: "#A1A1AA",
-                  }}
-                >
-                  {item}
-                </span>
+              <div key={item} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                <div style={{ width: "4px", height: "4px", borderRadius: "50%", background: "#22C55E" }} />
+                <span style={{ fontSize: "10px", color: "#A1A1AA" }}>{item}</span>
               </div>
             ))}
           </div>
+
+          {/* T&C FOR LOGIN PAGE */}
+          <p
+            style={{
+              margin: "10px 0 0 0",
+              textAlign: "center",
+              fontSize: "10px",
+              color: "#C4C4C4",
+              lineHeight: "1.5",
+            }}
+          >
+            By signing in you agree to our{" "}
+            <a href="/terms" style={{ color: "#A1A1AA", textDecoration: "underline" }}>
+              Terms
+            </a>{" "}
+            and{" "}
+            <a href="/privacy" style={{ color: "#A1A1AA", textDecoration: "underline" }}>
+              Privacy Policy
+            </a>
+          </p>
         </div>
       </div>
 
