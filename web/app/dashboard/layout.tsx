@@ -1,18 +1,18 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 
-function Logo({ light = false }: { light?: boolean }) {
+function AppLogo({ light = false }: { light?: boolean }) {
   return (
     <div style={{ display: "flex", alignItems: "center", lineHeight: 1 }}>
       <img
         src="/logo.png"
         alt="Casha"
         style={{
-          width: "38px",
-          height: "38px",
+          width: "36px",
+          height: "36px",
           objectFit: "contain",
           display: "block",
           flexShrink: 0,
@@ -39,7 +39,7 @@ const NAV = [
     name: "Overview",
     path: "/dashboard/overview",
     icon: (
-      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2 7-7 7 7 2 2M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10" />
       </svg>
     ),
@@ -48,7 +48,7 @@ const NAV = [
     name: "Accounts",
     path: "/dashboard/accounts",
     icon: (
-      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
         <rect x="3" y="6" width="18" height="12" rx="2" />
         <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18" />
       </svg>
@@ -58,7 +58,7 @@ const NAV = [
     name: "Transactions",
     path: "/dashboard/transactions",
     icon: (
-      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h11m0 0-3-3m3 3-3 3M17 17H6m0 0 3 3m-3-3 3-3" />
       </svg>
     ),
@@ -67,7 +67,7 @@ const NAV = [
     name: "Budget",
     path: "/dashboard/budget",
     icon: (
-      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
         <rect x="4" y="3" width="16" height="18" rx="2" />
         <path strokeLinecap="round" strokeLinejoin="round" d="M8 8h8M8 12h8M8 16h5" />
       </svg>
@@ -77,7 +77,7 @@ const NAV = [
     name: "Goals",
     path: "/dashboard/goals",
     icon: (
-      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
         <circle cx="12" cy="12" r="8" />
         <circle cx="12" cy="12" r="4" />
         <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
@@ -88,7 +88,7 @@ const NAV = [
     name: "Debts",
     path: "/dashboard/debts",
     icon: (
-      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16M8.5 8.5c0-1.4 1.6-2.5 3.5-2.5s3.5 1.1 3.5 2.5-1.2 2.2-3.5 2.7c-2.2.5-3.5 1.2-3.5 2.8S10.1 18 12 18s3.5-1.1 3.5-2.5" />
       </svg>
     ),
@@ -97,7 +97,7 @@ const NAV = [
     name: "Subscriptions",
     path: "/dashboard/subscriptions",
     icon: (
-      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h5M20 20v-5h-5M20 9a8 8 0 00-13.66-5.66L4 5M4 15a8 8 0 0013.66 5.66L20 19" />
       </svg>
     ),
@@ -106,7 +106,7 @@ const NAV = [
     name: "SMS Parser",
     path: "/dashboard/sms",
     icon: (
-      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M4 6a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2H9l-5 4V6z" />
       </svg>
     ),
@@ -115,7 +115,7 @@ const NAV = [
     name: "Tax Genius",
     path: "/dashboard/tax",
     icon: (
-      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
         <rect x="5" y="3" width="14" height="18" rx="2" />
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 8h6M9 12h6M9 16h4" />
       </svg>
@@ -125,8 +125,8 @@ const NAV = [
     name: "AI Advisor",
     path: "/dashboard/chat",
     icon: (
-      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3h4.5a2.25 2.25 0 012.25 2.25V6A2.25 2.25 0 0114.25 8.25h-4.5A2.25 2.25 0 017.5 6v-.75A2.25 2.25 0 019.75 3zM6 13.5c0-1.657 2.686-3 6-3s6 1.343 6 3v1.5A3 3 0 0115 18H9a3 3 0 01-3-3v-1.5z" />
+      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3h4.5A2.25 2.25 0 0116.5 5.25V6A2.25 2.25 0 0114.25 8.25h-4.5A2.25 2.25 0 017.5 6v-.75A2.25 2.25 0 019.75 3zM6 13.5c0-1.657 2.686-3 6-3s6 1.343 6 3v1.5A3 3 0 0115 18H9a3 3 0 01-3-3v-1.5z" />
       </svg>
     ),
   },
@@ -134,7 +134,7 @@ const NAV = [
     name: "Settings",
     path: "/dashboard/settings",
     icon: (
-      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
         <circle cx="12" cy="12" r="3" />
       </svg>
@@ -161,12 +161,9 @@ export default function DashboardLayout({
         ? (localStorage.getItem("casha-theme") as "light" | "dark" | null)
         : null;
 
-    if (savedTheme) {
-      setTheme(savedTheme);
-      document.documentElement.setAttribute("data-theme", savedTheme);
-    } else {
-      document.documentElement.setAttribute("data-theme", "light");
-    }
+    const nextTheme = savedTheme || "light";
+    setTheme(nextTheme);
+    document.documentElement.setAttribute("data-theme", nextTheme);
 
     const getUser = async () => {
       const { data } = await supabase.auth.getUser();
@@ -208,8 +205,8 @@ export default function DashboardLayout({
         <div style={{ textAlign: "center" }}>
           <div
             style={{
-              width: "38px",
-              height: "38px",
+              width: "40px",
+              height: "40px",
               borderRadius: "999px",
               border: "3px solid var(--border)",
               borderTopColor: "#22C55E",
@@ -247,7 +244,6 @@ export default function DashboardLayout({
         fontFamily: "'Inter', system-ui, sans-serif",
       }}
     >
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
@@ -279,7 +275,6 @@ export default function DashboardLayout({
           transition: "transform 0.22s ease",
         }}
       >
-        {/* Logo */}
         <div
           style={{
             padding: "18px 14px",
@@ -320,7 +315,6 @@ export default function DashboardLayout({
           </Link>
         </div>
 
-        {/* Nav */}
         <nav style={{ flex: 1, padding: "10px 8px", overflowY: "auto" }}>
           {NAV.map((item) => {
             const active = pathname === item.path;
@@ -353,7 +347,6 @@ export default function DashboardLayout({
           })}
         </nav>
 
-        {/* Bottom user area */}
         <div
           style={{
             padding: "12px 8px",
@@ -435,7 +428,7 @@ export default function DashboardLayout({
           >
             {theme === "light" ? (
               <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9 9 0 1111 2.248a7 7 0 0010.752 12.754z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 15.5A9 9 0 1111 2.25a7 7 0 0010.75 13.25z" />
               </svg>
             ) : (
               <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
@@ -472,7 +465,6 @@ export default function DashboardLayout({
         </div>
       </aside>
 
-      {/* Main area */}
       <main
         style={{
           minHeight: "100vh",
@@ -481,7 +473,6 @@ export default function DashboardLayout({
           flexDirection: "column",
         }}
       >
-        {/* Top bar */}
         <div
           style={{
             height: "58px",
@@ -514,7 +505,7 @@ export default function DashboardLayout({
             </svg>
           </button>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <div style={{ display: "flex", alignItems: "center", lineHeight: 1 }}>
             <img
               src="/logo.png"
               alt="Casha"
@@ -541,7 +532,6 @@ export default function DashboardLayout({
           <div style={{ width: "24px" }} />
         </div>
 
-        {/* Content */}
         <div style={{ flex: 1, padding: "28px" }}>{children}</div>
       </main>
 
@@ -568,12 +558,12 @@ export default function DashboardLayout({
         }
 
         :root[data-theme="dark"] {
-          --bg: #0A0A0A;
-          --text: #F8FAFC;
-          --muted: #94A3B8;
-          --faint: #64748B;
+          --bg: #0B0B0C;
+          --text: #F5F7FA;
+          --muted: #9CA3AF;
+          --faint: #6B7280;
           --border: rgba(255,255,255,0.08);
-          --card: #111111;
+          --card: #121214;
           --topbar: rgba(10,10,10,0.88);
 
           --sidebar: #050505;
