@@ -1,15 +1,96 @@
-@import "tailwindcss/theme" layer(theme);
-@import "tailwindcss/preflight" layer(base);
-@import "tailwindcss/utilities" layer(utilities);
-
-body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  background: #FAFAFA;
-  color: #0C0D10;
+* {
+  box-sizing: border-box;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Global selection */
+::selection {
+  background: rgba(34, 197, 94, 0.24);
+  color: #0a0a0a;
+}
+::-moz-selection {
+  background: rgba(34, 197, 94, 0.24);
+  color: #0a0a0a;
+}
+
+/* Better global scrollbar */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.35);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.55);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Theme tokens */
+:root[data-theme="light"] {
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --panel-soft: #f9fafb;
+  --panel-alt: #f3f4f6;
+  --text: #0a0a0a;
+  --text-soft: #6b7280;
+  --text-faint: #9ca3af;
+  --border: #e5e7eb;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 10px 24px rgba(0, 0, 0, 0.04);
+
+  --sidebar-bg: #0a0a0a;
+  --sidebar-text: #ffffff;
+  --sidebar-muted: rgba(255, 255, 255, 0.52);
+  --sidebar-faint: rgba(255, 255, 255, 0.28);
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-active-bg: rgba(34, 197, 94, 0.12);
+
+  --topbar-bg: rgba(255, 255, 255, 0.78);
+}
+
+:root[data-theme="dark"] {
+  --bg: #0b0b0c;
+  --panel: #111214;
+  --panel-soft: #15171a;
+  --panel-alt: #1b1d21;
+  --text: #f8fafc;
+  --text-soft: #94a3b8;
+  --text-faint: #64748b;
+  --border: rgba(255, 255, 255, 0.08);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.25), 0 10px 24px rgba(0, 0, 0, 0.24);
+
+  --sidebar-bg: #050505;
+  --sidebar-text: #ffffff;
+  --sidebar-muted: rgba(255, 255, 255, 0.58);
+  --sidebar-faint: rgba(255, 255, 255, 0.28);
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-active-bg: rgba(34, 197, 94, 0.16);
+
+  --topbar-bg: rgba(10, 10, 10, 0.78);
+}
+
+/* Spin */
+@keyframes dashspin {
+  to {
+    transform: rotate(360deg);
+  }
 }
