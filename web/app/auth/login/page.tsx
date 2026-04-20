@@ -27,8 +27,8 @@ function LoginLogo({ light = false }: { light?: boolean }) {
           src="/logo.png"
           alt="Casha"
           style={{
-            width: "50px",
-            height: "50px",
+            width: "48px",
+            height: "48px",
             objectFit: "contain",
             display: "block",
             flexShrink: 0,
@@ -42,7 +42,6 @@ function LoginLogo({ light = false }: { light?: boolean }) {
             color: light ? "#FFFFFF" : "#0A0A0A",
             letterSpacing: "-0.03em",
             lineHeight: 1,
-            display: "inline-block",
           }}
         >
           casha<span style={{ color: "#22C55E" }}>.money</span>
@@ -87,11 +86,11 @@ export default function LoginPage() {
 
   const inputStyle = (name: string): React.CSSProperties => ({
     width: "100%",
-    height: "46px",
+    height: "44px",
     borderRadius: "10px",
     padding: "0 14px",
     fontSize: "14px",
-    lineHeight: "46px",
+    lineHeight: "44px",
     outline: "none",
     fontFamily: "inherit",
     background: "#FAFAFA",
@@ -104,7 +103,7 @@ export default function LoginPage() {
   return (
     <div
       style={{
-        minHeight: "100vh",
+        height: "100vh",
         width: "100%",
         display: "grid",
         gridTemplateColumns: "43% 57%",
@@ -121,7 +120,7 @@ export default function LoginPage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: "40px 42px",
+          padding: "36px 40px",
         }}
       >
         <div
@@ -149,7 +148,7 @@ export default function LoginPage() {
             textAlign: "center",
           }}
         >
-          {/* Clickable logo back to homepage */}
+          {/* Clickable Logo */}
           <a
             href="/"
             style={{
@@ -193,24 +192,23 @@ export default function LoginPage() {
 
           <p
             style={{
-              margin: "0 0 24px 0",
+              margin: "0 auto 22px auto",
               fontSize: "13px",
-              lineHeight: "1.65",
+              lineHeight: "1.6",
               color: "rgba(255,255,255,0.42)",
-              maxWidth: "300px",
-              alignSelf: "center",
+              maxWidth: "290px",
             }}
           >
             Your dashboard, goals, debts, budgets, and AI advisor are waiting.
           </p>
 
-          {/* Left panel bullets */}
+          {/* BULLETS */}
           <div
             style={{
               display: "inline-flex",
               flexDirection: "column",
               gap: "10px",
-              marginBottom: "26px",
+              marginBottom: "24px",
               alignSelf: "center",
               textAlign: "left",
             }}
@@ -272,15 +270,15 @@ export default function LoginPage() {
             ))}
           </div>
 
-          {/* Stats */}
+          {/* STATS */}
           <div
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(3, 1fr)",
-              gap: "16px",
-              paddingTop: "18px",
+              gap: "14px",
+              paddingTop: "16px",
               borderTop: "1px solid rgba(255,255,255,0.08)",
-              marginBottom: "28px",
+              marginBottom: "24px",
               textAlign: "left",
             }}
           >
@@ -355,7 +353,7 @@ export default function LoginPage() {
             <p
               style={{
                 margin: 0,
-                fontSize: "14px",
+                fontSize: "13px",
                 color: "#71717A",
               }}
             >
@@ -368,12 +366,12 @@ export default function LoginPage() {
               style={{
                 background: "#FEF2F2",
                 border: "1px solid #FECACA",
-                borderRadius: "9px",
+                borderRadius: "8px",
                 padding: "10px 12px",
                 marginBottom: "14px",
               }}
             >
-              <p style={{ margin: 0, fontSize: "13px", color: "#DC2626" }}>
+              <p style={{ margin: 0, fontSize: "12px", color: "#DC2626" }}>
                 {error}
               </p>
             </div>
@@ -392,7 +390,7 @@ export default function LoginPage() {
                 style={{
                   display: "block",
                   marginBottom: "5px",
-                  fontSize: "12px",
+                  fontSize: "11px",
                   fontWeight: 600,
                   color: "#374151",
                 }}
@@ -424,7 +422,7 @@ export default function LoginPage() {
               >
                 <label
                   style={{
-                    fontSize: "12px",
+                    fontSize: "11px",
                     fontWeight: 600,
                     color: "#374151",
                   }}
@@ -462,18 +460,18 @@ export default function LoginPage() {
               disabled={loading}
               style={{
                 width: "100%",
-                height: "46px",
-                borderRadius: "11px",
+                height: "44px",
+                borderRadius: "10px",
                 border: "none",
                 background: "#22C55E",
                 color: "#FFFFFF",
-                fontSize: "15px",
+                fontSize: "14px",
                 fontWeight: 700,
                 cursor: loading ? "wait" : "pointer",
                 fontFamily: "inherit",
                 opacity: loading ? 0.8 : 1,
                 marginTop: "4px",
-                boxShadow: "0 4px 14px rgba(34,197,94,0.28)",
+                boxShadow: "0 4px 12px rgba(34,197,94,0.26)",
               }}
             >
               {loading ? "Signing in..." : "Sign in →"}
@@ -482,7 +480,7 @@ export default function LoginPage() {
 
           <p
             style={{
-              margin: "16px 0 0 0",
+              margin: "14px 0 0 0",
               textAlign: "center",
               fontSize: "12px",
               color: "#71717A",
@@ -506,7 +504,7 @@ export default function LoginPage() {
               display: "flex",
               alignItems: "center",
               gap: "8px",
-              margin: "16px 0",
+              margin: "14px 0",
             }}
           >
             <div style={{ flex: 1, height: "1px", background: "#F0F0F0" }} />
@@ -520,7 +518,7 @@ export default function LoginPage() {
             style={{
               display: "flex",
               justifyContent: "center",
-              gap: "18px",
+              gap: "16px",
             }}
           >
             {["AES-256", "DPDPA", "Private"].map((item) => (
@@ -534,8 +532,8 @@ export default function LoginPage() {
               >
                 <div
                   style={{
-                    width: "5px",
-                    height: "5px",
+                    width: "4px",
+                    height: "4px",
                     borderRadius: "50%",
                     background: "#22C55E",
                   }}
