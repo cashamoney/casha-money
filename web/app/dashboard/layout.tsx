@@ -1,16 +1,46 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+
+function Logo({ light = false }: { light?: boolean }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", lineHeight: 1 }}>
+      <img
+        src="/logo.png"
+        alt="Casha"
+        style={{
+          width: "38px",
+          height: "38px",
+          objectFit: "contain",
+          display: "block",
+          flexShrink: 0,
+          marginRight: "-6px",
+        }}
+      />
+      <span
+        style={{
+          fontSize: "16px",
+          fontWeight: 800,
+          color: light ? "#FFFFFF" : "var(--text)",
+          letterSpacing: "-0.03em",
+          lineHeight: 1,
+        }}
+      >
+        casha<span style={{ color: "#22C55E" }}>.money</span>
+      </span>
+    </div>
+  );
+}
 
 const NAV = [
   {
     name: "Overview",
     path: "/dashboard/overview",
     icon: (
-      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2 7-7 7 7 2 2M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10" />
       </svg>
     ),
   },
@@ -18,8 +48,9 @@ const NAV = [
     name: "Accounts",
     path: "/dashboard/accounts",
     icon: (
-      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+        <rect x="3" y="6" width="18" height="12" rx="2" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18" />
       </svg>
     ),
   },
@@ -27,8 +58,8 @@ const NAV = [
     name: "Transactions",
     path: "/dashboard/transactions",
     icon: (
-      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h11m0 0-3-3m3 3-3 3M17 17H6m0 0 3 3m-3-3 3-3" />
       </svg>
     ),
   },
@@ -36,8 +67,9 @@ const NAV = [
     name: "Budget",
     path: "/dashboard/budget",
     icon: (
-      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+        <rect x="4" y="3" width="16" height="18" rx="2" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 8h8M8 12h8M8 16h5" />
       </svg>
     ),
   },
@@ -45,8 +77,10 @@ const NAV = [
     name: "Goals",
     path: "/dashboard/goals",
     icon: (
-      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="8" />
+        <circle cx="12" cy="12" r="4" />
+        <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
       </svg>
     ),
   },
@@ -54,8 +88,8 @@ const NAV = [
     name: "Debts",
     path: "/dashboard/debts",
     icon: (
-      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16M8.5 8.5c0-1.4 1.6-2.5 3.5-2.5s3.5 1.1 3.5 2.5-1.2 2.2-3.5 2.7c-2.2.5-3.5 1.2-3.5 2.8S10.1 18 12 18s3.5-1.1 3.5-2.5" />
       </svg>
     ),
   },
@@ -63,8 +97,8 @@ const NAV = [
     name: "Subscriptions",
     path: "/dashboard/subscriptions",
     icon: (
-      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h5M20 20v-5h-5M20 9a8 8 0 00-13.66-5.66L4 5M4 15a8 8 0 0013.66 5.66L20 19" />
       </svg>
     ),
   },
@@ -72,8 +106,8 @@ const NAV = [
     name: "SMS Parser",
     path: "/dashboard/sms",
     icon: (
-      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M4 6a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2H9l-5 4V6z" />
       </svg>
     ),
   },
@@ -81,8 +115,9 @@ const NAV = [
     name: "Tax Genius",
     path: "/dashboard/tax",
     icon: (
-      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+        <rect x="5" y="3" width="14" height="18" rx="2" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 8h6M9 12h6M9 16h4" />
       </svg>
     ),
   },
@@ -90,8 +125,8 @@ const NAV = [
     name: "AI Advisor",
     path: "/dashboard/chat",
     icon: (
-      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3h4.5a2.25 2.25 0 012.25 2.25V6A2.25 2.25 0 0114.25 8.25h-4.5A2.25 2.25 0 017.5 6v-.75A2.25 2.25 0 019.75 3zM6 13.5c0-1.657 2.686-3 6-3s6 1.343 6 3v1.5A3 3 0 0115 18H9a3 3 0 01-3-3v-1.5z" />
       </svg>
     ),
   },
@@ -99,30 +134,59 @@ const NAV = [
     name: "Settings",
     path: "/dashboard/settings",
     icon: (
-      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24">
+      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        <circle cx="12" cy="12" r="3" />
       </svg>
     ),
   },
 ];
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
+    const savedTheme =
+      typeof window !== "undefined"
+        ? (localStorage.getItem("casha-theme") as "light" | "dark" | null)
+        : null;
+
+    if (savedTheme) {
+      setTheme(savedTheme);
+      document.documentElement.setAttribute("data-theme", savedTheme);
+    } else {
+      document.documentElement.setAttribute("data-theme", "light");
+    }
+
     const getUser = async () => {
       const { data } = await supabase.auth.getUser();
-      if (!data.user) { router.push("/auth/login"); return; }
+      if (!data.user) {
+        router.push("/auth/login");
+        return;
+      }
       setUser(data.user);
       setLoading(false);
     };
+
     getUser();
   }, [router]);
+
+  const toggleTheme = () => {
+    const next = theme === "light" ? "dark" : "light";
+    setTheme(next);
+    localStorage.setItem("casha-theme", next);
+    document.documentElement.setAttribute("data-theme", next);
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -131,52 +195,126 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (loading) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#FAFAFA", fontFamily: "system-ui, sans-serif" }}>
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "var(--bg)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "'Inter', system-ui, sans-serif",
+        }}
+      >
         <div style={{ textAlign: "center" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "2px", justifyContent: "center", marginBottom: "12px" }}>
-            <img src="/logo.png" alt="Casha" style={{ width: "40px", height: "40px", objectFit: "contain", marginRight: "-6px" }} />
-            <span style={{ fontSize: "18px", fontWeight: 800, color: "#0A0A0A", letterSpacing: "-0.03em" }}>casha<span style={{ color: "#22C55E" }}>.money</span></span>
-          </div>
-          <p style={{ color: "#A1A1AA", fontSize: "13px", margin: 0 }}>Loading your dashboard...</p>
+          <div
+            style={{
+              width: "38px",
+              height: "38px",
+              borderRadius: "999px",
+              border: "3px solid var(--border)",
+              borderTopColor: "#22C55E",
+              margin: "0 auto 12px",
+              animation: "dashspin 0.8s linear infinite",
+            }}
+          />
+          <p style={{ margin: 0, fontSize: "13px", color: "var(--muted)" }}>
+            Loading your dashboard...
+          </p>
         </div>
       </div>
     );
   }
 
-  const displayName = user?.user_metadata?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || "there";
-  const initials = (user?.user_metadata?.full_name || user?.email || "U").split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2);
+  const displayName =
+    user?.user_metadata?.full_name?.split(" ")[0] ||
+    user?.email?.split("@")[0] ||
+    "user";
+
+  const initials =
+    (user?.user_metadata?.full_name || user?.email || "U")
+      .split(" ")
+      .map((w: string) => w[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", fontFamily: "'Inter', system-ui, sans-serif", background: "#F5F5F7" }}>
-
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "var(--bg)",
+        color: "var(--text)",
+        fontFamily: "'Inter', system-ui, sans-serif",
+      }}
+    >
       {/* Mobile overlay */}
       {sidebarOpen && (
-        <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 40, backdropFilter: "blur(2px)" }} />
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.35)",
+            zIndex: 40,
+            backdropFilter: "blur(2px)",
+          }}
+        />
       )}
 
-      {/* SIDEBAR */}
+      {/* Sidebar */}
       <aside
         className="dashboard-sidebar"
         style={{
-          width: "220px",
-          flexShrink: 0,
-          background: "#0A0A0A",
-          display: "flex",
-          flexDirection: "column",
+          width: "228px",
           position: "fixed",
           top: 0,
           left: 0,
           bottom: 0,
+          background: "var(--sidebar)",
+          borderRight: "1px solid var(--sidebar-border)",
           zIndex: 50,
+          display: "flex",
+          flexDirection: "column",
           transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)",
           transition: "transform 0.22s ease",
         }}
       >
         {/* Logo */}
-        <div style={{ padding: "20px 16px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-          <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "2px" }}>
-            <img src="/logo.png" alt="Casha" style={{ width: "36px", height: "36px", objectFit: "contain", marginRight: "-6px" }} />
-            <span style={{ fontSize: "16px", fontWeight: 800, color: "#FFFFFF", letterSpacing: "-0.03em" }}>
+        <div
+          style={{
+            padding: "18px 14px",
+            borderBottom: "1px solid var(--sidebar-border)",
+          }}
+        >
+          <Link
+            href="/"
+            style={{
+              textDecoration: "none",
+              display: "flex",
+              alignItems: "center",
+              lineHeight: 1,
+            }}
+          >
+            <img
+              src="/logo.png"
+              alt="Casha"
+              style={{
+                width: "34px",
+                height: "34px",
+                objectFit: "contain",
+                display: "block",
+                marginRight: "-6px",
+                flexShrink: 0,
+              }}
+            />
+            <span
+              style={{
+                fontSize: "16px",
+                fontWeight: 800,
+                color: "var(--sidebar-text)",
+                letterSpacing: "-0.03em",
+              }}
+            >
               casha<span style={{ color: "#22C55E" }}>.money</span>
             </span>
           </Link>
@@ -194,49 +332,139 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "9px",
-                  padding: "9px 10px",
-                  borderRadius: "8px",
-                  marginBottom: "2px",
+                  gap: "10px",
+                  padding: "10px 12px",
+                  borderRadius: "10px",
+                  marginBottom: "3px",
                   textDecoration: "none",
-                  background: active ? "rgba(34,197,94,0.12)" : "transparent",
-                  color: active ? "#22C55E" : "rgba(255,255,255,0.45)",
-                  transition: "all 0.15s",
+                  background: active ? "var(--sidebar-active-bg)" : "transparent",
+                  color: active ? "#22C55E" : "var(--sidebar-muted)",
                   fontSize: "13px",
-                  fontWeight: active ? "600" : "400",
+                  fontWeight: active ? "600" : "500",
+                  transition: "all 0.15s ease",
                 }}
               >
-                <span style={{ flexShrink: 0, opacity: active ? 1 : 0.7 }}>{item.icon}</span>
+                <span style={{ display: "flex", flexShrink: 0 }}>
+                  {item.icon}
+                </span>
                 {item.name}
               </Link>
             );
           })}
         </nav>
 
-        {/* User */}
-        <div style={{ padding: "12px 8px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 10px", borderRadius: "8px", marginBottom: "6px" }}>
-            <div style={{ width: "30px", height: "30px", borderRadius: "50%", background: "linear-gradient(135deg, #22C55E, #16A34A)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 700, color: "#fff", flexShrink: 0 }}>
+        {/* Bottom user area */}
+        <div
+          style={{
+            padding: "12px 8px",
+            borderTop: "1px solid var(--sidebar-border)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              padding: "8px 10px",
+              borderRadius: "10px",
+              marginBottom: "8px",
+              background: "var(--sidebar-user-bg)",
+            }}
+          >
+            <div
+              style={{
+                width: "32px",
+                height: "32px",
+                borderRadius: "999px",
+                background: "linear-gradient(135deg, #22C55E, #16A34A)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#FFFFFF",
+                fontSize: "11px",
+                fontWeight: 700,
+                flexShrink: 0,
+              }}
+            >
               {initials}
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: "12px", fontWeight: "600", color: "#FFFFFF", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  color: "var(--sidebar-text)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {displayName}
               </p>
-              <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)", margin: 0 }}>Free Plan</p>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "10px",
+                  color: "var(--sidebar-faint)",
+                }}
+              >
+                Free Plan
+              </p>
             </div>
           </div>
+
+          <button
+            onClick={toggleTheme}
+            style={{
+              width: "100%",
+              padding: "9px 10px",
+              borderRadius: "9px",
+              border: "1px solid var(--sidebar-border)",
+              background: "transparent",
+              color: "var(--sidebar-muted)",
+              fontSize: "12px",
+              fontWeight: 500,
+              fontFamily: "inherit",
+              cursor: "pointer",
+              marginBottom: "6px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            {theme === "light" ? (
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9 9 0 1111 2.248a7 7 0 0010.752 12.754z" />
+              </svg>
+            ) : (
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="5" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+              </svg>
+            )}
+            {theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+          </button>
+
           <button
             onClick={handleLogout}
             style={{
-              width: "100%", padding: "8px 10px", borderRadius: "8px",
-              border: "1px solid rgba(255,255,255,0.08)", background: "transparent",
-              color: "rgba(255,255,255,0.35)", fontSize: "12px", fontWeight: "500",
-              cursor: "pointer", fontFamily: "inherit", textAlign: "left",
-              display: "flex", alignItems: "center", gap: "7px",
+              width: "100%",
+              padding: "9px 10px",
+              borderRadius: "9px",
+              border: "1px solid var(--sidebar-border)",
+              background: "transparent",
+              color: "var(--sidebar-muted)",
+              fontSize: "12px",
+              fontWeight: 500,
+              fontFamily: "inherit",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
             }}
           >
-            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
             Sign out
@@ -244,50 +472,136 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
-      {/* MAIN CONTENT */}
-      <main style={{ flex: 1, minHeight: "100vh", marginLeft: "220px", display: "flex", flexDirection: "column" }}>
-
-        {/* Top bar — mobile */}
-        <div style={{
-          height: "52px", display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "0 20px", background: "#FFFFFF", borderBottom: "1px solid #E5E7EB",
-          position: "sticky", top: 0, zIndex: 30,
-        }}>
-          <button onClick={() => setSidebarOpen(true)} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", color: "#6B7280", display: "flex", alignItems: "center" }}>
+      {/* Main area */}
+      <main
+        style={{
+          minHeight: "100vh",
+          marginLeft: "228px",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {/* Top bar */}
+        <div
+          style={{
+            height: "58px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "0 22px",
+            background: "var(--topbar)",
+            borderBottom: "1px solid var(--border)",
+            position: "sticky",
+            top: 0,
+            zIndex: 30,
+            backdropFilter: "blur(10px)",
+          }}
+        >
+          <button
+            onClick={() => setSidebarOpen(true)}
+            style={{
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              padding: "4px",
+              color: "var(--muted)",
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
             <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "2px" }}>
-            <img src="/logo.png" alt="Casha" style={{ width: "28px", height: "28px", objectFit: "contain", marginRight: "-5px" }} />
-            <span style={{ fontSize: "15px", fontWeight: 800, color: "#0A0A0A", letterSpacing: "-0.03em" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <img
+              src="/logo.png"
+              alt="Casha"
+              style={{
+                width: "28px",
+                height: "28px",
+                objectFit: "contain",
+                display: "block",
+                marginRight: "-5px",
+              }}
+            />
+            <span
+              style={{
+                fontSize: "15px",
+                fontWeight: 800,
+                color: "var(--text)",
+                letterSpacing: "-0.03em",
+              }}
+            >
               casha<span style={{ color: "#22C55E" }}>.money</span>
             </span>
           </div>
 
-          <div style={{ width: "28px" }} />
+          <div style={{ width: "24px" }} />
         </div>
 
-        {/* Page content */}
-        <div style={{ flex: 1, padding: "28px 28px" }}>
-          {children}
-        </div>
+        {/* Content */}
+        <div style={{ flex: 1, padding: "28px" }}>{children}</div>
       </main>
 
       <style>{`
         * { box-sizing: border-box; }
         body { margin: 0; }
+
+        :root[data-theme="light"] {
+          --bg: #F6F7F9;
+          --text: #0A0A0A;
+          --muted: #71717A;
+          --faint: #A1A1AA;
+          --border: #E5E7EB;
+          --card: #FFFFFF;
+          --topbar: rgba(255,255,255,0.82);
+
+          --sidebar: #0A0A0A;
+          --sidebar-text: #FFFFFF;
+          --sidebar-muted: rgba(255,255,255,0.46);
+          --sidebar-faint: rgba(255,255,255,0.28);
+          --sidebar-border: rgba(255,255,255,0.08);
+          --sidebar-active-bg: rgba(34,197,94,0.12);
+          --sidebar-user-bg: rgba(255,255,255,0.03);
+        }
+
+        :root[data-theme="dark"] {
+          --bg: #0A0A0A;
+          --text: #F8FAFC;
+          --muted: #94A3B8;
+          --faint: #64748B;
+          --border: rgba(255,255,255,0.08);
+          --card: #111111;
+          --topbar: rgba(10,10,10,0.88);
+
+          --sidebar: #050505;
+          --sidebar-text: #FFFFFF;
+          --sidebar-muted: rgba(255,255,255,0.56);
+          --sidebar-faint: rgba(255,255,255,0.28);
+          --sidebar-border: rgba(255,255,255,0.08);
+          --sidebar-active-bg: rgba(34,197,94,0.14);
+          --sidebar-user-bg: rgba(255,255,255,0.03);
+        }
+
+        @keyframes dashspin {
+          to { transform: rotate(360deg); }
+        }
+
         @media (min-width: 1024px) {
-          .dashboard-sidebar { transform: translateX(0) !important; }
+          .dashboard-sidebar {
+            transform: translateX(0) !important;
+          }
         }
+
         @media (max-width: 1023px) {
-          main { margin-left: 0 !important; }
-          .dashboard-sidebar { transform: translateX(-100%); }
-        }
-        nav a:hover {
-          background: rgba(255,255,255,0.06) !important;
-          color: rgba(255,255,255,0.8) !important;
+          main {
+            margin-left: 0 !important;
+          }
+          .dashboard-sidebar {
+            transform: translateX(-100%);
+          }
         }
       `}</style>
     </div>
