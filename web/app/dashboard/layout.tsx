@@ -1,53 +1,16 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-
-function AppLogo({
-  size = 38,
-  fontSize = 16,
-  light = false,
-}: {
-  size?: number;
-  fontSize?: number;
-  light?: boolean;
-}) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", lineHeight: 1 }}>
-      <img
-        src="/logo.png"
-        alt="Casha"
-        style={{
-          width: `${size}px`,
-          height: `${size}px`,
-          objectFit: "contain",
-          display: "block",
-          marginRight: "-5px",
-          flexShrink: 0,
-        }}
-      />
-      <span
-        style={{
-          fontSize: `${fontSize}px`,
-          fontWeight: 800,
-          color: light ? "#FFFFFF" : "var(--text)",
-          letterSpacing: "-0.03em",
-          lineHeight: 1,
-        }}
-      >
-        casha<span style={{ color: "#22C55E" }}>.money</span>
-      </span>
-    </div>
-  );
-}
 
 const NAV = [
   {
     name: "Overview",
     path: "/dashboard/overview",
+    group: "Core",
     icon: (
-      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" viewBox="0 0 24 24">
+      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2 7-7 7 7 2 2M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10" />
       </svg>
     ),
@@ -55,8 +18,9 @@ const NAV = [
   {
     name: "Accounts",
     path: "/dashboard/accounts",
+    group: "Core",
     icon: (
-      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" viewBox="0 0 24 24">
+      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
         <rect x="3" y="6" width="18" height="12" rx="2" />
         <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18" />
       </svg>
@@ -65,8 +29,9 @@ const NAV = [
   {
     name: "Transactions",
     path: "/dashboard/transactions",
+    group: "Core",
     icon: (
-      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" viewBox="0 0 24 24">
+      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h11m0 0-3-3m3 3-3 3M17 17H6m0 0 3 3m-3-3 3-3" />
       </svg>
     ),
@@ -74,8 +39,9 @@ const NAV = [
   {
     name: "Budget",
     path: "/dashboard/budget",
+    group: "Planning",
     icon: (
-      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" viewBox="0 0 24 24">
+      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
         <rect x="4" y="3" width="16" height="18" rx="2" />
         <path strokeLinecap="round" strokeLinejoin="round" d="M8 8h8M8 12h8M8 16h5" />
       </svg>
@@ -84,8 +50,9 @@ const NAV = [
   {
     name: "Goals",
     path: "/dashboard/goals",
+    group: "Planning",
     icon: (
-      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" viewBox="0 0 24 24">
+      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
         <circle cx="12" cy="12" r="8" />
         <circle cx="12" cy="12" r="4" />
         <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
@@ -95,8 +62,9 @@ const NAV = [
   {
     name: "Debts",
     path: "/dashboard/debts",
+    group: "Planning",
     icon: (
-      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" viewBox="0 0 24 24">
+      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16M8.5 8.5c0-1.4 1.6-2.5 3.5-2.5s3.5 1.1 3.5 2.5-1.2 2.2-3.5 2.7c-2.2.5-3.5 1.2-3.5 2.8S10.1 18 12 18s3.5-1.1 3.5-2.5" />
       </svg>
     ),
@@ -104,8 +72,9 @@ const NAV = [
   {
     name: "Subscriptions",
     path: "/dashboard/subscriptions",
+    group: "Planning",
     icon: (
-      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" viewBox="0 0 24 24">
+      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h5M20 20v-5h-5M20 9a8 8 0 00-13.66-5.66L4 5M4 15a8 8 0 0013.66 5.66L20 19" />
       </svg>
     ),
@@ -113,8 +82,9 @@ const NAV = [
   {
     name: "SMS Parser",
     path: "/dashboard/sms",
+    group: "Tools",
     icon: (
-      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" viewBox="0 0 24 24">
+      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M4 6a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2H9l-5 4V6z" />
       </svg>
     ),
@@ -122,8 +92,9 @@ const NAV = [
   {
     name: "Tax Genius",
     path: "/dashboard/tax",
+    group: "Tools",
     icon: (
-      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" viewBox="0 0 24 24">
+      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
         <rect x="5" y="3" width="14" height="18" rx="2" />
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 8h6M9 12h6M9 16h4" />
       </svg>
@@ -132,8 +103,9 @@ const NAV = [
   {
     name: "AI Advisor",
     path: "/dashboard/chat",
+    group: "Tools",
     icon: (
-      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" viewBox="0 0 24 24">
+      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3h4.5A2.25 2.25 0 0116.5 5.25V6A2.25 2.25 0 0114.25 8.25h-4.5A2.25 2.25 0 017.5 6v-.75A2.25 2.25 0 019.75 3zM6 13.5c0-1.657 2.686-3 6-3s6 1.343 6 3v1.5A3 3 0 0115 18H9a3 3 0 01-3-3v-1.5z" />
       </svg>
     ),
@@ -141,14 +113,44 @@ const NAV = [
   {
     name: "Settings",
     path: "/dashboard/settings",
+    group: "Tools",
     icon: (
-      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" viewBox="0 0 24 24">
+      <svg width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
         <circle cx="12" cy="12" r="3" />
       </svg>
     ),
   },
 ];
+
+function DashboardLogo() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", lineHeight: 1 }}>
+      <img
+        src="/logo.png"
+        alt="Casha"
+        style={{
+          width: "36px",
+          height: "36px",
+          objectFit: "contain",
+          display: "block",
+          marginRight: "-6px",
+          flexShrink: 0,
+        }}
+      />
+      <span
+        style={{
+          fontSize: "16px",
+          fontWeight: 800,
+          color: "var(--sidebar-text)",
+          letterSpacing: "-0.03em",
+        }}
+      >
+        casha<span style={{ color: "#22C55E" }}>.money</span>
+      </span>
+    </div>
+  );
+}
 
 export default function DashboardLayout({
   children,
@@ -197,6 +199,15 @@ export default function DashboardLayout({
     await supabase.auth.signOut();
     router.push("/");
   };
+
+  const grouped = useMemo(() => {
+    const byGroup: Record<string, typeof NAV> = {};
+    NAV.forEach((item) => {
+      if (!byGroup[item.group]) byGroup[item.group] = [];
+      byGroup[item.group].push(item);
+    });
+    return byGroup;
+  }, []);
 
   if (loading) {
     return (
@@ -269,7 +280,7 @@ export default function DashboardLayout({
       <aside
         className="dashboard-sidebar"
         style={{
-          width: "228px",
+          width: "250px",
           position: "fixed",
           top: 0,
           left: 0,
@@ -283,81 +294,72 @@ export default function DashboardLayout({
           transition: "transform 0.22s ease",
         }}
       >
+        {/* Logo */}
         <div
           style={{
-            padding: "18px 14px",
+            padding: "18px 16px 14px",
             borderBottom: "1px solid var(--sidebar-border)",
           }}
         >
-          <Link
-            href="/"
-            style={{
-              textDecoration: "none",
-              display: "flex",
-              alignItems: "center",
-              lineHeight: 1,
-            }}
-          >
-            <img
-              src="/logo.png"
-              alt="Casha"
-              style={{
-                width: "34px",
-                height: "34px",
-                objectFit: "contain",
-                display: "block",
-                marginRight: "-6px",
-                flexShrink: 0,
-              }}
-            />
-            <span
-              style={{
-                fontSize: "16px",
-                fontWeight: 800,
-                color: "var(--sidebar-text)",
-                letterSpacing: "-0.03em",
-              }}
-            >
-              casha<span style={{ color: "#22C55E" }}>.money</span>
-            </span>
+          <Link href="/" style={{ textDecoration: "none", display: "block" }}>
+            <DashboardLogo />
           </Link>
         </div>
 
-        <nav style={{ flex: 1, padding: "10px 8px", overflowY: "auto" }}>
-          {NAV.map((item) => {
-            const active = pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                href={item.path}
-                onClick={() => setSidebarOpen(false)}
+        {/* Sections */}
+        <nav style={{ flex: 1, padding: "14px 10px", overflowY: "auto" }}>
+          {Object.entries(grouped).map(([groupName, items], idx) => (
+            <div key={groupName} style={{ marginBottom: idx < Object.keys(grouped).length - 1 ? "18px" : "0" }}>
+              <p
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  padding: "10px 12px",
-                  borderRadius: "10px",
-                  marginBottom: "3px",
-                  textDecoration: "none",
-                  background: active ? "var(--sidebar-active-bg)" : "transparent",
-                  color: active ? "#22C55E" : "var(--sidebar-muted)",
-                  fontSize: "13px",
-                  fontWeight: active ? "600" : "500",
-                  transition: "all 0.15s ease",
+                  margin: "0 0 8px 10px",
+                  fontSize: "10px",
+                  fontWeight: 700,
+                  letterSpacing: "0.10em",
+                  textTransform: "uppercase",
+                  color: "var(--sidebar-faint)",
                 }}
               >
-                <span style={{ display: "flex", flexShrink: 0 }}>
-                  {item.icon}
-                </span>
-                {item.name}
-              </Link>
-            );
-          })}
+                {groupName}
+              </p>
+
+              {items.map((item) => {
+                const active = pathname === item.path;
+                return (
+                  <Link
+                    key={item.path}
+                    href={item.path}
+                    onClick={() => setSidebarOpen(false)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      padding: "10px 12px",
+                      borderRadius: "12px",
+                      marginBottom: "4px",
+                      textDecoration: "none",
+                      background: active ? "var(--sidebar-active-bg)" : "transparent",
+                      color: active ? "#22C55E" : "var(--sidebar-muted)",
+                      fontSize: "13px",
+                      fontWeight: active ? 600 : 500,
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <span style={{ display: "flex", flexShrink: 0 }}>
+                      {item.icon}
+                    </span>
+                    {item.name}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
+        {/* Bottom */}
         <div
           style={{
-            padding: "12px 8px",
+            padding: "12px 10px",
             borderTop: "1px solid var(--sidebar-border)",
           }}
         >
@@ -366,16 +368,16 @@ export default function DashboardLayout({
               display: "flex",
               alignItems: "center",
               gap: "10px",
-              padding: "8px 10px",
-              borderRadius: "10px",
+              padding: "10px 12px",
+              borderRadius: "12px",
               marginBottom: "8px",
               background: "var(--sidebar-user-bg)",
             }}
           >
             <div
               style={{
-                width: "32px",
-                height: "32px",
+                width: "34px",
+                height: "34px",
                 borderRadius: "999px",
                 background: "linear-gradient(135deg, #22C55E, #16A34A)",
                 display: "flex",
@@ -419,8 +421,8 @@ export default function DashboardLayout({
             onClick={toggleTheme}
             style={{
               width: "100%",
-              padding: "9px 10px",
-              borderRadius: "9px",
+              padding: "9px 12px",
+              borderRadius: "10px",
               border: "1px solid var(--sidebar-border)",
               background: "transparent",
               color: "var(--sidebar-muted)",
@@ -451,8 +453,8 @@ export default function DashboardLayout({
             onClick={handleLogout}
             style={{
               width: "100%",
-              padding: "9px 10px",
-              borderRadius: "9px",
+              padding: "9px 12px",
+              borderRadius: "10px",
               border: "1px solid var(--sidebar-border)",
               background: "transparent",
               color: "var(--sidebar-muted)",
@@ -477,11 +479,12 @@ export default function DashboardLayout({
       <main
         style={{
           minHeight: "100vh",
-          marginLeft: "228px",
+          marginLeft: "250px",
           display: "flex",
           flexDirection: "column",
         }}
       >
+        {/* Top bar */}
         <div
           style={{
             height: "58px",
@@ -555,15 +558,17 @@ export default function DashboardLayout({
           --faint: #A1A1AA;
           --border: #E5E7EB;
           --card: #FFFFFF;
+          --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 10px 24px rgba(0,0,0,0.04);
           --topbar: rgba(255,255,255,0.82);
 
           --sidebar: #0A0A0A;
           --sidebar-text: #FFFFFF;
-          --sidebar-muted: rgba(255,255,255,0.46);
+          --sidebar-muted: rgba(255,255,255,0.52);
           --sidebar-faint: rgba(255,255,255,0.28);
           --sidebar-border: rgba(255,255,255,0.08);
           --sidebar-active-bg: rgba(34,197,94,0.12);
           --sidebar-user-bg: rgba(255,255,255,0.03);
+          --panel-alt: #F5F5F7;
         }
 
         :root[data-theme="dark"] {
@@ -573,6 +578,7 @@ export default function DashboardLayout({
           --faint: #6B7280;
           --border: rgba(255,255,255,0.08);
           --card: #121214;
+          --shadow: 0 1px 3px rgba(0,0,0,0.25), 0 10px 24px rgba(0,0,0,0.22);
           --topbar: rgba(10,10,10,0.88);
 
           --sidebar: #050505;
@@ -582,10 +588,13 @@ export default function DashboardLayout({
           --sidebar-border: rgba(255,255,255,0.08);
           --sidebar-active-bg: rgba(34,197,94,0.16);
           --sidebar-user-bg: rgba(255,255,255,0.03);
+          --panel-alt: #1B1D21;
         }
 
         @keyframes dashspin {
-          to { transform: rotate(360deg); }
+          to {
+            transform: rotate(360deg);
+          }
         }
 
         @media (min-width: 1024px) {
@@ -598,7 +607,6 @@ export default function DashboardLayout({
           main {
             margin-left: 0 !important;
           }
-
           .dashboard-sidebar {
             transform: translateX(-100%);
           }
