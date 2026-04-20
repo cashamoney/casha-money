@@ -15,7 +15,7 @@ import {
   Cell,
 } from "recharts";
 
-function fmt(n: number) {
+function formatMoney(n: number) {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
@@ -30,77 +30,344 @@ function getGreeting() {
   return "Good evening";
 }
 
+function getScoreMeta(score: number) {
+  if (score >= 800) {
+    return { label: "Excellent", color: "#22C55E", ring: "#22C55E" };
+  }
+  if (score >= 650) {
+    return { label: "Strong", color: "#2563EB", ring: "#2563EB" };
+  }
+  if (score >= 450) {
+    return { label: "Stable", color: "#64748B", ring: "#64748B" };
+  }
+  return { label: "Needs attention", color: "#DC2626", ring: "#DC2626" };
+}
+
 function MetricCard({
   label,
   value,
   sub,
-  dark = false,
-  accentColor = "#22C55E",
+  accent = false,
+  valueColor,
 }: {
   label: string;
   value: string;
   sub?: string;
-  dark?: boolean;
-  accentColor?: string;
+  accent?: boolean;
+  valueColor?: string;
 }) {
   return (
     <div
       style={{
-        background: dark ? "#0A0A0A" : "var(--card)",
-        border: dark ? "none" : "1px solid var(--border)",
-        borderRadius: "16px",
-        padding: "20px 22px",
-        boxShadow: dark ? "none" : "0 1px 3px rgba(0,0,0,0.04)",
+        background: accent ? "#0A0A0A" : "var(--card)",
+        color: accent ? "#FFFFFF" : "var(--text)",
+        border: accent ? "none" : "1px solid var(--border)",
+        borderRadius: "18px",
+        padding: "22px 22px",
+        boxShadow: accent ? "none" : "var(--shadow)",
       }}
     >
       <p
         style={{
+          margin: "0 0 12px 0",
           fontSize: "11px",
-          fontWeight: 600,
-          letterSpacing: "0.07em",
+          fontWeight: 700,
+          letterSpacing: "0.08em",
           textTransform: "uppercase",
-          color: dark ? "rgba(255,255,255,0.36)" : "var(--faint)",
-          margin: "0 0 10px 0",
+          color: accent ? "rgba(255,255,255,0.42)" : "var(--faint)",
         }}
       >
         {label}
       </p>
       <p
         style={{
-          fontSize: "28px",
+          margin: "0 0 6px 0",
+          fontSize: "30px",
           fontWeight: 800,
           letterSpacing: "-0.03em",
-          color: dark ? accentColor : "var(--text)",
-          margin: "0 0 4px 0",
           lineHeight: 1,
+          color: valueColor || (accent ? "#FFFFFF" : "var(--text)"),
         }}
       >
         {value}
       </p>
-      {sub && (
+      {sub ? (
         <p
           style={{
-            fontSize: "12px",
-            color: dark ? "rgba(255,255,255,0.32)" : "var(--muted)",
             margin: 0,
+            fontSize: "12px",
+            color: accent ? "rgba(255,255,255,0.40)" : "var(--muted)",
             lineHeight: "1.5",
           }}
         >
           {sub}
         </p>
-      )}
+      ) : null}
     </div>
   );
 }
 
-const CATEGORY_COLORS = [
-  "#22C55E",
-  "#16A34A",
-  "#4ADE80",
-  "#86EFAC",
-  "#15803D",
-  "#14532D",
-];
+function SectionCard({
+  title,
+  sub,
+  action,
+  children,
+}: {
+  title: string;
+  sub?: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        background: "var(--card)",
+        border: "1px solid var(--border)",
+        borderRadius: "18px",
+        padding: "20px 22px",
+        boxShadow: "var(--shadow)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: "12px",
+          marginBottom: "18px",
+        }}
+      >
+        <div>
+          <h3
+            style={{
+              margin: "0 0 4px 0",
+              fontSize: "15px",
+              fontWeight: 700,
+              color: "var(--text)",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            {title}
+          </h3>
+          {sub ? (
+            <p
+              style={{
+                margin: 0,
+                fontSize: "12px",
+                color: "var(--faint)",
+              }}
+            >
+              {sub}
+            </p>
+          ) : null}
+        </div>
+        {action}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function ProgressBar({
+  value,
+  color = "#22C55E",
+  bg = "#E5E7EB",
+  height = 8,
+}: {
+  value: number;
+  color?: string;
+  bg?: string;
+  height?: number;
+}) {
+  return (
+    <div
+      style={{
+        height,
+        borderRadius: 999,
+        background: bg,
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          width: `${Math.max(0, Math.min(100, value))}%`,
+          height: "100%",
+          borderRadius: 999,
+          background: color,
+          transition: "width 0.6s ease",
+        }}
+      />
+    </div>
+  );
+}
+
+function HealthRing({
+  score,
+  color,
+}: {
+  score: number;
+  color: string;
+}) {
+  const pct = Math.max(0, Math.min(100, score / 10));
+  const angle = pct * 3.6;
+  const bg = `conic-gradient(${color} 0deg ${angle}deg, rgba(255,255,255,0.08) ${angle}deg 360deg)`;
+
+  return (
+    <div
+      style={{
+        width: "98px",
+        height: "98px",
+        borderRadius: "50%",
+        background: bg,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
+      <div
+        style={{
+          width: "78px",
+          height: "78px",
+          borderRadius: "50%",
+          background: "#0A0A0A",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <span
+          style={{
+            fontSize: "24px",
+            fontWeight: 800,
+            color: "#FFFFFF",
+            lineHeight: 1,
+            letterSpacing: "-0.02em",
+          }}
+        >
+          {score}
+        </span>
+        <span
+          style={{
+            fontSize: "10px",
+            color: "rgba(255,255,255,0.36)",
+            marginTop: "3px",
+          }}
+        >
+          /1000
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function txIcon(type: string, category: string) {
+  if (type === "income") {
+    return (
+      <div
+        style={{
+          width: "38px",
+          height: "38px",
+          borderRadius: "11px",
+          background: "rgba(34,197,94,0.10)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        <svg width="16" height="16" fill="none" stroke="#16A34A" strokeWidth="2" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 19V5m0 0-5 5m5-5 5 5" />
+        </svg>
+      </div>
+    );
+  }
+
+  if (category === "Food Delivery" || category === "Food & Dining") {
+    return (
+      <div
+        style={{
+          width: "38px",
+          height: "38px",
+          borderRadius: "11px",
+          background: "rgba(249,115,22,0.10)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        <svg width="16" height="16" fill="none" stroke="#F97316" strokeWidth="2" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h2l.5 2M7 13h10l4-8H5.5M7 13l-1.5 3h13" />
+        </svg>
+      </div>
+    );
+  }
+
+  if (category === "EMI Payment") {
+    return (
+      <div
+        style={{
+          width: "38px",
+          height: "38px",
+          borderRadius: "11px",
+          background: "rgba(239,68,68,0.10)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        <svg width="16" height="16" fill="none" stroke="#DC2626" strokeWidth="2" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v8m-3-3h6" />
+        </svg>
+      </div>
+    );
+  }
+
+  if (category === "Shopping") {
+    return (
+      <div
+        style={{
+          width: "38px",
+          height: "38px",
+          borderRadius: "11px",
+          background: "rgba(236,72,153,0.10)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        <svg width="16" height="16" fill="none" stroke="#EC4899" strokeWidth="2" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 7l1.5 11h9L18 7H6zm2-3h8l1 3H7l1-3z" />
+        </svg>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        width: "38px",
+        height: "38px",
+        borderRadius: "11px",
+        background: "var(--panel-alt)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
+      <svg width="16" height="16" fill="none" stroke="var(--muted)" strokeWidth="2" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+      </svg>
+    </div>
+  );
+}
+
+const CHART_COLORS = ["#22C55E", "#16A34A", "#4ADE80", "#86EFAC", "#15803D", "#A7F3D0"];
 
 export default function OverviewPage() {
   const [user, setUser] = useState<any>(null);
@@ -140,16 +407,16 @@ export default function OverviewPage() {
   const netWorth = totalBalance - totalDebt;
 
   const now = new Date();
-  const thisMonthTxns = transactions.filter((t) => {
+  const thisMonthTransactions = transactions.filter((t) => {
     const d = new Date(t.transaction_date);
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   });
 
-  const monthIncome = thisMonthTxns
+  const monthIncome = thisMonthTransactions
     .filter((t) => t.transaction_type === "income")
     .reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
 
-  const monthExpense = thisMonthTxns
+  const monthExpense = thisMonthTransactions
     .filter((t) => t.transaction_type === "expense")
     .reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
 
@@ -174,39 +441,24 @@ export default function OverviewPage() {
     return Math.max(0, Math.min(1000, Math.round(s)));
   })();
 
-  const scoreLabel =
-    healthScore >= 800
-      ? "Excellent"
-      : healthScore >= 600
-      ? "Good"
-      : healthScore >= 400
-      ? "Fair"
-      : "Needs work";
-
-  const scoreColor =
-    healthScore >= 800
-      ? "#22C55E"
-      : healthScore >= 600
-      ? "#16A34A"
-      : healthScore >= 400
-      ? "#4ADE80"
-      : "#EF4444";
+  const scoreMeta = getScoreMeta(healthScore);
 
   const pieData = useMemo(() => {
     const map: Record<string, number> = {};
-    thisMonthTxns
+    thisMonthTransactions
       .filter((t) => t.transaction_type === "expense")
       .forEach((t) => {
-        const cat = t.category || "Other";
-        map[cat] = (map[cat] || 0) + Math.abs(Number(t.amount));
+        const c = t.category || "Other";
+        map[c] = (map[c] || 0) + Math.abs(Number(t.amount));
       });
+
     return Object.entries(map)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 6)
       .map(([name, value]) => ({ name, value }));
-  }, [thisMonthTxns]);
+  }, [thisMonthTransactions]);
 
-  const monthSeries = useMemo(() => {
+  const monthlySeries = useMemo(() => {
     return Array.from({ length: 6 }, (_, i) => {
       const d = new Date();
       d.setMonth(d.getMonth() - (5 - i));
@@ -241,69 +493,6 @@ export default function OverviewPage() {
     { label: "Parse bank SMS", path: "/dashboard/sms" },
   ];
 
-  const txIcon = (type: string, category: string) => {
-    if (type === "income") {
-      return (
-        <div
-          style={{
-            width: "38px",
-            height: "38px",
-            borderRadius: "10px",
-            background: "#F0FDF4",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          <svg width="16" height="16" fill="none" stroke="#16A34A" strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 19V5m0 0-5 5m5-5 5 5" />
-          </svg>
-        </div>
-      );
-    }
-
-    if (category === "Food Delivery" || category === "Food & Dining") {
-      return (
-        <div
-          style={{
-            width: "38px",
-            height: "38px",
-            borderRadius: "10px",
-            background: "#FFF7ED",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          <svg width="16" height="16" fill="none" stroke="#F97316" strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h2l.5 2M7 13h10l4-8H5.5M7 13L5.5 6M7 13l-2 3h13" />
-          </svg>
-        </div>
-      );
-    }
-
-    return (
-      <div
-        style={{
-          width: "38px",
-          height: "38px",
-          borderRadius: "10px",
-          background: "#F5F5F7",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        <svg width="16" height="16" fill="none" stroke="#6B7280" strokeWidth="2" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-        </svg>
-      </div>
-    );
-  };
-
   if (loading) {
     return (
       <div
@@ -326,13 +515,18 @@ export default function OverviewPage() {
               animation: "dashspin 0.8s linear infinite",
             }}
           />
-          <p style={{ margin: 0, fontSize: "13px", color: "var(--muted)" }}>
+          <p style={{ color: "var(--muted)", fontSize: "13px", margin: 0 }}>
             Loading your dashboard...
           </p>
         </div>
       </div>
     );
   }
+
+  const name =
+    user?.user_metadata?.full_name?.split(" ")[0] ||
+    user?.email?.split("@")[0] ||
+    "there";
 
   return (
     <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
@@ -342,13 +536,13 @@ export default function OverviewPage() {
           display: "flex",
           alignItems: "flex-start",
           justifyContent: "space-between",
+          gap: "14px",
           marginBottom: "28px",
           flexWrap: "wrap",
-          gap: "12px",
         }}
       >
         <div>
-          <p style={{ fontSize: "13px", color: "var(--faint)", margin: "0 0 4px 0" }}>
+          <p style={{ margin: "0 0 4px 0", fontSize: "13px", color: "var(--faint)" }}>
             {new Date().toLocaleDateString("en-IN", {
               weekday: "long",
               year: "numeric",
@@ -358,17 +552,14 @@ export default function OverviewPage() {
           </p>
           <h1
             style={{
+              margin: 0,
               fontSize: "24px",
               fontWeight: 800,
               color: "var(--text)",
-              margin: 0,
               letterSpacing: "-0.02em",
             }}
           >
-            {getGreeting()},{" "}
-            {user?.user_metadata?.full_name?.split(" ")[0] ||
-              user?.email?.split("@")[0] ||
-              "there"}
+            {getGreeting()}, {name}
           </h1>
         </div>
 
@@ -377,8 +568,8 @@ export default function OverviewPage() {
             display: "flex",
             alignItems: "center",
             gap: "6px",
-            background: "#F0FDF4",
-            border: "1px solid #BBF7D0",
+            background: "rgba(34,197,94,0.10)",
+            border: "1px solid rgba(34,197,94,0.18)",
             borderRadius: "999px",
             padding: "6px 14px",
           }}
@@ -391,13 +582,19 @@ export default function OverviewPage() {
               background: "#22C55E",
             }}
           />
-          <span style={{ fontSize: "12px", fontWeight: 600, color: "#166534" }}>
+          <span
+            style={{
+              fontSize: "12px",
+              fontWeight: 600,
+              color: "#16A34A",
+            }}
+          >
             AI Active
           </span>
         </div>
       </div>
 
-      {/* Top KPI cards */}
+      {/* KPI Cards */}
       <div
         style={{
           display: "grid",
@@ -406,31 +603,125 @@ export default function OverviewPage() {
           marginBottom: "20px",
         }}
       >
-        <MetricCard
-          label="Health Score"
-          value={`${healthScore}/1000`}
-          sub={scoreLabel}
-          dark
-          accentColor={scoreColor}
-        />
+        <div
+          style={{
+            background: "#0A0A0A",
+            borderRadius: "18px",
+            padding: "22px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: "14px",
+            }}
+          >
+            <div>
+              <p
+                style={{
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: "rgba(255,255,255,0.36)",
+                  margin: "0 0 6px 0",
+                }}
+              >
+                Health Score
+              </p>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "34px",
+                  fontWeight: 800,
+                  lineHeight: 1,
+                  color: scoreMeta.color,
+                  letterSpacing: "-0.03em",
+                }}
+              >
+                {healthScore}
+                <span
+                  style={{
+                    fontSize: "15px",
+                    color: "rgba(255,255,255,0.25)",
+                    marginLeft: "4px",
+                    fontWeight: 500,
+                  }}
+                >
+                  /1000
+                </span>
+              </p>
+            </div>
+
+            <div
+              style={{
+                width: "62px",
+                height: "62px",
+                borderRadius: "999px",
+                border: `5px solid ${scoreMeta.color}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: scoreMeta.color,
+                fontSize: "11px",
+                fontWeight: 700,
+              }}
+            >
+              {scoreMeta.label}
+            </div>
+          </div>
+
+          <div
+            style={{
+              height: "6px",
+              borderRadius: "999px",
+              background: "rgba(255,255,255,0.08)",
+              overflow: "hidden",
+              marginBottom: "8px",
+            }}
+          >
+            <div
+              style={{
+                width: `${healthScore / 10}%`,
+                height: "100%",
+                borderRadius: "999px",
+                background: scoreMeta.ring,
+                transition: "width 0.7s ease",
+              }}
+            />
+          </div>
+
+          <p
+            style={{
+              margin: 0,
+              fontSize: "12px",
+              color: "rgba(255,255,255,0.34)",
+            }}
+          >
+            {scoreMeta.label}
+          </p>
+        </div>
+
         <MetricCard
           label="Net Worth"
-          value={fmt(netWorth)}
-          sub={`Assets ${fmt(totalBalance)} · Debt ${fmt(totalDebt)}`}
+          value={formatMoney(netWorth)}
+          sub={`Assets ${formatMoney(totalBalance)} · Debt ${formatMoney(totalDebt)}`}
         />
         <MetricCard
-          label="This Month — Income"
-          value={fmt(monthIncome)}
+          label="Monthly Income"
+          value={formatMoney(monthIncome)}
           sub={`Savings rate: ${savingsRate}%`}
           subColor={savingsRate >= 20 ? "#16A34A" : "#F59E0B"}
         />
         <MetricCard
-          label="This Month — Spent"
-          value={fmt(monthExpense)}
+          label="Monthly Spent"
+          value={formatMoney(monthExpense)}
           sub={
             monthExpense > monthIncome
               ? "Over budget"
-              : `${fmt(monthIncome - monthExpense)} remaining`
+              : `${formatMoney(monthIncome - monthExpense)} remaining`
           }
           subColor={monthExpense > monthIncome ? "#EF4444" : "#16A34A"}
         />
@@ -445,36 +736,12 @@ export default function OverviewPage() {
           marginBottom: "20px",
         }}
       >
-        <div
-          style={{
-            background: "var(--card)",
-            borderRadius: "16px",
-            border: "1px solid var(--border)",
-            padding: "20px 22px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-          }}
-        >
-          <div style={{ marginBottom: "16px" }}>
-            <h3
-              style={{
-                fontSize: "14px",
-                fontWeight: 700,
-                color: "var(--text)",
-                margin: "0 0 2px 0",
-              }}
-            >
-              Income vs Expenses
-            </h3>
-            <p style={{ fontSize: "12px", color: "var(--faint)", margin: 0 }}>
-              Last 6 months
-            </p>
-          </div>
-
-          <ResponsiveContainer width="100%" height={180}>
-            <AreaChart data={monthSeries}>
+        <SectionCard title="Income vs Expenses" sub="Last 6 months">
+          <ResponsiveContainer width="100%" height={190}>
+            <AreaChart data={monthlySeries}>
               <defs>
                 <linearGradient id="incomeFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#22C55E" stopOpacity={0.32} />
+                  <stop offset="5%" stopColor="#22C55E" stopOpacity={0.28} />
                   <stop offset="95%" stopColor="#22C55E" stopOpacity={0.02} />
                 </linearGradient>
                 <linearGradient id="expenseFill" x1="0" y1="0" x2="0" y2="1">
@@ -482,97 +749,37 @@ export default function OverviewPage() {
                   <stop offset="95%" stopColor="#94A3B8" stopOpacity={0.02} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-              <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#A1A1AA" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: "#A1A1AA" }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${Math.round(v / 1000)}k`} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+              <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${Math.round(v / 1000)}k`} />
               <Tooltip
-                formatter={(v: any) => [fmt(v)]}
+                formatter={(v: any) => [formatMoney(v)]}
                 contentStyle={{
                   background: "#0A0A0A",
                   border: "none",
-                  borderRadius: "10px",
+                  borderRadius: "12px",
+                  color: "#fff",
                   fontSize: "12px",
-                  color: "#FFFFFF",
                 }}
               />
-              <Area
-                type="monotone"
-                dataKey="income"
-                stroke="#22C55E"
-                fill="url(#incomeFill)"
-                strokeWidth={2.2}
-              />
-              <Area
-                type="monotone"
-                dataKey="expense"
-                stroke="#94A3B8"
-                fill="url(#expenseFill)"
-                strokeWidth={2.2}
-              />
+              <Area type="monotone" dataKey="income" stroke="#22C55E" strokeWidth={2.2} fill="url(#incomeFill)" />
+              <Area type="monotone" dataKey="expense" stroke="#94A3B8" strokeWidth={2.2} fill="url(#expenseFill)" />
             </AreaChart>
           </ResponsiveContainer>
-        </div>
+        </SectionCard>
 
-        <div
-          style={{
-            background: "var(--card)",
-            borderRadius: "16px",
-            border: "1px solid var(--border)",
-            padding: "20px 22px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-          }}
-        >
-          <div style={{ marginBottom: "16px" }}>
-            <h3
-              style={{
-                fontSize: "14px",
-                fontWeight: 700,
-                color: "var(--text)",
-                margin: "0 0 2px 0",
-              }}
-            >
-              Spending Breakdown
-            </h3>
-            <p style={{ fontSize: "12px", color: "var(--faint)", margin: 0 }}>
-              This month
-            </p>
-          </div>
-
+        <SectionCard title="Spending Breakdown" sub="This month">
           {pieData.length === 0 ? (
-            <div
-              style={{
-                height: "180px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <p style={{ color: "var(--faint)", fontSize: "13px", margin: 0 }}>
-                No expense data yet
-              </p>
+            <div style={{ height: "190px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <p style={{ margin: 0, fontSize: "13px", color: "var(--faint)" }}>No expense data yet</p>
             </div>
           ) : (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "140px 1fr",
-                gap: "12px",
-                alignItems: "center",
-              }}
-            >
+            <div style={{ display: "grid", gridTemplateColumns: "140px 1fr", gap: "12px", alignItems: "center" }}>
               <ResponsiveContainer width="100%" height={140}>
                 <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={34}
-                    outerRadius={58}
-                    dataKey="value"
-                    paddingAngle={2}
-                  >
+                  <Pie data={pieData} dataKey="value" cx="50%" cy="50%" innerRadius={34} outerRadius={58} paddingAngle={2}>
                     {pieData.map((_, i) => (
-                      <Cell key={i} fill={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} />
+                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                     ))}
                   </Pie>
                 </PieChart>
@@ -580,53 +787,18 @@ export default function OverviewPage() {
 
               <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
                 {pieData.slice(0, 5).map((item, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: "8px",
-                    }}
-                  >
+                  <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "7px", minWidth: 0 }}>
-                      <div
-                        style={{
-                          width: "8px",
-                          height: "8px",
-                          borderRadius: "2px",
-                          background: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
-                          flexShrink: 0,
-                        }}
-                      />
-                      <span
-                        style={{
-                          fontSize: "12px",
-                          color: "#6B7280",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {item.name}
-                      </span>
+                      <div style={{ width: "8px", height: "8px", borderRadius: "2px", background: CHART_COLORS[i % CHART_COLORS.length], flexShrink: 0 }} />
+                      <span style={{ fontSize: "12px", color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</span>
                     </div>
-                    <span
-                      style={{
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {fmt(item.value)}
-                    </span>
+                    <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--text)", flexShrink: 0 }}>{formatMoney(item.value)}</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
-        </div>
+        </SectionCard>
       </div>
 
       {/* Bottom area */}
@@ -637,42 +809,18 @@ export default function OverviewPage() {
           gap: "14px",
         }}
       >
-        {/* Recent transactions */}
-        <div
-          style={{
-            background: "var(--card)",
-            borderRadius: "16px",
-            border: "1px solid var(--border)",
-            padding: "20px 22px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: "16px",
-            }}
-          >
-            <div>
-              <h3 style={{ fontSize: "14px", fontWeight: 700, color: "var(--text)", margin: "0 0 2px 0" }}>
-                Recent Transactions
-              </h3>
-              <p style={{ fontSize: "12px", color: "var(--faint)", margin: 0 }}>
-                {recentTransactions.length} latest entries
-              </p>
-            </div>
+        <SectionCard
+          title="Recent Transactions"
+          sub={`${recentTransactions.length} latest entries`}
+          action={
             <Link href="/dashboard/transactions" style={{ fontSize: "12px", fontWeight: 600, color: "#22C55E", textDecoration: "none" }}>
               View all →
             </Link>
-          </div>
-
+          }
+        >
           {recentTransactions.length === 0 ? (
             <div style={{ textAlign: "center", padding: "32px 0" }}>
-              <p style={{ color: "var(--faint)", fontSize: "13px", margin: "0 0 12px 0" }}>
-                No transactions yet
-              </p>
+              <p style={{ color: "var(--faint)", fontSize: "13px", margin: "0 0 12px 0" }}>No transactions yet</p>
               <Link href="/dashboard/transactions" style={{ fontSize: "13px", fontWeight: 600, color: "#22C55E", textDecoration: "none" }}>
                 Add your first transaction →
               </Link>
@@ -687,83 +835,31 @@ export default function OverviewPage() {
                     alignItems: "center",
                     gap: "12px",
                     padding: "10px 0",
-                    borderBottom:
-                      i < recentTransactions.length - 1
-                        ? "1px solid #F5F5F7"
-                        : "none",
+                    borderBottom: i < recentTransactions.length - 1 ? "1px solid #F5F5F7" : "none",
                   }}
                 >
                   {txIcon(txn.transaction_type, txn.category)}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p
-                      style={{
-                        fontSize: "13px",
-                        fontWeight: 600,
-                        color: "var(--text)",
-                        margin: "0 0 2px 0",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
+                    <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--text)", margin: "0 0 2px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {txn.merchant_name || txn.category || "Transaction"}
                     </p>
-                    <p
-                      style={{
-                        fontSize: "11px",
-                        color: "var(--faint)",
-                        margin: 0,
-                      }}
-                    >
-                      {new Date(txn.transaction_date).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                      })}
-                      {txn.category && ` · ${txn.category}`}
+                    <p style={{ fontSize: "11px", color: "var(--faint)", margin: 0 }}>
+                      {new Date(txn.transaction_date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                      {txn.category ? ` · ${txn.category}` : ""}
                     </p>
                   </div>
-                  <span
-                    style={{
-                      fontSize: "13px",
-                      fontWeight: 700,
-                      color:
-                        txn.transaction_type === "income"
-                          ? "#16A34A"
-                          : "var(--text)",
-                      flexShrink: 0,
-                    }}
-                  >
+                  <span style={{ fontSize: "13px", fontWeight: 700, color: txn.transaction_type === "income" ? "#16A34A" : "var(--text)", flexShrink: 0 }}>
                     {txn.transaction_type === "income" ? "+" : "-"}
-                    {fmt(Math.abs(Number(txn.amount)))}
+                    {formatMoney(Math.abs(Number(txn.amount)))}
                   </span>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </SectionCard>
 
-        {/* Right rail */}
         <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-          {/* Quick actions */}
-          <div
-            style={{
-              background: "var(--card)",
-              borderRadius: "16px",
-              border: "1px solid var(--border)",
-              padding: "18px 20px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-            }}
-          >
-            <h3
-              style={{
-                fontSize: "13px",
-                fontWeight: 700,
-                color: "var(--text)",
-                margin: "0 0 12px 0",
-              }}
-            >
-              Quick Actions
-            </h3>
+          <SectionCard title="Quick Actions">
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               {quickActions.map((a, i) => (
                 <Link
@@ -772,156 +868,63 @@ export default function OverviewPage() {
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: "10px",
-                    padding: "9px 12px",
-                    borderRadius: "8px",
-                    background: "#F5F5F7",
+                    padding: "10px 12px",
+                    borderRadius: "10px",
+                    background: "var(--panel-alt)",
                     textDecoration: "none",
+                    color: "var(--text)",
+                    fontSize: "13px",
+                    fontWeight: 500,
                   }}
                 >
-                  <span style={{ fontSize: "13px", fontWeight: 500, color: "#374151" }}>
-                    {a.label}
-                  </span>
+                  {a.label}
                 </Link>
               ))}
             </div>
-          </div>
+          </SectionCard>
 
-          {/* Goals */}
           {goals.length > 0 && (
-            <div
-              style={{
-                background: "var(--card)",
-                borderRadius: "16px",
-                border: "1px solid var(--border)",
-                padding: "18px 20px",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "12px",
-                }}
-              >
-                <h3
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: 700,
-                    color: "var(--text)",
-                    margin: 0,
-                  }}
-                >
-                  Active Goals
-                </h3>
-                <Link
-                  href="/dashboard/goals"
-                  style={{
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    color: "#22C55E",
-                    textDecoration: "none",
-                  }}
-                >
+            <SectionCard
+              title="Active Goals"
+              action={
+                <Link href="/dashboard/goals" style={{ fontSize: "11px", fontWeight: 600, color: "#22C55E", textDecoration: "none" }}>
                   View all
                 </Link>
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              }
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 {goals.slice(0, 2).map((g, i) => {
-                  const pct = Math.min(
-                    100,
-                    (Number(g.current_amount) / Number(g.target_amount)) * 100
-                  );
+                  const pct = Math.min(100, (Number(g.current_amount) / Number(g.target_amount)) * 100);
                   return (
                     <div key={i}>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          marginBottom: "5px",
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: "12px",
-                            fontWeight: 600,
-                            color: "#374151",
-                          }}
-                        >
-                          {g.name}
-                        </span>
-                        <span style={{ fontSize: "11px", color: "#A1A1AA" }}>
-                          {pct.toFixed(0)}%
-                        </span>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                        <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--text)" }}>{g.name}</span>
+                        <span style={{ fontSize: "11px", color: "var(--faint)" }}>{pct.toFixed(0)}%</span>
                       </div>
-                      <div
-                        style={{
-                          height: "6px",
-                          borderRadius: "999px",
-                          background: "#F5F5F7",
-                          overflow: "hidden",
-                        }}
-                      >
-                        <div
-                          style={{
-                            height: "100%",
-                            width: `${pct}%`,
-                            borderRadius: "999px",
-                            background: pct >= 100 ? "#22C55E" : "#3B82F6",
-                            transition: "width 0.8s ease",
-                          }}
-                        />
-                      </div>
+                      <ProgressBar value={pct} color={pct >= 100 ? "#22C55E" : "#2563EB"} bg="var(--panel-alt)" />
                     </div>
                   );
                 })}
               </div>
-            </div>
+            </SectionCard>
           )}
 
-          {/* Debt */}
           {totalDebt > 0 && (
             <div
               style={{
-                background: "#FEF2F2",
+                background: "rgba(239,68,68,0.08)",
+                border: "1px solid rgba(239,68,68,0.20)",
                 borderRadius: "16px",
-                border: "1px solid #FECACA",
                 padding: "18px 20px",
               }}
             >
-              <p
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  color: "#9F1239",
-                  margin: "0 0 6px 0",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.07em",
-                }}
-              >
+              <p style={{ fontSize: "11px", fontWeight: 600, color: "#991B1B", margin: "0 0 6px 0", textTransform: "uppercase", letterSpacing: "0.07em" }}>
                 Total Debt
               </p>
-              <p
-                style={{
-                  fontSize: "22px",
-                  fontWeight: 800,
-                  color: "#DC2626",
-                  margin: "0 0 4px 0",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                {fmt(totalDebt)}
+              <p style={{ fontSize: "24px", fontWeight: 800, color: "#DC2626", margin: "0 0 4px 0", letterSpacing: "-0.02em" }}>
+                {formatMoney(totalDebt)}
               </p>
-              <p
-                style={{
-                  fontSize: "12px",
-                  color: "#F87171",
-                  margin: 0,
-                }}
-              >
+              <p style={{ fontSize: "12px", color: "#F87171", margin: 0 }}>
                 {debts.length} active loan{debts.length > 1 ? "s" : ""}
               </p>
             </div>
@@ -932,22 +935,6 @@ export default function OverviewPage() {
       <style>{`
         @keyframes dashspin {
           to { transform: rotate(360deg); }
-        }
-
-        @media (min-width: 1024px) {
-          .dashboard-sidebar {
-            transform: translateX(0) !important;
-          }
-        }
-
-        @media (max-width: 1023px) {
-          main {
-            margin-left: 0 !important;
-          }
-
-          .dashboard-sidebar {
-            transform: translateX(-100%);
-          }
         }
       `}</style>
     </div>
