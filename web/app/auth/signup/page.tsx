@@ -120,12 +120,10 @@ export default function SignupPage() {
     password: "",
     country: "IN",
   });
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [focused, setFocused] = useState("");
   const [countryOpen, setCountryOpen] = useState(false);
-
   const router = useRouter();
   const countryRef = useRef<HTMLDivElement>(null);
 
@@ -244,7 +242,6 @@ export default function SignupPage() {
             position: "relative",
           }}
         >
-          {/* CLICKABLE LOGO */}
           <a
             href="/"
             style={{
@@ -299,25 +296,26 @@ export default function SignupPage() {
             that actually knows your numbers.
           </p>
 
-          {/* PERFECTLY CENTERED BULLETS */}
+          {/* CENTERED BULLETS */}
           <div
             style={{
-              display: "inline-flex",
+              width: "100%",
+              maxWidth: "280px",
+              margin: "0 auto 22px",
+              display: "flex",
               flexDirection: "column",
               gap: "10px",
-              marginBottom: "22px",
-              alignSelf: "center",
-              textAlign: "left",
             }}
           >
             {LEFT_POINTS.map((item, i) => (
               <div
                 key={i}
                 style={{
-                  display: "flex",
+                  display: "grid",
+                  gridTemplateColumns: "18px 1fr",
                   alignItems: "center",
-                  gap: "10px",
-                  whiteSpace: "nowrap",
+                  columnGap: "10px",
+                  justifyContent: "center",
                 }}
               >
                 <div
@@ -330,7 +328,6 @@ export default function SignupPage() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    flexShrink: 0,
                   }}
                 >
                   <svg
@@ -348,30 +345,34 @@ export default function SignupPage() {
                     />
                   </svg>
                 </div>
-                <span
+                <p
                   style={{
+                    margin: 0,
                     fontSize: "12px",
                     lineHeight: "1.4",
                     color: "rgba(255,255,255,0.55)",
                     fontWeight: 500,
+                    textAlign: "left",
                   }}
                 >
                   {item}
-                </span>
+                </p>
               </div>
             ))}
           </div>
 
-          {/* STATS */}
+          {/* PERFECTLY CENTERED STATS */}
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: "14px",
+              width: "100%",
+              maxWidth: "300px",
+              margin: "0 auto 16px",
               paddingTop: "16px",
               borderTop: "1px solid rgba(255,255,255,0.08)",
-              marginBottom: "18px",
-              textAlign: "left",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              textAlign: "center",
             }}
           >
             {[
@@ -379,7 +380,15 @@ export default function SignupPage() {
               { n: "Rs.42K", l: "avg. tax saved" },
               { n: "Free", l: "forever plan" },
             ].map((s, i) => (
-              <div key={i}>
+              <div
+                key={i}
+                style={{
+                  width: "90px",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                }}
+              >
                 <p
                   style={{
                     margin: "0 0 3px 0",
@@ -397,6 +406,7 @@ export default function SignupPage() {
                     fontSize: "11px",
                     color: "rgba(255,255,255,0.28)",
                     lineHeight: "1.3",
+                    textAlign: "center",
                   }}
                 >
                   {s.l}
@@ -405,12 +415,11 @@ export default function SignupPage() {
             ))}
           </div>
 
-          {/* LEGAL ONLY IN BLACK PANEL */}
           <p
             style={{
               margin: 0,
               fontSize: "11px",
-              color: "rgba(255,255,255,0.15)",
+              color: "rgba(255,255,255,0.16)",
               lineHeight: "1.5",
               maxWidth: "300px",
               alignSelf: "center",
@@ -608,7 +617,7 @@ export default function SignupPage() {
                     maxHeight: "180px",
                     overflowY: "auto",
                     position: "relative",
-                    zIndex: 10,
+                    zIndex: 20,
                   }}
                 >
                   {COUNTRIES.map((c) => (
@@ -622,7 +631,8 @@ export default function SignupPage() {
                       style={{
                         width: "100%",
                         border: "none",
-                        background: c.code === form.country ? "#F0FDF4" : "#FFFFFF",
+                        background:
+                          c.code === form.country ? "#F0FDF4" : "#FFFFFF",
                         padding: "10px 12px",
                         textAlign: "left",
                         fontSize: "13px",
@@ -732,6 +742,31 @@ export default function SignupPage() {
               </div>
             ))}
           </div>
+
+          <p
+            style={{
+              margin: "8px 0 0 0",
+              textAlign: "center",
+              fontSize: "10px",
+              color: "#C4C4C4",
+              lineHeight: "1.5",
+            }}
+          >
+            By signing up you agree to our{" "}
+            <a
+              href="/terms"
+              style={{ color: "#A1A1AA", textDecoration: "underline" }}
+            >
+              Terms
+            </a>{" "}
+            and{" "}
+            <a
+              href="/privacy"
+              style={{ color: "#A1A1AA", textDecoration: "underline" }}
+            >
+              Privacy Policy
+            </a>
+          </p>
         </div>
       </div>
 
