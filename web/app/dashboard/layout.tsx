@@ -160,11 +160,13 @@ export default function DashboardLayout({
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>("light");
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [topMenuOpen, setTopMenuOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
 
   const router = useRouter();
   const pathname = usePathname();
-  const menuRef = useRef<HTMLDivElement | null>(null);
+  const topMenuRef = useRef<HTMLDivElement | null>(null);
+  const accountMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("casha-theme") as ThemeMode | null;
@@ -186,26 +188,18 @@ export default function DashboardLayout({
   }, [router]);
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
+    const handleOutside = (e: MouseEvent) => {
+      if (topMenuRef.current && !topMenuRef.current.contains(e.target as Node)) {
+        setTopMenuOpen(false);
+      }
+      if (accountMenuRef.current && !accountMenuRef.current.contains(e.target as Node)) {
+        setAccountMenuOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
   }, []);
-
-  const toggleTheme = () => {
-    const next = theme === "light" ? "dark" : "light";
-    setTheme(next);
-    localStorage.setItem("casha-theme", next);
-    document.documentElement.setAttribute("data-theme", next);
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/");
-  };
 
   const grouped = useMemo(() => {
     const byGroup: Record<string, typeof NAV> = {};
@@ -215,6 +209,19 @@ export default function DashboardLayout({
     });
     return byGroup;
   }, []);
+
+  const toggleTheme = () => {
+    const next = theme === "light" ? "dark" : "light";
+    setTheme(next);
+    localStorage.setItem("casha-theme", next);
+    document.documentElement.setAttribute("data-theme", next);
+    setTopMenuOpen(false);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/");
+  };
 
   if (loading) {
     return (
@@ -313,7 +320,7 @@ export default function DashboardLayout({
           </Link>
         </div>
 
-        {/* Navigation */}
+        {/* Nav */}
         <nav style={{ flex: 1, padding: "14px 10px", overflowY: "auto" }}>
           {Object.entries(grouped).map(([groupName, items], idx) => (
             <div key={groupName} style={{ marginBottom: idx < Object.keys(grouped).length - 1 ? "18px" : "0" }}>
@@ -364,22 +371,28 @@ export default function DashboardLayout({
           ))}
         </nav>
 
-        {/* Account info + legal links */}
+        {/* Bottom left account click menu like LM Arena */}
         <div
           style={{
             padding: "12px 10px",
             borderTop: "1px solid var(--sidebar-border)",
+            position: "relative",
           }}
+          ref={accountMenuRef}
         >
-          <div
+          <button
+            onClick={() => setAccountMenuOpen((s) => !s)}
             style={{
+              width: "100%",
               display: "flex",
               alignItems: "center",
               gap: "10px",
               padding: "10px 12px",
               borderRadius: "12px",
-              marginBottom: "8px",
               background: "var(--sidebar-user-bg)",
+              border: "none",
+              cursor: "pointer",
+              textAlign: "left",
             }}
           >
             <div
@@ -423,32 +436,72 @@ export default function DashboardLayout({
               >
                 Free Plan
               </p>
+            </div>
+          </button>
 
-              {/* Terms / Privacy / Cookies below account name */}
+          {accountMenuOpen && (
+            <div
+              style={{
+                position: "absolute",
+                left: "10px",
+                right: "10px",
+                bottom: "68px",
+                background: "var(--card)",
+                border: "1px solid var(--border)",
+                borderRadius: "12px",
+                boxShadow: "0 10px 24px rgba(0,0,0,0.10)",
+                overflow: "hidden",
+              }}
+            >
+              {/* Logout first */}
+              <button
+                onClick={handleLogout}
+                style={{
+                  width: "100%",
+                  textAlign: "left",
+                  padding: "12px 14px",
+                  border: "none",
+                  background: "transparent",
+                  color: "#DC2626",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Sign out
+              </button>
+
+              <div style={{ height: "1px", background: "var(--border)" }} />
+
+              {/* LM Arena style legal links in one line */}
               <div
                 style={{
                   display: "flex",
                   gap: "8px",
+                  alignItems: "center",
+                  justifyContent: "center",
                   flexWrap: "wrap",
-                  marginTop: "6px",
+                  padding: "10px 12px",
                 }}
               >
-                <Link href="/terms" style={{ fontSize: "10px", color: "var(--sidebar-faint)", textDecoration: "none" }}>
-                  Terms
+                <Link href="/privacy" style={{ fontSize: "11px", color: "var(--muted)", textDecoration: "none" }}>
+                  Privacy Policy
                 </Link>
-                <Link href="/privacy" style={{ fontSize: "10px", color: "var(--sidebar-faint)", textDecoration: "none" }}>
-                  Privacy
+                <span style={{ fontSize: "11px", color: "var(--faint)" }}>·</span>
+                <Link href="/terms" style={{ fontSize: "11px", color: "var(--muted)", textDecoration: "none" }}>
+                  Terms of Use
                 </Link>
-                <Link href="/cookies" style={{ fontSize: "10px", color: "var(--sidebar-faint)", textDecoration: "none" }}>
+                <span style={{ fontSize: "11px", color: "var(--faint)" }}>·</span>
+                <Link href="/cookies" style={{ fontSize: "11px", color: "var(--muted)", textDecoration: "none" }}>
                   Cookies
                 </Link>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </aside>
 
-      {/* Main area */}
+      {/* Main */}
       <main
         style={{
           minHeight: "100vh",
@@ -492,86 +545,61 @@ export default function DashboardLayout({
 
           <div />
 
-          {/* Top right controls */}
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            {/* 3 dots theme menu */}
-            <div style={{ position: "relative" }}>
-              <button
-                onClick={() => setMenuOpen((s) => !s)}
+          {/* 3 dots only at top right */}
+          <div style={{ position: "relative" }} ref={topMenuRef}>
+            <button
+              onClick={() => setTopMenuOpen((s) => !s)}
+              style={{
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                padding: "6px",
+                color: "var(--muted)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "8px",
+              }}
+            >
+              <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+                <circle cx="5" cy="12" r="1.8" />
+                <circle cx="12" cy="12" r="1.8" />
+                <circle cx="19" cy="12" r="1.8" />
+              </svg>
+            </button>
+
+            {topMenuOpen && (
+              <div
                 style={{
-                  background: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: "6px",
-                  color: "var(--muted)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: "8px",
+                  position: "absolute",
+                  top: "40px",
+                  right: 0,
+                  minWidth: "180px",
+                  background: "var(--card)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "12px",
+                  boxShadow: "0 10px 24px rgba(0,0,0,0.10)",
+                  overflow: "hidden",
                 }}
               >
-                <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
-                  <circle cx="5" cy="12" r="1.8" />
-                  <circle cx="12" cy="12" r="1.8" />
-                  <circle cx="19" cy="12" r="1.8" />
-                </svg>
-              </button>
-
-              {menuOpen && (
-                <div
-                  ref={menuRef}
+                <button
+                  onClick={toggleTheme}
                   style={{
-                    position: "absolute",
-                    top: "40px",
-                    right: 0,
-                    minWidth: "180px",
-                    background: "var(--card)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "12px",
-                    boxShadow: "0 10px 24px rgba(0,0,0,0.10)",
-                    overflow: "hidden",
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "11px 14px",
+                    border: "none",
+                    background: "transparent",
+                    color: "var(--text)",
+                    fontSize: "13px",
+                    fontFamily: "inherit",
+                    cursor: "pointer",
                   }}
                 >
-                  <button
-                    onClick={toggleTheme}
-                    style={{
-                      width: "100%",
-                      padding: "11px 14px",
-                      border: "none",
-                      background: "transparent",
-                      textAlign: "left",
-                      color: "var(--text)",
-                      fontSize: "13px",
-                      fontFamily: "inherit",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Account avatar with signout dropdown */}
-            <div style={{ position: "relative" }}>
-              <button
-                onClick={handleLogout}
-                title="Sign out"
-                style={{
-                  width: "34px",
-                  height: "34px",
-                  borderRadius: "999px",
-                  border: "1px solid var(--border)",
-                  background: "linear-gradient(135deg, #22C55E, #16A34A)",
-                  color: "#FFFFFF",
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                {initials}
-              </button>
-            </div>
+                  {theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
