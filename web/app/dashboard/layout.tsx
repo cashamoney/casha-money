@@ -201,15 +201,6 @@ export default function DashboardLayout({
     return () => document.removeEventListener("mousedown", handleOutside);
   }, []);
 
-  const grouped = useMemo(() => {
-    const byGroup: Record<string, typeof NAV> = {};
-    NAV.forEach((item) => {
-      if (!byGroup[item.group]) byGroup[item.group] = [];
-      byGroup[item.group].push(item);
-    });
-    return byGroup;
-  }, []);
-
   const toggleTheme = () => {
     const next = theme === "light" ? "dark" : "light";
     setTheme(next);
@@ -222,6 +213,15 @@ export default function DashboardLayout({
     await supabase.auth.signOut();
     router.push("/");
   };
+
+  const grouped = useMemo(() => {
+    const byGroup: Record<string, typeof NAV> = {};
+    NAV.forEach((item) => {
+      if (!byGroup[item.group]) byGroup[item.group] = [];
+      byGroup[item.group].push(item);
+    });
+    return byGroup;
+  }, []);
 
   if (loading) {
     return (
@@ -259,6 +259,8 @@ export default function DashboardLayout({
     user?.user_metadata?.full_name?.split(" ")[0] ||
     user?.email?.split("@")[0] ||
     "user";
+
+  const userEmail = user?.email || "cashamoneyofficial@gmail.com";
 
   const initials =
     (user?.user_metadata?.full_name || user?.email || "U")
@@ -308,7 +310,6 @@ export default function DashboardLayout({
           transition: "transform 0.22s ease",
         }}
       >
-        {/* Logo */}
         <div
           style={{
             padding: "18px 16px 16px",
@@ -320,7 +321,6 @@ export default function DashboardLayout({
           </Link>
         </div>
 
-        {/* Nav */}
         <nav style={{ flex: 1, padding: "14px 10px", overflowY: "auto" }}>
           {Object.entries(grouped).map(([groupName, items], idx) => (
             <div key={groupName} style={{ marginBottom: idx < Object.keys(grouped).length - 1 ? "18px" : "0" }}>
@@ -356,7 +356,7 @@ export default function DashboardLayout({
                       color: active ? "#22C55E" : "#FFFFFF",
                       fontSize: "13px",
                       fontWeight: active ? 600 : 500,
-                      opacity: active ? 1 : 0.92,
+                      opacity: active ? 1 : 0.95,
                       transition: "all 0.15s ease",
                     }}
                   >
@@ -371,7 +371,7 @@ export default function DashboardLayout({
           ))}
         </nav>
 
-        {/* Bottom left account click menu like LM Arena */}
+        {/* Bottom left account menu */}
         <div
           style={{
             padding: "12px 10px",
@@ -453,7 +453,22 @@ export default function DashboardLayout({
                 overflow: "hidden",
               }}
             >
-              {/* Logout first */}
+              <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--border)" }}>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    color: "var(--text)",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {userEmail}
+                </p>
+              </div>
+
               <button
                 onClick={handleLogout}
                 style={{
@@ -471,30 +486,28 @@ export default function DashboardLayout({
                 Sign out
               </button>
 
-              <div style={{ height: "1px", background: "var(--border)" }} />
-
-              {/* LM Arena style legal links in one line */}
-              <div
-                style={{
-                  display: "flex",
-                  gap: "8px",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexWrap: "wrap",
-                  padding: "10px 12px",
-                }}
-              >
-                <Link href="/privacy" style={{ fontSize: "11px", color: "var(--muted)", textDecoration: "none" }}>
-                  Privacy Policy
-                </Link>
-                <span style={{ fontSize: "11px", color: "var(--faint)" }}>·</span>
-                <Link href="/terms" style={{ fontSize: "11px", color: "var(--muted)", textDecoration: "none" }}>
-                  Terms of Use
-                </Link>
-                <span style={{ fontSize: "11px", color: "var(--faint)" }}>·</span>
-                <Link href="/cookies" style={{ fontSize: "11px", color: "var(--muted)", textDecoration: "none" }}>
-                  Cookies
-                </Link>
+              <div style={{ borderTop: "1px solid var(--border)", padding: "10px 14px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    flexWrap: "wrap",
+                    fontSize: "11px",
+                    color: "var(--muted)",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  <Link href="/terms" style={{ color: "var(--muted)", textDecoration: "none" }}>
+                    Terms of Use
+                  </Link>
+                  <Link href="/privacy" style={{ color: "var(--muted)", textDecoration: "none" }}>
+                    Privacy Policy
+                  </Link>
+                  <Link href="/cookies" style={{ color: "var(--muted)", textDecoration: "none" }}>
+                    Cookies
+                  </Link>
+                </div>
               </div>
             </div>
           )}
@@ -526,8 +539,10 @@ export default function DashboardLayout({
             backdropFilter: "blur(10px)",
           }}
         >
+          {/* left side intentionally blank except mobile menu */}
           <button
             onClick={() => setSidebarOpen(true)}
+            className="mobile-menu-btn"
             style={{
               background: "transparent",
               border: "none",
@@ -543,9 +558,9 @@ export default function DashboardLayout({
             </svg>
           </button>
 
-          <div />
+          <div style={{ flex: 1 }} />
 
-          {/* 3 dots only at top right */}
+          {/* Only 3 dots at top right */}
           <div style={{ position: "relative" }} ref={topMenuRef}>
             <button
               onClick={() => setTopMenuOpen((s) => !s)}
@@ -617,6 +632,9 @@ export default function DashboardLayout({
         @media (min-width: 1024px) {
           .dashboard-sidebar {
             transform: translateX(0) !important;
+          }
+          .mobile-menu-btn {
+            display: none !important;
           }
         }
 
