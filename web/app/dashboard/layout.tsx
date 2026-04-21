@@ -5,6 +5,8 @@ import { supabase } from "../../lib/supabase";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 
+type ThemeMode = "light" | "dark";
+
 const NAV = [
   {
     name: "Overview",
@@ -149,7 +151,11 @@ function AppLogo() {
   );
 }
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -158,7 +164,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const router = useRouter();
   const pathname = usePathname();
-  const menuRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("casha-theme") as ThemeMode | null;
@@ -180,13 +186,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [router]);
 
   useEffect(() => {
-    const close = (e: MouseEvent) => {
+    const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setMenuOpen(false);
       }
     };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const toggleTheme = () => {
@@ -194,7 +200,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setTheme(next);
     localStorage.setItem("casha-theme", next);
     document.documentElement.setAttribute("data-theme", next);
-    setMenuOpen(false);
   };
 
   const handleLogout = async () => {
@@ -296,6 +301,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           transition: "transform 0.22s ease",
         }}
       >
+        {/* Logo */}
         <div
           style={{
             padding: "18px 16px 16px",
@@ -307,6 +313,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </Link>
         </div>
 
+        {/* Navigation */}
         <nav style={{ flex: 1, padding: "14px 10px", overflowY: "auto" }}>
           {Object.entries(grouped).map(([groupName, items], idx) => (
             <div key={groupName} style={{ marginBottom: idx < Object.keys(grouped).length - 1 ? "18px" : "0" }}>
@@ -340,9 +347,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       textDecoration: "none",
                       background: active ? "var(--sidebar-active-bg)" : "transparent",
                       color: active ? "#22C55E" : "#FFFFFF",
-                      opacity: active ? 1 : 0.92,
                       fontSize: "13px",
                       fontWeight: active ? 600 : 500,
+                      opacity: active ? 1 : 0.92,
                       transition: "all 0.15s ease",
                     }}
                   >
@@ -357,6 +364,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           ))}
         </nav>
 
+        {/* Account info + legal links */}
         <div
           style={{
             padding: "12px 10px",
@@ -391,6 +399,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             >
               {initials}
             </div>
+
             <div style={{ minWidth: 0, flex: 1 }}>
               <p
                 style={{
@@ -407,40 +416,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </p>
               <p
                 style={{
-                  margin: 0,
+                  margin: "1px 0 0 0",
                   fontSize: "10px",
                   color: "var(--sidebar-faint)",
                 }}
               >
                 Free Plan
               </p>
+
+              {/* Terms / Privacy / Cookies below account name */}
+              <div
+                style={{
+                  display: "flex",
+                  gap: "8px",
+                  flexWrap: "wrap",
+                  marginTop: "6px",
+                }}
+              >
+                <Link href="/terms" style={{ fontSize: "10px", color: "var(--sidebar-faint)", textDecoration: "none" }}>
+                  Terms
+                </Link>
+                <Link href="/privacy" style={{ fontSize: "10px", color: "var(--sidebar-faint)", textDecoration: "none" }}>
+                  Privacy
+                </Link>
+                <Link href="/cookies" style={{ fontSize: "10px", color: "var(--sidebar-faint)", textDecoration: "none" }}>
+                  Cookies
+                </Link>
+              </div>
             </div>
           </div>
-
-          <button
-            onClick={handleLogout}
-            style={{
-              width: "100%",
-              padding: "9px 12px",
-              borderRadius: "10px",
-              border: "1px solid var(--sidebar-border)",
-              background: "transparent",
-              color: "var(--sidebar-muted)",
-              fontSize: "12px",
-              fontWeight: 500,
-              fontFamily: "inherit",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-            }}
-          >
-            Sign out
-          </button>
         </div>
       </aside>
 
-      {/* Main */}
+      {/* Main area */}
       <main
         style={{
           minHeight: "100vh",
@@ -482,64 +490,88 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </svg>
           </button>
 
-          {/* Center stays empty/simple */}
           <div />
 
-          {/* Top-right 3 dots menu */}
-          <div style={{ position: "relative" }} ref={menuRef}>
-            <button
-              onClick={() => setMenuOpen((s) => !s)}
-              style={{
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                padding: "6px",
-                color: "var(--muted)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: "8px",
-              }}
-            >
-              <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
-                <circle cx="5" cy="12" r="1.8" />
-                <circle cx="12" cy="12" r="1.8" />
-                <circle cx="19" cy="12" r="1.8" />
-              </svg>
-            </button>
-
-            {menuOpen && (
-              <div
+          {/* Top right controls */}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            {/* 3 dots theme menu */}
+            <div style={{ position: "relative" }}>
+              <button
+                onClick={() => setMenuOpen((s) => !s)}
                 style={{
-                  position: "absolute",
-                  top: "38px",
-                  right: 0,
-                  width: "180px",
-                  background: "var(--card)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "12px",
-                  boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
-                  overflow: "hidden",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "6px",
+                  color: "var(--muted)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "8px",
                 }}
               >
-                <button
-                  onClick={toggleTheme}
+                <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+                  <circle cx="5" cy="12" r="1.8" />
+                  <circle cx="12" cy="12" r="1.8" />
+                  <circle cx="19" cy="12" r="1.8" />
+                </svg>
+              </button>
+
+              {menuOpen && (
+                <div
+                  ref={menuRef}
                   style={{
-                    width: "100%",
-                    textAlign: "left",
-                    padding: "11px 12px",
-                    border: "none",
-                    background: "transparent",
-                    color: "var(--text)",
-                    fontSize: "13px",
-                    fontFamily: "inherit",
-                    cursor: "pointer",
+                    position: "absolute",
+                    top: "40px",
+                    right: 0,
+                    minWidth: "180px",
+                    background: "var(--card)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "12px",
+                    boxShadow: "0 10px 24px rgba(0,0,0,0.10)",
+                    overflow: "hidden",
                   }}
                 >
-                  {theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
-                </button>
-              </div>
-            )}
+                  <button
+                    onClick={toggleTheme}
+                    style={{
+                      width: "100%",
+                      padding: "11px 14px",
+                      border: "none",
+                      background: "transparent",
+                      textAlign: "left",
+                      color: "var(--text)",
+                      fontSize: "13px",
+                      fontFamily: "inherit",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Account avatar with signout dropdown */}
+            <div style={{ position: "relative" }}>
+              <button
+                onClick={handleLogout}
+                title="Sign out"
+                style={{
+                  width: "34px",
+                  height: "34px",
+                  borderRadius: "999px",
+                  border: "1px solid var(--border)",
+                  background: "linear-gradient(135deg, #22C55E, #16A34A)",
+                  color: "#FFFFFF",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                {initials}
+              </button>
+            </div>
           </div>
         </div>
 
