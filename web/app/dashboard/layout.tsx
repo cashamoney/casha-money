@@ -356,7 +356,7 @@ export default function DashboardLayout({
                       color: active ? "#22C55E" : "#FFFFFF",
                       fontSize: "13px",
                       fontWeight: active ? 600 : 500,
-                      opacity: active ? 1 : 0.95,
+                      opacity: active ? 1 : 0.96,
                       transition: "all 0.15s ease",
                     }}
                   >
@@ -453,22 +453,23 @@ export default function DashboardLayout({
                 overflow: "hidden",
               }}
             >
-              <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--border)" }}>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    color: "var(--text)",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {userEmail}
-                </p>
+              {/* Email line */}
+              <div
+                style={{
+                  padding: "12px 14px",
+                  borderBottom: "1px solid var(--border)",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  color: "var(--text)",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {userEmail}
               </div>
 
+              {/* Logout first */}
               <button
                 onClick={handleLogout}
                 style={{
@@ -486,35 +487,36 @@ export default function DashboardLayout({
                 Sign out
               </button>
 
-              <div style={{ borderTop: "1px solid var(--border)", padding: "10px 14px" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    flexWrap: "wrap",
-                    fontSize: "11px",
-                    color: "var(--muted)",
-                    lineHeight: 1.4,
-                  }}
-                >
-                  <Link href="/terms" style={{ color: "var(--muted)", textDecoration: "none" }}>
-                    Terms of Use
-                  </Link>
-                  <Link href="/privacy" style={{ color: "var(--muted)", textDecoration: "none" }}>
-                    Privacy Policy
-                  </Link>
-                  <Link href="/cookies" style={{ color: "var(--muted)", textDecoration: "none" }}>
-                    Cookies
-                  </Link>
-                </div>
+              {/* Legal links in one line */}
+              <div
+                style={{
+                  borderTop: "1px solid var(--border)",
+                  padding: "10px 14px",
+                  fontSize: "11px",
+                  color: "var(--muted)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  flexWrap: "nowrap",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <Link href="/terms" style={{ color: "var(--muted)", textDecoration: "none" }}>
+                  Terms of Use
+                </Link>
+                <Link href="/privacy" style={{ color: "var(--muted)", textDecoration: "none" }}>
+                  Privacy Policy
+                </Link>
+                <Link href="/cookies" style={{ color: "var(--muted)", textDecoration: "none" }}>
+                  Cookies
+                </Link>
               </div>
             </div>
           )}
         </div>
       </aside>
 
-      {/* Main */}
+      {/* Main area */}
       <main
         style={{
           minHeight: "100vh",
@@ -539,7 +541,7 @@ export default function DashboardLayout({
             backdropFilter: "blur(10px)",
           }}
         >
-          {/* left side intentionally blank except mobile menu */}
+          {/* mobile only hamburger */}
           <button
             onClick={() => setSidebarOpen(true)}
             className="mobile-menu-btn"
@@ -560,7 +562,7 @@ export default function DashboardLayout({
 
           <div style={{ flex: 1 }} />
 
-          {/* Only 3 dots at top right */}
+          {/* top-right 3 dots only */}
           <div style={{ position: "relative" }} ref={topMenuRef}>
             <button
               onClick={() => setTopMenuOpen((s) => !s)}
