@@ -5,8 +5,7 @@ import { supabase } from "../../../lib/supabase";
 
 const fmt = (n: number) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n || 0);
 
-// ── CATEGORY SYSTEM ──
-const CATEGORIES: Record<string, { color: string; icon: JSX.Element }> = {
+const CATEGORIES: Record<string, { color: string; icon: React.ReactNode }> = {
   "Salary": { color: "#16A34A", icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg> },
   "Freelance": { color: "#22C55E", icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg> },
   "Investment Return": { color: "#15803D", icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg> },
@@ -44,7 +43,6 @@ function CatIcon({ category }: { category: string }) {
   return <div style={{ width: 36, height: 36, borderRadius: 10, background: `${m.color}14`, display: "flex", alignItems: "center", justifyContent: "center", color: m.color, flexShrink: 0 }}>{m.icon}</div>;
 }
 
-// ── DATE HELPERS ──
 function isToday(d: Date) { const t = new Date(); return d.getDate() === t.getDate() && d.getMonth() === t.getMonth() && d.getFullYear() === t.getFullYear(); }
 function isYesterday(d: Date) { const t = new Date(); t.setDate(t.getDate() - 1); return d.getDate() === t.getDate() && d.getMonth() === t.getMonth() && d.getFullYear() === t.getFullYear(); }
 function isThisWeek(d: Date) { const t = new Date(); const diff = (t.getTime() - d.getTime()) / (1000 * 60 * 60 * 24); return diff < 7 && !isToday(d) && !isYesterday(d); }
@@ -61,7 +59,6 @@ function groupTxns(txns: any[]) {
   return Object.entries(g).filter(([, v]) => v.length > 0);
 }
 
-// ── MAIN ──
 export default function TransactionsPage() {
   const [txns, setTxns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,7 +69,6 @@ export default function TransactionsPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(20);
 
-  // Form state
   const [fType, setFType] = useState("expense");
   const [fMerchant, setFMerchant] = useState("");
   const [fAmount, setFAmount] = useState("");
@@ -146,7 +142,6 @@ export default function TransactionsPage() {
 
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-      {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24 }}>
         <div>
           <p style={{ fontSize: 12, color: "var(--faint)", margin: "0 0 4px" }}>Dashboard</p>
@@ -158,7 +153,6 @@ export default function TransactionsPage() {
         </button>
       </div>
 
-      {/* Summary */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
         <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12, padding: 16 }}>
           <p style={{ fontSize: 10, fontWeight: 700, color: "var(--faint)", textTransform: "uppercase", margin: "0 0 4px" }}>Income</p>
@@ -177,7 +171,6 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      {/* Search & Filters */}
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ flex: 1, minWidth: 200, position: "relative" }}>
           <svg width="14" height="14" fill="none" stroke="var(--faint)" strokeWidth="2" viewBox="0 0 24 24" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }}><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>
@@ -196,18 +189,13 @@ export default function TransactionsPage() {
         </select>
       </div>
 
-      {/* Add / Edit Form */}
       {(showAdd || editId) && (
         <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 20, marginBottom: 20 }}>
           <h3 style={{ fontSize: 14, fontWeight: 700, margin: "0 0 16px" }}>{editId ? "Edit Transaction" : "New Transaction"}</h3>
-          
-          {/* Type Toggle */}
           <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
             <button onClick={() => { setFType("expense"); setFCat("Food Delivery"); }} style={{ flex: 1, padding: 10, borderRadius: 10, border: "2px solid", borderColor: fType === "expense" ? "#DC2626" : "var(--border)", background: fType === "expense" ? "rgba(220,38,38,0.06)" : "var(--bg)", color: fType === "expense" ? "#DC2626" : "var(--muted)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Expense</button>
             <button onClick={() => { setFType("income"); setFCat("Salary"); }} style={{ flex: 1, padding: 10, borderRadius: 10, border: "2px solid", borderColor: fType === "income" ? "#22C55E" : "var(--border)", background: fType === "income" ? "rgba(34,197,94,0.06)" : "var(--bg)", color: fType === "income" ? "#22C55E" : "var(--muted)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Income</button>
           </div>
-
-          {/* Merchant + Amount */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
             <div>
               <label style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", display: "block", marginBottom: 6 }}>Merchant / Description</label>
@@ -218,14 +206,10 @@ export default function TransactionsPage() {
               <input type="number" value={fAmount} onChange={e => setFAmount(e.target.value)} placeholder="0" style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13, outline: "none" }} />
             </div>
           </div>
-
-          {/* Date */}
           <div style={{ marginBottom: 16 }}>
             <label style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", display: "block", marginBottom: 6 }}>Date</label>
             <input type="date" value={fDate} onChange={e => setFDate(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13, outline: "none" }} />
           </div>
-
-          {/* Category Grid */}
           <div style={{ marginBottom: 16 }}>
             <label style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", display: "block", marginBottom: 8 }}>Category</label>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -241,8 +225,6 @@ export default function TransactionsPage() {
               })}
             </div>
           </div>
-
-          {/* Actions */}
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => editId ? handleUpdate(editId) : handleAdd()} disabled={saving} style={{ padding: "9px 20px", borderRadius: 8, background: "#22C55E", color: "#fff", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>{saving ? "Saving..." : editId ? "Update" : "Add Transaction"}</button>
             <button onClick={() => { setShowAdd(false); setEditId(null); resetForm(); }} style={{ padding: "9px 20px", borderRadius: 8, background: "var(--panel-alt)", color: "var(--text)", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>Cancel</button>
@@ -250,7 +232,6 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      {/* Transaction Groups */}
       {filtered.length === 0 ? (
         <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: "48px 20px", textAlign: "center" }}>
           <div style={{ width: 48, height: 48, borderRadius: 14, background: "var(--panel-alt)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
@@ -290,7 +271,6 @@ export default function TransactionsPage() {
               </div>
             </div>
           ))}
-
           {visibleCount < filtered.length && (
             <div style={{ textAlign: "center", marginTop: 8 }}>
               <button onClick={() => setVisibleCount(v => v + 20)} style={{ padding: "8px 20px", borderRadius: 10, background: "var(--card)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Load More</button>
