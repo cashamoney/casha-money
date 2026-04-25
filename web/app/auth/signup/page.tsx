@@ -100,7 +100,7 @@ export default function SignupPage() {
   });
 
   return (
-    <div className="signup-root" style={{ minHeight: "100vh", width: "100%", display: "grid", gridTemplateColumns: "43% 57%", fontFamily: "'Inter', system-ui, sans-serif", overflow: "hidden", background: "#F8FAFC" }}>
+    <div className="signup-root" style={{ height: "100vh", width: "100%", display: "grid", gridTemplateColumns: "43% 57%", fontFamily: "'Inter', system-ui, sans-serif", overflow: "hidden", background: "#F8FAFC" }}>
 
       {/* LEFT PANEL */}
       <div className="signup-left" style={{ background: "#0A0A0A", position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", padding: "34px 40px" }}>
@@ -161,7 +161,7 @@ export default function SignupPage() {
       </div>
 
       {/* RIGHT PANEL */}
-      <div className="signup-right" style={{ background: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", padding: "28px 40px", overflow: "auto" }}>
+      <div className="signup-right" style={{ background: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", padding: "28px 40px", overflow: "hidden" }}>
         <div style={{ width: "100%", maxWidth: "340px" }}>
 
           <div style={{ marginBottom: "20px" }}>
@@ -223,7 +223,7 @@ export default function SignupPage() {
             </div>
 
             <button type="submit" disabled={loading} style={{ width: "100%", height: "44px", borderRadius: "10px", border: "none", background: "#22C55E", color: "#FFFFFF", fontSize: "14px", fontWeight: 700, cursor: loading ? "wait" : "pointer", fontFamily: "inherit", opacity: loading ? 0.8 : 1, marginTop: "4px", boxShadow: "0 4px 12px rgba(34,197,94,0.26)" }}>
-              {loading ? "Creating account..." : "Create free account →"}
+              {loading ? "Creating account..." : "Create free account \u2192"}
             </button>
           </form>
 
@@ -266,61 +266,21 @@ export default function SignupPage() {
         @media (max-width: 900px) {
           .signup-root {
             grid-template-columns: 1fr !important;
-            grid-template-rows: auto 1fr !important;
-            height: auto !important;
-            min-height: 100vh !important;
+            height: 100vh !important;
           }
           .signup-left {
-            padding: 32px 24px !important;
-          }
-          .signup-left h1 {
-            font-size: 24px !important;
-          }
-          .signup-left > div > div:last-child {
             display: none !important;
           }
           .signup-right {
-            padding: 28px 24px !important;
-            min-height: auto !important;
-          }
-        }
-        @media (max-width: 640px) {
-          .signup-left {
-            padding: 24px 20px !important;
-          }
-          .signup-left h1 {
-            font-size: 22px !important;
-          }
-          .signup-left p {
-            font-size: 12px !important;
-          }
-          .signup-right {
-            padding: 24px 20px !important;
-          }
-          .signup-right > div {
-            max-width: 100% !important;
+            padding: 24px !important;
           }
         }
         @media (max-width: 480px) {
-          .signup-left {
-            padding: 20px 16px !important;
-          }
-          .signup-left h1 br + br {
-            display: none;
-          }
           .signup-right {
-            padding: 20px 16px !important;
+            padding: 16px !important;
           }
-        }
-        @media (max-width: 360px) {
-          .signup-left {
-            padding: 16px 12px !important;
-          }
-          .signup-left h1 {
-            font-size: 20px !important;
-          }
-          .signup-right {
-            padding: 16px 12px !important;
+          .signup-right > div {
+            max-width: 100% !important;
           }
         }
       `}</style>
