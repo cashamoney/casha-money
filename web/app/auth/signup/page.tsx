@@ -100,14 +100,12 @@ export default function SignupPage() {
   });
 
   return (
-    <div style={{ height: "100vh", width: "100%", display: "grid", gridTemplateColumns: "43% 57%", fontFamily: "'Inter', system-ui, sans-serif", overflow: "hidden", background: "#F8FAFC" }}>
+    <div className="signup-root" style={{ minHeight: "100vh", width: "100%", display: "grid", gridTemplateColumns: "43% 57%", fontFamily: "'Inter', system-ui, sans-serif", overflow: "hidden", background: "#F8FAFC" }}>
 
       {/* LEFT PANEL */}
-      <div style={{ background: "#0A0A0A", position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", padding: "34px 40px" }}>
+      <div className="signup-left" style={{ background: "#0A0A0A", position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", padding: "34px 40px" }}>
 
         <div style={{ position: "absolute", top: "-100px", right: "-100px", width: "320px", height: "320px", borderRadius: "50%", background: "radial-gradient(circle, rgba(34,197,94,0.08) 0%, transparent 70%)", pointerEvents: "none" }} />
-
-        {/* ALL CONTENT CENTERED */}
         <div style={{ width: "100%", position: "relative", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
 
           <a href="/" style={{ display: "block", textDecoration: "none", marginBottom: "24px" }}>
@@ -128,7 +126,6 @@ export default function SignupPage() {
             Track spending, save taxes, destroy debt, and get an AI advisor that actually knows your numbers.
           </p>
 
-          {/* BULLETS — each row centered as a unit, icon + text aligned */}
           <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "22px" }}>
             {LEFT_POINTS.map((item, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -144,7 +141,6 @@ export default function SignupPage() {
             ))}
           </div>
 
-          {/* STATS — centered */}
           <div style={{ width: "100%", maxWidth: "280px", paddingTop: "16px", borderTop: "1px solid rgba(255,255,255,0.08)", marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             {[
               { n: "618+", l: "early members" },
@@ -158,7 +154,6 @@ export default function SignupPage() {
             ))}
           </div>
 
-          {/* LEGAL */}
           <p style={{ margin: 0, fontSize: "11px", color: "rgba(255,255,255,0.16)", lineHeight: "1.5", maxWidth: "280px", textAlign: "center" }}>
             Casha is an educational financial management platform. Not investment, legal, or tax advice.
           </p>
@@ -166,7 +161,7 @@ export default function SignupPage() {
       </div>
 
       {/* RIGHT PANEL */}
-      <div style={{ background: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", padding: "28px 40px", overflow: "hidden" }}>
+      <div className="signup-right" style={{ background: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", padding: "28px 40px", overflow: "auto" }}>
         <div style={{ width: "100%", maxWidth: "340px" }}>
 
           <div style={{ marginBottom: "20px" }}>
@@ -205,7 +200,6 @@ export default function SignupPage() {
               <PasswordStrength password={form.password} />
             </div>
 
-            {/* CLEAN COUNTRY PICKER */}
             <div ref={countryRef}>
               <label style={{ display: "block", marginBottom: "4px", fontSize: "11px", fontWeight: 600, color: "#374151" }}>Country</label>
               <button type="button" onClick={() => setCountryOpen(v => !v)}
@@ -268,6 +262,67 @@ export default function SignupPage() {
         input::placeholder, textarea::placeholder { color: #C4C4C4; }
         ::selection { background: rgba(34,197,94,0.22); color: #0A0A0A; }
         ::-moz-selection { background: rgba(34,197,94,0.22); color: #0A0A0A; }
+
+        @media (max-width: 900px) {
+          .signup-root {
+            grid-template-columns: 1fr !important;
+            grid-template-rows: auto 1fr !important;
+            height: auto !important;
+            min-height: 100vh !important;
+          }
+          .signup-left {
+            padding: 32px 24px !important;
+          }
+          .signup-left h1 {
+            font-size: 24px !important;
+          }
+          .signup-left > div > div:last-child {
+            display: none !important;
+          }
+          .signup-right {
+            padding: 28px 24px !important;
+            min-height: auto !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .signup-left {
+            padding: 24px 20px !important;
+          }
+          .signup-left h1 {
+            font-size: 22px !important;
+          }
+          .signup-left p {
+            font-size: 12px !important;
+          }
+          .signup-right {
+            padding: 24px 20px !important;
+          }
+          .signup-right > div {
+            max-width: 100% !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .signup-left {
+            padding: 20px 16px !important;
+          }
+          .signup-left h1 br + br {
+            display: none;
+          }
+          .signup-right {
+            padding: 20px 16px !important;
+          }
+        }
+        @media (max-width: 360px) {
+          .signup-left {
+            padding: 16px 12px !important;
+          }
+          .signup-left h1 {
+            font-size: 20px !important;
+          }
+          .signup-right {
+            padding: 16px 12px !important;
+          }
+        }
       `}</style>
     </div>
   );
