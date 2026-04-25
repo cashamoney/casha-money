@@ -204,7 +204,7 @@ export default function Home() {
           <span style={{ fontSize: 12, fontWeight: 600, color: "#15803D" }}>AI-Powered Financial Intelligence</span>
         </div>
         <h1 style={{ fontSize: 48, fontWeight: 800, color: "#111", margin: "0 0 16px", letterSpacing: "-0.03em", lineHeight: 1.1 }}>
-          Your money,<br /><span style={{ color: "#22C55E"">one dashboard</span>
+          Your money,<br /><span style={{ color: "#22C55E" }}>one dashboard</span>
         </h1>
         <p style={{ fontSize: 17, color: "#6B7280", margin: "0 0 32px", lineHeight: 1.6 }}>Track spending, manage budgets, crush debts, and grow savings — all powered by AI that understands your finances.</p>
         <div style={{ display: "flex", justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
