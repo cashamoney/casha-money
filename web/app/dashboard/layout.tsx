@@ -82,7 +82,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div style={{ padding: "16px 0", borderBottom: "1px solid var(--sidebar-border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center" }}>
             <img src="/logo.png" alt="" style={{ width: 38, height: 38, objectFit: "contain", display: "block" }} />
-            <span style={{ fontSize: 17, fontWeight: 800, color: "var(--sidebar-text)", letterSpacing: "-0.03em", marginLeft: -2 }}>casha<span style={{ color: "#22C55E" }}>.money</span></span>
+            <span style={{ fontSize: 17, fontWeight: 800, color: "var(--sidebar-text)", letterSpacing: "-0.03em", marginLeft: -5 }}>casha<span style={{ color: "#22C55E" }}>.money</span></span>
           </Link>
         </div>
 
