@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../../../lib/supabase";
 
 const fmt = (n: number) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n || 0);
@@ -65,6 +65,7 @@ export default function TransactionsPage() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [catFilter, setCatFilter] = useState("all");
+  const [catOpen, setCatOpen] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(20);
@@ -76,7 +77,14 @@ export default function TransactionsPage() {
   const [fDate, setFDate] = useState(new Date().toISOString().split("T")[0]);
   const [saving, setSaving] = useState(false);
 
+  const catRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const h = (e: MouseEvent) => { if (catRef.current && !catRef.current.contains(e.target as Node)) setCatOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
 
   const load = async () => {
     const { data: u } = await supabase.auth.getUser();
@@ -137,6 +145,7 @@ export default function TransactionsPage() {
   };
 
   const activeCats = fType === "income" ? INCOME_CATS : EXPENSE_CATS;
+  const selectedCatMeta = catFilter !== "all" ? getCatMeta(catFilter) : null;
 
   if (loading) return <div style={{ height: "50vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)", fontSize: 13 }}>Loading...</div>;
 
@@ -171,6 +180,7 @@ export default function TransactionsPage() {
         </div>
       </div>
 
+      {/* Search & Filters */}
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ flex: 1, minWidth: 200, position: "relative" }}>
           <svg width="14" height="14" fill="none" stroke="var(--faint)" strokeWidth="2" viewBox="0 0 24 24" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }}><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>
@@ -183,12 +193,47 @@ export default function TransactionsPage() {
             </button>
           ))}
         </div>
-        <select value={catFilter} onChange={e => setCatFilter(e.target.value)} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--card)", color: "var(--text)", fontSize: 12, fontWeight: 500, outline: "none", cursor: "pointer" }}>
-          <option value="all">All Categories</option>
-          {allCats.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
+
+        {/* Premium Category Dropdown */}
+        <div ref={catRef} style={{ position: "relative" }}>
+          <button onClick={() => setCatOpen(v => !v)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--card)", color: catFilter !== "all" ? getCatMeta(catFilter).color : "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "0.15s" }}>
+            {selectedCatMeta ? (
+              <>
+                <div style={{ width: 20, height: 20, borderRadius: 5, background: `${selectedCatMeta.color}14`, display: "flex", alignItems: "center", justifyContent: "center", color: selectedCatMeta.color }}>{selectedCatMeta.icon}</div>
+                <span>{catFilter}</span>
+              </>
+            ) : (
+              <>
+                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
+                <span>All Categories</span>
+              </>
+            )}
+            <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ transform: catOpen ? "rotate(180deg)" : "rotate(0)", transition: "0.2s" }}><path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" /></svg>
+          </button>
+          {catOpen && (
+            <div style={{ position: "absolute", top: 42, right: 0, minWidth: 220, maxHeight: 320, overflowY: "auto", background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 10px 30px rgba(0,0,0,0.12)", zIndex: 20, padding: 6 }}>
+              <button onClick={() => { setCatFilter("all"); setCatOpen(false); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 8, border: "none", background: catFilter === "all" ? "var(--panel-alt)" : "transparent", color: "var(--text)", fontSize: 12, fontWeight: catFilter === "all" ? 600 : 500, cursor: "pointer", textAlign: "left" }}>
+                <div style={{ width: 22, height: 22, borderRadius: 6, background: "var(--panel-alt)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="12" height="12" fill="none" stroke="var(--muted)" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
+                </div>
+                All Categories
+              </button>
+              {allCats.map(c => {
+                const m = getCatMeta(c);
+                const sel = catFilter === c;
+                return (
+                  <button key={c} onClick={() => { setCatFilter(c); setCatOpen(false); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 8, border: "none", background: sel ? `${m.color}0D` : "transparent", color: sel ? m.color : "var(--text)", fontSize: 12, fontWeight: sel ? 600 : 500, cursor: "pointer", textAlign: "left" }}>
+                    <div style={{ width: 22, height: 22, borderRadius: 6, background: `${m.color}14`, display: "flex", alignItems: "center", justifyContent: "center", color: m.color }}>{m.icon}</div>
+                    {c}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
+      {/* Add / Edit Form */}
       {(showAdd || editId) && (
         <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 20, marginBottom: 20 }}>
           <h3 style={{ fontSize: 14, fontWeight: 700, margin: "0 0 16px" }}>{editId ? "Edit Transaction" : "New Transaction"}</h3>
@@ -232,14 +277,11 @@ export default function TransactionsPage() {
         </div>
       )}
 
+      {/* Transaction Groups */}
       {filtered.length === 0 ? (
-        <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: "48px 20px", textAlign: "center" }}>
-          <div style={{ width: 48, height: 48, borderRadius: 14, background: "var(--panel-alt)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
-            <svg width="22" height="22" fill="none" stroke="var(--muted)" strokeWidth="1.8" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M7 7h11m0 0-3-3m3 3-3 3M17 17H6m0 0 3 3m-3-3 3-3" /></svg>
-          </div>
-          <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", margin: "0 0 4px" }}>{search || typeFilter !== "all" || catFilter !== "all" ? "No transactions match your filters" : "No transactions yet"}</p>
-          <p style={{ fontSize: 12, color: "var(--faint)", margin: 0 }}>{search || typeFilter !== "all" || catFilter !== "all" ? "Try adjusting your search or filters" : "Add your first transaction to start tracking."}</p>
-        </div>
+        <p style={{ fontSize: 13, color: "var(--faint)", margin: "12px 0 0 2px" }}>
+          {search || typeFilter !== "all" || catFilter !== "all" ? "No transactions match your filters." : "No transactions yet. Add your first one above."}
+        </p>
       ) : (
         <>
           {groups.map(([label, items]) => (
