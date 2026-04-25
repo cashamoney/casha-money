@@ -79,9 +79,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {sidebarOpen && <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 40 }} />}
 
       <aside className="dash-sidebar" style={{ width: 244, position: "fixed", top: 0, left: 0, bottom: 0, background: "var(--sidebar)", borderRight: "1px solid var(--sidebar-border)", zIndex: 50, display: "flex", flexDirection: "column", transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)", transition: "transform 0.2s ease" }}>
-        <div style={{ padding: "16px 14px", borderBottom: "1px solid var(--sidebar-border)" }}>
-          <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 0 }}>
-            <img src="/logo.png" alt="" style={{ width: 38, height: 38, objectFit: "contain", marginRight: -3 }} />
+        <div style={{ padding: "16px 14px", borderBottom: "1px solid var(--sidebar-border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+            <img src="/logo.png" alt="" style={{ width: 38, height: 38, objectFit: "contain" }} />
             <span style={{ fontSize: 17, fontWeight: 800, color: "var(--sidebar-text)", letterSpacing: "-0.03em" }}>casha<span style={{ color: "#22C55E" }}>.money</span></span>
           </Link>
         </div>
