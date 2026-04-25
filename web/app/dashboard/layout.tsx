@@ -21,6 +21,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [dark, setDark] = useState(true);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("theme");
+    if (saved === "light") setDark(false);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+    localStorage.setItem("theme", dark ? "dark" : "light");
+  }, [dark]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -62,10 +73,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg)" }}>
       {sidebarOpen && (
-        <div
-          onClick={() => setSidebarOpen(false)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 40 }}
-        />
+        <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 40 }} />
       )}
 
       <aside className="dash-sidebar" style={sidebarStyle}>
@@ -114,6 +122,40 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <p style={{ fontSize: 10, color: "var(--faint)", margin: "1px 0 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.email || ""}</p>
             </div>
           </div>
+
+          {/* Dark / Light Toggle */}
+          <button
+            onClick={() => setDark(!dark)}
+            style={{
+              width: "100%",
+              padding: "7px 0",
+              borderRadius: 7,
+              background: "var(--panel-alt)",
+              border: "none",
+              cursor: "pointer",
+              color: "var(--muted)",
+              fontSize: 11,
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+              marginBottom: 6,
+            }}
+          >
+            {dark ? (
+              <>
+                <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                Light Mode
+              </>
+            ) : (
+              <>
+                <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                Dark Mode
+              </>
+            )}
+          </button>
+
           <button
             onClick={handleLogout}
             style={{
@@ -139,6 +181,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       <main style={{ flex: 1, marginLeft: 0, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+        {/* Mobile top bar */}
         <div
           className="mob-menu"
           style={{
@@ -162,7 +205,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
             <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>Casha</span>
           </div>
-          <div style={{ width: 30 }} />
+          {/* Mobile theme toggle */}
+          <button onClick={() => setDark(!dark)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text)", display: "flex", padding: 4 }}>
+            {dark ? (
+              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+            ) : (
+              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+            )}
+          </button>
         </div>
 
         <div style={{ flex: 1, padding: 24 }} className="main-content">
