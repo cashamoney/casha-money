@@ -8,6 +8,34 @@ import { ResponsiveContainer, AreaChart, Area, XAxis, Tooltip, PieChart, Pie, Ce
 const fmt = (n: number) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n || 0);
 const clr = ["#22C55E", "#3B82F6", "#8B5CF6", "#EC4899", "#F59E0B"];
 
+function ArrowLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "10px 12px",
+        borderRadius: 10,
+        background: "var(--panel-alt)",
+        textDecoration: "none",
+        fontSize: 13,
+        fontWeight: 600,
+        color: "var(--text)",
+        cursor: "pointer",
+        transition: "0.15s",
+      }}
+      className="arrow-link"
+    >
+      <span>{children}</span>
+      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="arrow-icon" style={{ color: "var(--faint)", transition: "0.15s", flexShrink: 0 }}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+      </svg>
+    </Link>
+  );
+}
+
 export default function OverviewPage() {
   const [user, setUser] = useState<any>(null);
   const [accounts, setAccounts] = useState<any[]>([]);
@@ -87,41 +115,49 @@ export default function OverviewPage() {
       {/* Top Grid */}
       <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 16, marginBottom: 20 }}>
         {/* Health Score */}
-        <div style={{ background: "linear-gradient(135deg, #111113 0%, #1a1a1e 100%)", borderRadius: 18, padding: 24, color: "#fff", boxShadow: "0 12px 30px rgba(0,0,0,0.15)", display: "flex", alignItems: "center", gap: 24, position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", top: -40, right: -40, width: 140, height: 140, background: "rgba(34,197,94,0.08)", filter: "blur(50px)", borderRadius: "50%" }} />
-          <div style={{ flex: 1, position: "relative", zIndex: 2 }}>
-            <p style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: 0.1, margin: "0 0 8px" }}>Financial Health</p>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 6 }}>
-              <span style={{ fontSize: 36, fontWeight: 800, color: "#22C55E", lineHeight: 1 }}>{hs}</span>
-              <span style={{ fontSize: 14, color: "rgba(255,255,255,0.25)" }}>/ 1000</span>
+        <Link href="/dashboard/overview" style={{ textDecoration: "none" }}>
+          <div style={{ background: "linear-gradient(135deg, #111113 0%, #1a1a1e 100%)", borderRadius: 18, padding: 24, color: "#fff", boxShadow: "0 12px 30px rgba(0,0,0,0.15)", display: "flex", alignItems: "center", gap: 24, position: "relative", overflow: "hidden", cursor: "pointer" }}>
+            <div style={{ position: "absolute", top: -40, right: -40, width: 140, height: 140, background: "rgba(34,197,94,0.08)", filter: "blur(50px)", borderRadius: "50%" }} />
+            <div style={{ flex: 1, position: "relative", zIndex: 2 }}>
+              <p style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: 0.1, margin: "0 0 8px" }}>Financial Health</p>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 6 }}>
+                <span style={{ fontSize: 36, fontWeight: 800, color: "#22C55E", lineHeight: 1 }}>{hs}</span>
+                <span style={{ fontSize: 14, color: "rgba(255,255,255,0.25)" }}>/ 1000</span>
+              </div>
+              <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", margin: 0 }}>Your finances are {hs >= 700 ? "strong" : hs >= 400 ? "stable" : "under pressure"}.</p>
             </div>
-            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", margin: 0 }}>Your finances are {hs >= 700 ? "strong" : hs >= 400 ? "stable" : "under pressure"}. Keep tracking consistently.</p>
-          </div>
-          <div style={{ width: 90, height: 90, borderRadius: "50%", background: `conic-gradient(#22C55E 0deg ${(hs / 1000) * 360}deg, rgba(255,255,255,0.06) ${(hs / 1000) * 360}deg 360deg)`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <div style={{ width: 66, height: 66, borderRadius: "50%", background: "#111113", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff" }}>
-              {hs >= 700 ? "Strong" : hs >= 400 ? "Stable" : "Weak"}
+            <div style={{ width: 90, height: 90, borderRadius: "50%", background: `conic-gradient(#22C55E 0deg ${(hs / 1000) * 360}deg, rgba(255,255,255,0.06) ${(hs / 1000) * 360}deg 360deg)`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <div style={{ width: 66, height: 66, borderRadius: "50%", background: "#111113", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff" }}>
+                {hs >= 700 ? "Strong" : hs >= 400 ? "Stable" : "Weak"}
+              </div>
             </div>
           </div>
-        </div>
+        </Link>
 
         {/* KPIs */}
         <div style={{ display: "grid", gridTemplateRows: "1fr 1fr", gap: 16 }}>
-          <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 18 }}>
-            <p style={{ fontSize: 10, fontWeight: 700, color: "var(--faint)", textTransform: "uppercase", letterSpacing: 0.06, margin: "0 0 6px" }}>Net Worth</p>
-            <p style={{ fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>{fmt(nw)}</p>
-            <p style={{ fontSize: 11, color: "var(--muted)", margin: "4px 0 0 0" }}>Assets {fmt(bal)} · Debt {fmt(debt)}</p>
-          </div>
+          <Link href="/dashboard/accounts" style={{ textDecoration: "none" }}>
+            <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 18, cursor: "pointer" }}>
+              <p style={{ fontSize: 10, fontWeight: 700, color: "var(--faint)", textTransform: "uppercase", letterSpacing: 0.06, margin: "0 0 6px" }}>Net Worth</p>
+              <p style={{ fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: "-0.02em", color: "var(--text)" }}>{fmt(nw)}</p>
+              <p style={{ fontSize: 11, color: "var(--muted)", margin: "4px 0 0 0" }}>Assets {fmt(bal)} · Debt {fmt(debt)}</p>
+            </div>
+          </Link>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 18 }}>
-              <p style={{ fontSize: 10, fontWeight: 700, color: "var(--faint)", textTransform: "uppercase", letterSpacing: 0.06, margin: "0 0 6px" }}>Income</p>
-              <p style={{ fontSize: 18, fontWeight: 800, color: "#22C55E", margin: 0 }}>{fmt(inc)}</p>
-              <p style={{ fontSize: 11, color: "var(--muted)", margin: "3px 0 0 0" }}>{sr}% saved</p>
-            </div>
-            <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 18 }}>
-              <p style={{ fontSize: 10, fontWeight: 700, color: "var(--faint)", textTransform: "uppercase", letterSpacing: 0.06, margin: "0 0 6px" }}>Spent</p>
-              <p style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>{fmt(exp)}</p>
-              <p style={{ fontSize: 11, color: inc > exp ? "var(--green-text)" : "#DC2626", margin: "3px 0 0 0" }}>{inc > exp ? `${fmt(inc - exp)} left` : "Over budget"}</p>
-            </div>
+            <Link href="/dashboard/transactions" style={{ textDecoration: "none" }}>
+              <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 18, cursor: "pointer" }}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: "var(--faint)", textTransform: "uppercase", letterSpacing: 0.06, margin: "0 0 6px" }}>Income</p>
+                <p style={{ fontSize: 18, fontWeight: 800, color: "#22C55E", margin: 0 }}>{fmt(inc)}</p>
+                <p style={{ fontSize: 11, color: "var(--muted)", margin: "3px 0 0 0" }}>{sr}% saved</p>
+              </div>
+            </Link>
+            <Link href="/dashboard/transactions" style={{ textDecoration: "none" }}>
+              <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 18, cursor: "pointer" }}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: "var(--faint)", textTransform: "uppercase", letterSpacing: 0.06, margin: "0 0 6px" }}>Spent</p>
+                <p style={{ fontSize: 18, fontWeight: 800, margin: 0, color: "var(--text)" }}>{fmt(exp)}</p>
+                <p style={{ fontSize: 11, color: inc > exp ? "var(--green-text)" : "#DC2626", margin: "3px 0 0 0" }}>{inc > exp ? `${fmt(inc - exp)} left` : "Over budget"}</p>
+              </div>
+            </Link>
           </div>
         </div>
       </div>
@@ -129,10 +165,16 @@ export default function OverviewPage() {
       {/* Charts */}
       <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 16, marginBottom: 20 }}>
         <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 20 }}>
-          <h3 style={{ fontSize: 13, fontWeight: 700, margin: "0 0 16px" }}>Cash Flow</h3>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <h3 style={{ fontSize: 13, fontWeight: 700, margin: 0 }}>Cash Flow</h3>
+            <Link href="/dashboard/budget" style={{ fontSize: 11, fontWeight: 600, color: "#22C55E", textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}>
+              Budget
+              <svg width="12" height="12" fill="none" stroke="#22C55E" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+            </Link>
+          </div>
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={series}>
-              <defs><linearGradient id="gI" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#22C55E" stopOpacity={0.15}/><stop offset="95%" stopColor="#22C55E" stopOpacity={0}/></linearGradient></defs>
+              <defs><linearGradient id="gI" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#22C55E" stopOpacity={0.15} /><stop offset="95%" stopColor="#22C55E" stopOpacity={0} /></linearGradient></defs>
               <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--faint)" }} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={{ background: "#000", border: "none", borderRadius: 8, color: "#fff", fontSize: 11 }} />
               <Area type="monotone" dataKey="income" stroke="#22C55E" strokeWidth={2} fill="url(#gI)" />
@@ -141,7 +183,13 @@ export default function OverviewPage() {
           </ResponsiveContainer>
         </div>
         <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 20 }}>
-          <h3 style={{ fontSize: 13, fontWeight: 700, margin: "0 0 16px" }}>Spending</h3>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <h3 style={{ fontSize: 13, fontWeight: 700, margin: 0 }}>Spending</h3>
+            <Link href="/dashboard/transactions" style={{ fontSize: 11, fontWeight: 600, color: "#22C55E", textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}>
+              Details
+              <svg width="12" height="12" fill="none" stroke="#22C55E" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+            </Link>
+          </div>
           {pie.length === 0 ? <div style={{ height: 200, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--faint)", fontSize: 12 }}>No data yet</div> : (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
               <ResponsiveContainer width="100%" height={140}>
@@ -158,23 +206,26 @@ export default function OverviewPage() {
       {/* Bottom */}
       <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 16 }}>
         <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 20 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
             <h3 style={{ fontSize: 13, fontWeight: 700, margin: 0 }}>Recent Transactions</h3>
-            <Link href="/dashboard/transactions" style={{ fontSize: 11, fontWeight: 600, color: "#22C55E", textDecoration: "none" }}>View all →</Link>
+            <Link href="/dashboard/transactions" style={{ fontSize: 11, fontWeight: 600, color: "#22C55E", textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}>
+              View all
+              <svg width="12" height="12" fill="none" stroke="#22C55E" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+            </Link>
           </div>
           {txns.length === 0 ? <p style={{ color: "var(--faint)", fontSize: 12 }}>No transactions yet</p> : (
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
               {txns.slice(0, 5).map((t, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: i < 4 ? "1px solid var(--tx-border)" : "none" }}>
+                <Link key={i} href="/dashboard/transactions" style={{ textDecoration: "none", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: i < 4 ? "1px solid var(--tx-border)" : "none", cursor: "pointer" }} className="tx-row">
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: t.transaction_type === "income" ? "rgba(34,197,94,0.1)" : "var(--panel-alt)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>{t.transaction_type === "income" ? "↑" : "↓"}</div>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: t.transaction_type === "income" ? "rgba(34,197,94,0.1)" : "var(--panel-alt)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: t.transaction_type === "income" ? "#16A34A" : "var(--muted)" }}>{t.transaction_type === "income" ? "↑" : "↓"}</div>
                     <div>
-                      <p style={{ fontSize: 13, fontWeight: 600, margin: 0 }}>{t.merchant_name || t.category}</p>
+                      <p style={{ fontSize: 13, fontWeight: 600, margin: 0, color: "var(--text)" }}>{t.merchant_name || t.category}</p>
                       <p style={{ fontSize: 11, color: "var(--faint)", margin: "2px 0 0 0" }}>{t.category} · {new Date(t.transaction_date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</p>
                     </div>
                   </div>
                   <p style={{ fontSize: 13, fontWeight: 700, color: t.transaction_type === "income" ? "#16A34A" : "var(--text)", margin: 0 }}>{t.transaction_type === "income" ? "+" : "-"}{fmt(Math.abs(Number(t.amount)))}</p>
-                </div>
+                </Link>
               ))}
             </div>
           )}
@@ -184,29 +235,45 @@ export default function OverviewPage() {
           <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 18 }}>
             <h3 style={{ fontSize: 13, fontWeight: 700, margin: "0 0 12px" }}>Quick Actions</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {[{ l: "Add transaction", p: "/dashboard/transactions" }, { l: "Ask AI advisor", p: "/dashboard/chat" }, { l: "Parse bank SMS", p: "/dashboard/sms" }].map((a, i) => (
-                <Link key={i} href={a.p} style={{ padding: "10px 12px", borderRadius: 8, background: "var(--panel-alt)", textDecoration: "none", fontSize: 12, fontWeight: 600, color: "var(--text)", display: "flex", justifyContent: "space-between" }}>{a.l} <span style={{ color: "var(--faint)" }}>→</span></Link>
-              ))}
+              <ArrowLink href="/dashboard/transactions">Add transaction</ArrowLink>
+              <ArrowLink href="/dashboard/chat">Ask AI advisor</ArrowLink>
+              <ArrowLink href="/dashboard/sms">Parse bank SMS</ArrowLink>
             </div>
           </div>
           {goals.length > 0 && (
-            <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 18 }}>
-              <h3 style={{ fontSize: 13, fontWeight: 700, margin: "0 0 12px" }}>Goals</h3>
-              {goals.slice(0, 2).map((g, i) => {
-                const p = Number(g.target_amount) > 0 ? (Number(g.current_amount || 0) / Number(g.target_amount)) * 100 : 0;
-                return <div key={i} style={{ marginBottom: 10 }}><div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}><span style={{ fontWeight: 600 }}>{g.name}</span><span style={{ color: "var(--faint)" }}>{p.toFixed(0)}%</span></div><div style={{ height: 5, borderRadius: 9, background: "var(--panel-alt)" }}><div style={{ width: `${Math.min(p, 100)}%`, height: "100%", borderRadius: 9, background: p >= 100 ? "#22C55E" : "#3B82F6" }} /></div></div>;
-              })}
-            </div>
+            <Link href="/dashboard/goals" style={{ textDecoration: "none" }}>
+              <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 18, cursor: "pointer" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                  <h3 style={{ fontSize: 13, fontWeight: 700, margin: 0, color: "var(--text)" }}>Goals</h3>
+                  <svg width="14" height="14" fill="none" stroke="#22C55E" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                </div>
+                {goals.slice(0, 2).map((g, i) => {
+                  const p = Number(g.target_amount) > 0 ? (Number(g.current_amount || 0) / Number(g.target_amount)) * 100 : 0;
+                  return <div key={i} style={{ marginBottom: 10 }}><div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}><span style={{ fontWeight: 600, color: "var(--text)" }}>{g.name}</span><span style={{ color: "var(--faint)" }}>{p.toFixed(0)}%</span></div><div style={{ height: 5, borderRadius: 9, background: "var(--panel-alt)" }}><div style={{ width: `${Math.min(p, 100)}%`, height: "100%", borderRadius: 9, background: p >= 100 ? "#22C55E" : "#3B82F6" }} /></div></div>;
+                })}
+              </div>
+            </Link>
           )}
           {debt > 0 && (
-            <div style={{ background: "var(--red-soft)", border: "1px solid var(--red-border)", borderRadius: 14, padding: 18 }}>
-              <p style={{ fontSize: 10, fontWeight: 700, color: "var(--red-text)", textTransform: "uppercase", margin: "0 0 4px" }}>Total Debt</p>
-              <p style={{ fontSize: 20, fontWeight: 800, color: "#DC2626", margin: 0 }}>{fmt(debt)}</p>
-              <p style={{ fontSize: 11, color: "var(--red-text)", margin: "3px 0 0 0" }}>{debts.length} active loan{debts.length > 1 ? "s" : ""}</p>
-            </div>
+            <Link href="/dashboard/debts" style={{ textDecoration: "none" }}>
+              <div style={{ background: "var(--red-soft)", border: "1px solid var(--red-border)", borderRadius: 14, padding: 18, cursor: "pointer" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: "var(--red-text)", textTransform: "uppercase", margin: 0 }}>Total Debt</p>
+                  <svg width="14" height="14" fill="none" stroke="var(--red-text)" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                </div>
+                <p style={{ fontSize: 20, fontWeight: 800, color: "#DC2626", margin: "4px 0 0 0" }}>{fmt(debt)}</p>
+                <p style={{ fontSize: 11, color: "var(--red-text)", margin: "3px 0 0 0" }}>{debts.length} active loan{debts.length > 1 ? "s" : ""}</p>
+              </div>
+            </Link>
           )}
         </div>
       </div>
+
+      <style>{`
+        .arrow-link:hover { background: var(--border) !important; }
+        .arrow-link:hover .arrow-icon { color: #22C55E !important; transform: translateX(2px); }
+        .tx-row:hover { background: var(--panel-alt); border-radius: 8px; }
+      `}</style>
     </div>
   );
 }

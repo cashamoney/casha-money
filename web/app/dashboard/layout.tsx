@@ -92,7 +92,48 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <p style={{ margin: "0 0 6px 8px", fontSize: 10, fontWeight: 700, letterSpacing: 0.1, textTransform: "uppercase", color: "var(--sidebar-faint)" }}>{g}</p>
               {items.map(i => {
                 const a = pathname === i.path;
-                return <Link key={i.path} href={i.path} onClick={() => setSidebarOpen(false)} style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 10px", borderRadius: 10, marginBottom: 2, textDecoration: "none", background: a ? "var(--sidebar-active-bg)" : "transparent", color: a ? "#22C55E" : "rgba(255,255,255,0.95)", fontSize: 13, fontWeight: a ? 600 : 500, transition: "0.15s" }}><span style={{ display: "flex", flexShrink: 0 }}>{i.icon}</span>{i.name}</Link>;
+                return (
+                  <Link
+                    key={i.path}
+                    href={i.path}
+                    onClick={() => setSidebarOpen(false)}
+                    className="nav-item"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 9,
+                      padding: "9px 10px",
+                      borderRadius: 10,
+                      marginBottom: 2,
+                      textDecoration: "none",
+                      background: a ? "var(--sidebar-active-bg)" : "transparent",
+                      color: a ? "#22C55E" : "rgba(255,255,255,0.95)",
+                      fontSize: 13,
+                      fontWeight: a ? 600 : 500,
+                      transition: "0.15s",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <span style={{ display: "flex", flexShrink: 0 }}>{i.icon}</span>
+                    <span style={{ flex: 1 }}>{i.name}</span>
+                    <svg
+                      width="14"
+                      height="14"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                      style={{
+                        flexShrink: 0,
+                        opacity: a ? 0.9 : 0,
+                        transform: a ? "translateX(0)" : "translateX(-4px)",
+                        transition: "0.2s",
+                      }}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                );
               })}
             </div>
           ))}
@@ -105,11 +146,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <p style={{ fontSize: 12, fontWeight: 600, color: "var(--sidebar-text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</p>
               <p style={{ fontSize: 10, color: "var(--sidebar-faint)", margin: "1px 0 0 0" }}>Free Plan</p>
             </div>
+            <svg width="14" height="14" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0, transform: accMenu ? "rotate(180deg)" : "rotate(0)", transition: "0.2s" }}><path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" /></svg>
           </button>
           {accMenu && (
             <div style={{ position: "absolute", left: 8, right: 8, bottom: 62, background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 10px 30px rgba(0,0,0,0.15)", overflow: "hidden" }}>
               <div style={{ padding: "10px 12px", borderBottom: "1px solid var(--border)", fontSize: 12, fontWeight: 600, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{email}</div>
-              <button onClick={async () => { await supabase.auth.signOut(); router.push("/"); }} style={{ width: "100%", textAlign: "left", padding: "10px 12px", border: "none", background: "transparent", color: "#DC2626", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Sign out</button>
+              <button onClick={async () => { await supabase.auth.signOut(); router.push("/"); }} style={{ width: "100%", textAlign: "left", padding: "10px 12px", border: "none", background: "transparent", color: "#DC2626", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+                <svg width="14" height="14" fill="none" stroke="#DC2626" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                Sign out
+              </button>
               <div style={{ borderTop: "1px solid var(--border)", padding: "8px 12px", display: "flex", gap: 10, fontSize: 11, color: "var(--muted)" }}>
                 <Link href="/terms" style={{ color: "var(--muted)", textDecoration: "none" }}>Terms of Use</Link>
                 <Link href="/privacy" style={{ color: "var(--muted)", textDecoration: "none" }}>Privacy Policy</Link>
@@ -134,6 +179,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
+        .nav-item:hover svg { opacity: 0.6 !important; transform: translateX(0) !important; }
         @media (min-width: 1024px) {
           .dash-sidebar { transform: translateX(0) !important; }
           .mob-menu { display: none !important; }
