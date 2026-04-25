@@ -80,7 +80,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       <aside className="dash-sidebar" style={{ width: 244, position: "fixed", top: 0, left: 0, bottom: 0, background: "var(--sidebar)", borderRight: "1px solid var(--sidebar-border)", zIndex: 50, display: "flex", flexDirection: "column", transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)", transition: "transform 0.2s ease" }}>
         <div style={{ padding: "16px 0", borderBottom: "1px solid var(--sidebar-border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center" }}>
+          <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", transform: "translateX(-3px)" }}>
             <img src="/logo.png" alt="" style={{ width: 38, height: 38, objectFit: "contain", display: "block" }} />
             <span style={{ fontSize: 17, fontWeight: 800, color: "var(--sidebar-text)", letterSpacing: "-0.03em", marginLeft: -5 }}>casha<span style={{ color: "#22C55E" }}>.money</span></span>
           </Link>
