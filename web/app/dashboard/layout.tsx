@@ -24,7 +24,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (!data?.user) { router.push("/login"); return; }
+      if (!data?.user) {
+        router.push("/login");
+        return;
+      }
       setUser(data.user);
     });
   }, [router]);
@@ -40,23 +43,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const displayName = user?.user_metadata?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || "User";
 
+  const sidebarStyle: React.CSSProperties = {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    bottom: 0,
+    width: 220,
+    background: "var(--sidebar)",
+    borderRight: "1px solid var(--border)",
+    display: "flex",
+    flexDirection: "column",
+    zIndex: 50,
+    transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)",
+    transition: "transform 0.25s ease",
+    overflowY: "auto",
+  };
+
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg)" }}>
       {sidebarOpen && (
-        <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 40 }} />
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 40 }}
+        />
       )}
 
-      <aside
-        className="dash-sidebar"
-        style={{
-          position: "fixed", top: 0, left: 0, bottom: 0, width: 220,
-          background: "var(--sidebar)", borderRight: "1px solid var(--border)",
-          display: "flex", flexDirection: "column", zIndex: 50,
-          transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)",
-          transition: "transform 0.25s ease",
-          overflowY: "auto",
-        }}
-      >
+      <aside className="dash-sidebar" style={sidebarStyle}>
         <div style={{ padding: "20px 20px 16px", display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 32, height: 32, borderRadius: 8, background: "#22C55E", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <svg width="18" height="18" fill="none" stroke="#fff" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V7m0 1v8m0 0v1" /></svg>
@@ -65,7 +77,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         <nav style={{ flex: 1, padding: "4px 10px", display: "flex", flexDirection: "column", gap: 2 }}>
-          {NAV.map(n => {
+          {NAV.map((n) => {
             const active = pathname === n.href;
             return (
               <Link
@@ -74,11 +86,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 onClick={() => setSidebarOpen(false)}
                 className="nav-item"
                 style={{
-                  display: "flex", alignItems: "center", gap: 10,
-                  padding: "9px 12px", borderRadius: 8,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "9px 12px",
+                  borderRadius: 8,
                   background: active ? "var(--nav-active)" : "transparent",
                   color: active ? "#22C55E" : "var(--nav-text)",
-                  textDecoration: "none", fontSize: 13, fontWeight: active ? 600 : 500,
+                  textDecoration: "none",
+                  fontSize: 13,
+                  fontWeight: active ? 600 : 500,
                   transition: "0.15s",
                 }}
               >
@@ -100,10 +117,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <button
             onClick={handleLogout}
             style={{
-              width: "100%", padding: "7px 0", borderRadius: 7,
-              background: "var(--panel-alt)", border: "none", cursor: "pointer",
-              color: "var(--muted)", fontSize: 11, fontWeight: 600,
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              width: "100%",
+              padding: "7px 0",
+              borderRadius: 7,
+              background: "var(--panel-alt)",
+              border: "none",
+              cursor: "pointer",
+              color: "var(--muted)",
+              fontSize: 11,
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
             }}
           >
             <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
@@ -116,9 +142,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div
           className="mob-menu"
           style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "12px 16px", borderBottom: "1px solid var(--border)",
-            background: "var(--bg)", position: "sticky", top: 0, zIndex: 30,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "12px 16px",
+            borderBottom: "1px solid var(--border)",
+            background: "var(--bg)",
+            position: "sticky",
+            top: 0,
+            zIndex: 30,
           }}
         >
           <button onClick={() => setSidebarOpen(true)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text)", display: "flex", padding: 4 }}>
