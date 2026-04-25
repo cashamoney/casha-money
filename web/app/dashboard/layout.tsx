@@ -42,21 +42,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg)" }}>
-      {/* Mobile overlay */}
       {sidebarOpen && (
-        <div
-          onClick={() => setSidebarOpen(false)}
-          style={{
-            position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 40,
-          }}
-        />
+        <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 40 }} />
       )}
 
-      {/* Sidebar */}
       <aside
         className="dash-sidebar"
         style={{
-          position: "fixed", top: 0, left: 0; bottom: 0, width: 220,
+          position: "fixed", top: 0, left: 0, bottom: 0, width: 220,
           background: "var(--sidebar)", borderRight: "1px solid var(--border)",
           display: "flex", flexDirection: "column", zIndex: 50,
           transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)",
@@ -64,7 +57,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           overflowY: "auto",
         }}
       >
-        {/* Logo */}
         <div style={{ padding: "20px 20px 16px", display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 32, height: 32, borderRadius: 8, background: "#22C55E", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <svg width="18" height="18" fill="none" stroke="#fff" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V7m0 1v8m0 0v1" /></svg>
@@ -72,7 +64,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <span style={{ fontSize: 15, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.02em" }}>Casha</span>
         </div>
 
-        {/* Nav */}
         <nav style={{ flex: 1, padding: "4px 10px", display: "flex", flexDirection: "column", gap: 2 }}>
           {NAV.map(n => {
             const active = pathname === n.href;
@@ -98,7 +89,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
         </nav>
 
-        {/* User */}
         <div style={{ padding: "12px 14px", borderTop: "1px solid var(--border)", marginTop: 4 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
             <div style={{ width: 32, height: 32, borderRadius: 8, background: "var(--panel-alt)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "var(--text)", flexShrink: 0 }}>{initials}</div>
@@ -122,9 +112,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
-      {/* Main area */}
       <main style={{ flex: 1, marginLeft: 0, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-        {/* Top bar for mobile */}
         <div
           className="mob-menu"
           style={{
@@ -133,10 +121,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             background: "var(--bg)", position: "sticky", top: 0, zIndex: 30,
           }}
         >
-          <button
-            onClick={() => setSidebarOpen(true)}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text)", display: "flex", padding: 4 }}
-          >
+          <button onClick={() => setSidebarOpen(true)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text)", display: "flex", padding: 4 }}>
             <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -148,14 +133,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div style={{ width: 30 }} />
         </div>
 
-        {/* Content */}
         <div style={{ flex: 1, padding: 24 }} className="main-content">
           {children}
         </div>
       </main>
 
       <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
         .nav-item:hover { background: var(--nav-hover) !important; }
         .nav-item:hover svg { opacity: 1 !important; }
         @media (min-width: 1024px) {
