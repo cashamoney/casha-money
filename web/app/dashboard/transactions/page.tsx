@@ -6,7 +6,7 @@ import { supabase } from "../../../lib/supabase";
 const fmt = (n: number) =>
   new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n || 0);
 
-const CATS = [
+const EXPENSE_CATS = [
   { value: "Food", label: "Food", color: "#F97316" },
   { value: "Shopping", label: "Shopping", color: "#8B5CF6" },
   { value: "Transport", label: "Transport", color: "#3B82F6" },
@@ -14,15 +14,37 @@ const CATS = [
   { value: "Entertainment", label: "Fun", color: "#EC4899" },
   { value: "Health", label: "Health", color: "#EF4444" },
   { value: "Education", label: "Education", color: "#6366F1" },
-  { value: "Salary", label: "Salary", color: "#22C55E" },
-  { value: "Freelance", label: "Freelance", color: "#06B6D4" },
-  { value: "Investment", label: "Invest", color: "#10B981" },
   { value: "Rent", label: "Rent", color: "#F59E0B" },
+  { value: "Travel", label: "Travel", color: "#06B6D4" },
+  { value: "Groceries", label: "Groceries", color: "#10B981" },
+  { value: "Subscriptions", label: "Subs", color: "#A855F7" },
   { value: "Other", label: "Other", color: "#6B7280" },
 ];
 
-function getCat(v: string) {
-  return CATS.find(c => c.value === v) || CATS[CATS.length - 1];
+const INCOME_CATS = [
+  { value: "Salary", label: "Salary", color: "#22C55E" },
+  { value: "Freelance", label: "Freelance", color: "#06B6D4" },
+  { value: "Investment", label: "Invest", color: "#10B981" },
+  { value: "Interest", label: "Interest", color: "#3B82F6" },
+  { value: "Dividend", label: "Dividend", color: "#8B5CF6" },
+  { value: "Gift", label: "Gift", color: "#EC4899" },
+  { value: "Refund", label: "Refund", color: "#F59E0B" },
+  { value: "Rental", label: "Rental", color: "#F97316" },
+  { value: "Bonus", label: "Bonus", color: "#6366F1" },
+  { value: "Other", label: "Other", color: "#6B7280" },
+];
+
+function getCats(type: string) {
+  return type === "income" ? INCOME_CATS : EXPENSE_CATS;
+}
+
+function getCat(v: string, type: string) {
+  const list = getCats(type);
+  return list.find(c => c.value === v) || list[list.length - 1];
+}
+
+function getCatAny(v: string) {
+  return EXPENSE_CATS.find(c => c.value === v) || INCOME_CATS.find(c => c.value === v) || EXPENSE_CATS[EXPENSE_CATS.length - 1];
 }
 
 function groupByDate(txns: any[]) {
@@ -48,6 +70,7 @@ export default function TransactionsPage() {
   const [txns, setTxns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "income" | "expense">("all");
   const [search, setSearch] = useState("");
   const [merchant, setMerchant] = useState("");
@@ -89,28 +112,62 @@ export default function TransactionsPage() {
   const mExp = mTx.filter(t => t.transaction_type === "expense").reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
   const mNet = mInc - mExp;
 
-  const handleAdd = async () => {
+  const resetForm = () => {
+    setMerchant(""); setAmount(""); setCategory("Food"); setTxType("expense"); setTxDate(new Date().toISOString().split("T")[0]); setNote(""); setError(""); setEditId(null);
+  };
+
+  const openAdd = () => { resetForm(); setShowForm(true); };
+
+  const openEdit = (t: any) => {
+    setEditId(t.id);
+    setMerchant(t.merchant_name || "");
+    setAmount(String(Math.abs(Number(t.amount))));
+    setTxType(t.transaction_type || "expense");
+    setCategory(t.category || "Other");
+    setTxDate(t.transaction_date ? t.transaction_date.split("T")[0] : new Date().toISOString().split("T")[0]);
+    setNote(t.note || "");
+    setError("");
+    setShowForm(true);
+  };
+
+  const handleSave = async () => {
     if (!merchant.trim() || !amount) return;
     setSaving(true); setError("");
     const { data: u } = await supabase.auth.getUser();
     if (!u?.user) { setSaving(false); return; }
-    const { error: err } = await supabase.from("transactions").insert({
-      user_id: u.user.id,
-      merchant_name: merchant.trim(),
-      amount: txType === "expense" ? -Math.abs(Number(amount)) : Math.abs(Number(amount)),
-      transaction_type: txType,
-      category,
-      transaction_date: txDate,
-      note: note.trim(),
-    });
-    if (err) { setError(err.message); setSaving(false); return; }
-    setMerchant(""); setAmount(""); setCategory("Food"); setTxType("expense"); setTxDate(new Date().toISOString().split("T")[0]); setNote(""); setShowForm(false); setSaving(false); load();
+
+    if (editId) {
+      const { error: err } = await supabase.from("transactions").update({
+        merchant_name: merchant.trim(),
+        amount: txType === "expense" ? -Math.abs(Number(amount)) : Math.abs(Number(amount)),
+        transaction_type: txType,
+        category,
+        transaction_date: txDate,
+        note: note.trim(),
+      }).eq("id", editId);
+      if (err) { setError(err.message); setSaving(false); return; }
+    } else {
+      const { error: err } = await supabase.from("transactions").insert({
+        user_id: u.user.id,
+        merchant_name: merchant.trim(),
+        amount: txType === "expense" ? -Math.abs(Number(amount)) : Math.abs(Number(amount)),
+        transaction_type: txType,
+        category,
+        transaction_date: txDate,
+        note: note.trim(),
+      });
+      if (err) { setError(err.message); setSaving(false); return; }
+    }
+
+    resetForm(); setShowForm(false); setSaving(false); load();
   };
 
   const handleDelete = async (id: string) => {
     await supabase.from("transactions").delete().eq("id", id);
     load();
   };
+
+  const currentCats = getCats(txType);
 
   if (loading) return (
     <div style={{ height: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -129,7 +186,7 @@ export default function TransactionsPage() {
             <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 }}>Transactions</h1>
             <p style={{ fontSize: 13, color: "var(--muted)", margin: "3px 0 0 0" }}>{txns.length} total</p>
           </div>
-          <button onClick={() => { setShowForm(true); setError(""); }}
+          <button onClick={openAdd}
             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 18px", borderRadius: 8, border: "none", background: "#22C55E", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "background 0.15s" }}
             onMouseEnter={e => e.currentTarget.style.background = "#16A34A"}
             onMouseLeave={e => e.currentTarget.style.background = "#22C55E"}>
@@ -179,7 +236,7 @@ export default function TransactionsPage() {
             </div>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 4px" }}>No transactions yet</h2>
             <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 18px", maxWidth: 280, marginLeft: "auto", marginRight: "auto", lineHeight: 1.5 }}>Start tracking your money by adding your first transaction.</p>
-            <button onClick={() => { setShowForm(true); setError(""); }} style={{ padding: "9px 20px", borderRadius: 8, border: "none", background: "#22C55E", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Add transaction</button>
+            <button onClick={openAdd} style={{ padding: "9px 20px", borderRadius: 8, border: "none", background: "#22C55E", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Add transaction</button>
           </div>
         ) : groups.length === 0 ? (
           <div style={{ textAlign: "center", padding: "40px 24px" }}>
@@ -194,7 +251,7 @@ export default function TransactionsPage() {
               </div>
               <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
                 {g.items.map((t, i) => {
-                  const cat = getCat(t.category);
+                  const cat = getCatAny(t.category);
                   const amt = Math.abs(Number(t.amount));
                   const isInc = t.transaction_type === "income";
                   return (
@@ -210,6 +267,12 @@ export default function TransactionsPage() {
                         {t.note && <p style={{ fontSize: 11, color: "var(--muted)", margin: "2px 0 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.note}</p>}
                       </div>
                       <p style={{ fontSize: 13, fontWeight: 700, color: isInc ? "#22C55E" : "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{isInc ? "+" : "-"}{fmt(amt)}</p>
+                      <button onClick={() => openEdit(t)}
+                        style={{ width: 24, height: 24, borderRadius: 5, border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "transparent", transition: "color 0.12s", flexShrink: 0 }}
+                        onMouseEnter={e => e.currentTarget.style.color = "var(--muted)"}
+                        onMouseLeave={e => e.currentTarget.style.color = "transparent"}>
+                        <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z" /></svg>
+                      </button>
                       <button onClick={() => handleDelete(t.id)}
                         style={{ width: 24, height: 24, borderRadius: 5, border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "transparent", transition: "color 0.12s", flexShrink: 0 }}
                         onMouseEnter={e => e.currentTarget.style.color = "#EF4444"}
@@ -228,12 +291,12 @@ export default function TransactionsPage() {
       {/* Modal */}
       {showForm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: 20 }}
-          onClick={() => setShowForm(false)}>
+          onClick={() => { setShowForm(false); resetForm(); }}>
           <div className="xm" style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, width: "100%", maxWidth: 400, maxHeight: "90vh", overflowY: "auto" }}
             onClick={e => e.stopPropagation()}>
             <div style={{ padding: "18px 22px 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: 0 }}>New Transaction</h2>
-              <button onClick={() => setShowForm(false)} style={{ width: 26, height: 26, borderRadius: 6, border: "1px solid var(--border)", background: "var(--card)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>
+              <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: 0 }}>{editId ? "Edit Transaction" : "New Transaction"}</h2>
+              <button onClick={() => { setShowForm(false); resetForm(); }} style={{ width: 26, height: 26, borderRadius: 6, border: "1px solid var(--border)", background: "var(--card)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>
                 <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
@@ -245,7 +308,7 @@ export default function TransactionsPage() {
               )}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, marginBottom: 14 }}>
                 {(["expense", "income"] as const).map(t => (
-                  <button key={t} onClick={() => setTxType(t)}
+                  <button key={t} onClick={() => { setTxType(t); setCategory(getCats(t)[0].value); }}
                     style={{ padding: "8px", borderRadius: 6, border: "1px solid " + (txType === t ? "#22C55E" : "var(--border)"), background: txType === t ? "rgba(34,197,94,0.08)" : "var(--bg)", color: txType === t ? "#22C55E" : "var(--muted)", fontSize: 12, fontWeight: txType === t ? 600 : 400, cursor: "pointer", fontFamily: "inherit", transition: "0.1s", textTransform: "capitalize" }}>
                     {t === "income" ? "+ " : "\u2212 "}{t}
                   </button>
@@ -253,7 +316,7 @@ export default function TransactionsPage() {
               </div>
               <div style={{ marginBottom: 10 }}>
                 <label style={{ display: "block", marginBottom: 4, fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.05 }}>Merchant / Description</label>
-                <input type="text" required value={merchant} onChange={e => setMerchant(e.target.value)} placeholder="e.g. Swiggy, Salary"
+                <input type="text" required value={merchant} onChange={e => setMerchant(e.target.value)} placeholder={txType === "income" ? "e.g. Company, Client" : "e.g. Swiggy, Uber"}
                   style={{ width: "100%", height: 38, borderRadius: 6, padding: "0 12px", fontSize: 13, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", boxSizing: "border-box", transition: "border-color 0.15s" }}
                   onFocus={e => e.currentTarget.style.borderColor = "#22C55E"}
                   onBlur={e => e.currentTarget.style.borderColor = "var(--border)"} />
@@ -268,7 +331,7 @@ export default function TransactionsPage() {
               <div style={{ marginBottom: 10 }}>
                 <label style={{ display: "block", marginBottom: 4, fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.05 }}>Category</label>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                  {CATS.map(c => (
+                  {currentCats.map(c => (
                     <button key={c.value} onClick={() => setCategory(c.value)}
                       style={{ padding: "5px 10px", borderRadius: 5, border: "1px solid " + (category === c.value ? c.color : "var(--border)"), background: category === c.value ? c.color + "14" : "var(--bg)", color: category === c.value ? c.color : "var(--muted)", fontSize: 11, fontWeight: category === c.value ? 600 : 400, cursor: "pointer", fontFamily: "inherit", transition: "0.1s", display: "flex", alignItems: "center", gap: 4 }}>
                       <span style={{ width: 5, height: 5, borderRadius: 5, background: c.color, flexShrink: 0 }} />{c.label}
@@ -290,11 +353,11 @@ export default function TransactionsPage() {
                   onFocus={e => e.currentTarget.style.borderColor = "#22C55E"}
                   onBlur={e => e.currentTarget.style.borderColor = "var(--border)"} />
               </div>
-              <button onClick={handleAdd} disabled={saving}
+              <button onClick={handleSave} disabled={saving}
                 style={{ width: "100%", height: 40, borderRadius: 8, border: "none", background: "#22C55E", color: "#fff", fontSize: 13, fontWeight: 600, cursor: saving ? "wait" : "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1, transition: "background 0.15s" }}
                 onMouseEnter={e => e.currentTarget.style.background = "#16A34A"}
                 onMouseLeave={e => e.currentTarget.style.background = "#22C55E"}>
-                {saving ? "Saving..." : "Add Transaction"}
+                {saving ? "Saving..." : editId ? "Update Transaction" : "Add Transaction"}
               </button>
             </div>
           </div>
