@@ -23,6 +23,7 @@ export default function AccountsPage() {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [type, setType] = useState("Bank");
   const [balance, setBalance] = useState("");
@@ -49,23 +50,48 @@ export default function AccountsPage() {
     total: accounts.filter(a => a.account_type === t.value).reduce((s, a) => s + Number(a.current_balance || 0), 0),
   })).filter(g => g.items.length > 0);
 
-  const handleAdd = async () => {
-    if (!name.trim() || !balance) return;
-    setSaving(true);
+  const resetForm = () => {
+    setName(""); setType("Bank"); setBalance(""); setError(""); setEditId(null);
+  };
+
+  const openAdd = () => { resetForm(); setShowForm(true); };
+
+  const openEdit = (a: any) => {
+    setEditId(a.id);
+    setName(a.name || a.account_name || "");
+    setType(a.account_type || "Bank");
+    setBalance(String(Number(a.current_balance || 0)));
     setError("");
+    setShowForm(true);
+  };
+
+  const handleSave = async () => {
+    if (!name.trim() || !balance) return;
+    setSaving(true); setError("");
     const { data: u } = await supabase.auth.getUser();
     if (!u?.user) { setSaving(false); return; }
-    const { error: err } = await supabase.from("accounts").insert({
-      user_id: u.user.id,
-      name: name.trim(),
-      account_type: type,
-      current_balance: Number(balance),
-      currency: "INR",
-      color: "#22C55E",
-      is_active: true,
-    });
-    if (err) { setError(err.message); setSaving(false); return; }
-    setName(""); setType("Bank"); setBalance(""); setShowForm(false); setSaving(false); load();
+
+    if (editId) {
+      const { error: err } = await supabase.from("accounts").update({
+        name: name.trim(),
+        account_type: type,
+        current_balance: Number(balance),
+      }).eq("id", editId);
+      if (err) { setError(err.message); setSaving(false); return; }
+    } else {
+      const { error: err } = await supabase.from("accounts").insert({
+        user_id: u.user.id,
+        name: name.trim(),
+        account_type: type,
+        current_balance: Number(balance),
+        currency: "INR",
+        color: "#22C55E",
+        is_active: true,
+      });
+      if (err) { setError(err.message); setSaving(false); return; }
+    }
+
+    resetForm(); setShowForm(false); setSaving(false); load();
   };
 
   const handleDelete = async (id: string) => {
@@ -92,7 +118,7 @@ export default function AccountsPage() {
             <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 }}>Accounts</h1>
             <p style={{ fontSize: 13, color: "var(--muted)", margin: "3px 0 0 0" }}>Manage your financial accounts</p>
           </div>
-          <button onClick={() => { setShowForm(true); setError(""); }}
+          <button onClick={openAdd}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               padding: "9px 18px", borderRadius: 8, border: "none",
@@ -152,19 +178,27 @@ export default function AccountsPage() {
                   <div key={a.id}
                     style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, padding: "14px 16px", transition: "border-color 0.15s" }}
                     onMouseEnter={e => e.currentTarget.style.borderColor = "#22C55E"}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border)"}>
+                    onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border)">
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
                       <div style={{ width: 32, height: 32, borderRadius: 7, background: "var(--bg)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", color: "#22C55E", flexShrink: 0 }}>{meta.icon}</div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{accountName}</p>
                         <p style={{ fontSize: 10, color: "var(--muted)", margin: "1px 0 0 0" }}>{meta.label}</p>
                       </div>
-                      <button onClick={() => handleDelete(a.id)}
-                        style={{ width: 24, height: 24, borderRadius: 5, border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--border)", transition: "color 0.12s", flexShrink: 0 }}
-                        onMouseEnter={e => e.currentTarget.style.color = "#EF4444"}
-                        onMouseLeave={e => e.currentTarget.style.color = "var(--border)"}>
-                        <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      </button>
+                      <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+                        <button onClick={() => openEdit(a)}
+                          style={{ width: 24, height: 24, borderRadius: 5, border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "transparent", transition: "color 0.12s" }}
+                          onMouseEnter={e => e.currentTarget.style.color = "var(--muted)"}
+                          onMouseLeave={e => e.currentTarget.style.color = "transparent"}>
+                          <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z" /></svg>
+                        </button>
+                        <button onClick={() => handleDelete(a.id)}
+                          style={{ width: 24, height: 24, borderRadius: 5, border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "transparent", transition: "color 0.12s" }}
+                          onMouseEnter={e => e.currentTarget.style.color = "#EF4444"}
+                          onMouseLeave={e => e.currentTarget.style.color = "transparent"}>
+                          <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                      </div>
                     </div>
                     <p style={{ fontSize: 18, fontWeight: 700, color: bal >= 0 ? "var(--text)" : "#EF4444", margin: 0, fontVariantNumeric: "tabular-nums" }}>{fmt(bal)}</p>
                   </div>
@@ -182,7 +216,7 @@ export default function AccountsPage() {
             </div>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 4px" }}>No accounts yet</h2>
             <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 18px", maxWidth: 280, marginLeft: "auto", marginRight: "auto", lineHeight: 1.5 }}>Add your bank, card, or investment to get started.</p>
-            <button onClick={() => { setShowForm(true); setError(""); }}
+            <button onClick={openAdd}
               style={{ padding: "9px 20px", borderRadius: 8, border: "none", background: "#22C55E", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
               Add your first account
             </button>
@@ -193,12 +227,12 @@ export default function AccountsPage() {
       {/* Modal */}
       {showForm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: 20 }}
-          onClick={() => setShowForm(false)}>
+          onClick={() => { setShowForm(false); resetForm(); }}>
           <div className="xm" style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, width: "100%", maxWidth: 400, maxHeight: "90vh", overflowY: "auto" }}
             onClick={e => e.stopPropagation()}>
             <div style={{ padding: "18px 22px 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: 0 }}>New Account</h2>
-              <button onClick={() => setShowForm(false)} style={{ width: 26, height: 26, borderRadius: 6, border: "1px solid var(--border)", background: "var(--card)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>
+              <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: 0 }}>{editId ? "Edit Account" : "New Account"}</h2>
+              <button onClick={() => { setShowForm(false); resetForm(); }} style={{ width: 26, height: 26, borderRadius: 6, border: "1px solid var(--border)", background: "var(--card)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>
                 <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
@@ -235,11 +269,11 @@ export default function AccountsPage() {
                   onFocus={e => e.currentTarget.style.borderColor = "#22C55E"}
                   onBlur={e => e.currentTarget.style.borderColor = "var(--border)"} />
               </div>
-              <button onClick={handleAdd} disabled={saving}
+              <button onClick={handleSave} disabled={saving}
                 style={{ width: "100%", height: 40, borderRadius: 8, border: "none", background: "#22C55E", color: "#fff", fontSize: 13, fontWeight: 600, cursor: saving ? "wait" : "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1, transition: "background 0.15s" }}
                 onMouseEnter={e => e.currentTarget.style.background = "#16A34A"}
                 onMouseLeave={e => e.currentTarget.style.background = "#22C55E"}>
-                {saving ? "Saving..." : "Add Account"}
+                {saving ? "Saving..." : editId ? "Update Account" : "Add Account"}
               </button>
             </div>
           </div>
