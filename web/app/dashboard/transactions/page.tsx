@@ -173,7 +173,6 @@ export default function TransactionsPage() {
     <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
       <div className="xw" style={{ maxWidth: 860, margin: "0 auto", padding: "28px 24px 64px" }}>
 
-        {/* Header */}
         <div className="xh" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 }}>Transactions</h1>
@@ -188,7 +187,6 @@ export default function TransactionsPage() {
           </button>
         </div>
 
-        {/* Summary */}
         <div className="xsum" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 20 }}>
           <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, padding: "14px 16px" }}>
             <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", margin: "0 0 4px", textTransform: "uppercase", letterSpacing: 0.05 }}>Income · {monthLabel}</p>
@@ -204,7 +202,6 @@ export default function TransactionsPage() {
           </div>
         </div>
 
-        {/* Search + Filters */}
         <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
           <div style={{ flex: 1, minWidth: 200, position: "relative" }}>
             <svg width="14" height="14" fill="none" stroke="var(--muted)" strokeWidth="1.5" viewBox="0 0 24 24" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}><circle cx="11" cy="11" r="8" /><path strokeLinecap="round" d="M21 21l-4.35-4.35" /></svg>
@@ -221,7 +218,6 @@ export default function TransactionsPage() {
           ))}
         </div>
 
-        {/* List */}
         {groups.length === 0 && txns.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 24px 40px" }}>
             <div style={{ width: 48, height: 48, borderRadius: 10, background: "var(--card)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px", color: "#22C55E" }}>
@@ -259,19 +255,21 @@ export default function TransactionsPage() {
                         </div>
                         {t.note && <p style={{ fontSize: 11, color: "var(--muted)", margin: "2px 0 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.note}</p>}
                       </div>
-                      <button onClick={() => openEdit(t)}
-                        style={{ width: 24, height: 24, borderRadius: 5, border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "transparent", transition: "color 0.12s", flexShrink: 0 }}
-                        onMouseEnter={e => e.currentTarget.style.color = "var(--muted)"}
-                        onMouseLeave={e => e.currentTarget.style.color = "transparent"}>
-                        <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z" /></svg>
-                      </button>
-                      <button onClick={() => handleDelete(t.id)}
-                        style={{ width: 24, height: 24, borderRadius: 5, border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "transparent", transition: "color 0.12s", flexShrink: 0 }}
-                        onMouseEnter={e => e.currentTarget.style.color = "#EF4444"}
-                        onMouseLeave={e => e.currentTarget.style.color = "transparent"}>
-                        <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                      </button>
-                      <p style={{ fontSize: 13, fontWeight: 700, color: isInc ? "#22C55E" : "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums", flexShrink: 0, minWidth: 80, textAlign: "right" }}>{isInc ? "+" : "-"}{fmt(amt)}</p>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                        <button onClick={() => openEdit(t)}
+                          style={{ width: 24, height: 24, borderRadius: 5, border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "transparent", transition: "color 0.12s" }}
+                          onMouseEnter={e => e.currentTarget.style.color = "var(--muted)"}
+                          onMouseLeave={e => e.currentTarget.style.color = "transparent"}>
+                          <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z" /></svg>
+                        </button>
+                        <button onClick={() => handleDelete(t.id)}
+                          style={{ width: 24, height: 24, borderRadius: 5, border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "transparent", transition: "color 0.12s" }}
+                          onMouseEnter={e => e.currentTarget.style.color = "#EF4444"}
+                          onMouseLeave={e => e.currentTarget.style.color = "transparent"}>
+                          <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: isInc ? "#22C55E" : "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums", minWidth: 80, textAlign: "right" }}>{isInc ? "+" : "-"}{fmt(amt)}</p>
+                      </div>
                     </div>
                   );
                 })}
@@ -281,7 +279,6 @@ export default function TransactionsPage() {
         )}
       </div>
 
-      {/* Modal */}
       {showForm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: 20 }}
           onClick={() => { setShowForm(false); resetForm(); }}>
