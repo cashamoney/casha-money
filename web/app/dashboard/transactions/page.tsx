@@ -38,11 +38,6 @@ function getCats(type: string) {
   return type === "income" ? INCOME_CATS : EXPENSE_CATS;
 }
 
-function getCat(v: string, type: string) {
-  const list = getCats(type);
-  return list.find(c => c.value === v) || list[list.length - 1];
-}
-
 function getCatAny(v: string) {
   return EXPENSE_CATS.find(c => c.value === v) || INCOME_CATS.find(c => c.value === v) || EXPENSE_CATS[EXPENSE_CATS.length - 1];
 }
@@ -167,8 +162,6 @@ export default function TransactionsPage() {
     load();
   };
 
-  const currentCats = getCats(txType);
-
   if (loading) return (
     <div style={{ height: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ width: 22, height: 22, border: "2px solid var(--border)", borderTopColor: "#22C55E", borderRadius: "50%", animation: "xsp 0.6s linear infinite" }} />
@@ -184,7 +177,7 @@ export default function TransactionsPage() {
         <div className="xh" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 }}>Transactions</h1>
-            <p style={{ fontSize: 13, color: "var(--muted)", margin: "3px 0 0 0" }}>{txns.length} total</p>
+            <p style={{ fontSize: 13, color: "var(--muted)", margin: "3px 0 0 0" }}>Track your income and expenses</p>
           </div>
           <button onClick={openAdd}
             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 18px", borderRadius: 8, border: "none", background: "#22C55E", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "background 0.15s" }}
@@ -266,7 +259,6 @@ export default function TransactionsPage() {
                         </div>
                         {t.note && <p style={{ fontSize: 11, color: "var(--muted)", margin: "2px 0 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.note}</p>}
                       </div>
-                      <p style={{ fontSize: 13, fontWeight: 700, color: isInc ? "#22C55E" : "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{isInc ? "+" : "-"}{fmt(amt)}</p>
                       <button onClick={() => openEdit(t)}
                         style={{ width: 24, height: 24, borderRadius: 5, border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "transparent", transition: "color 0.12s", flexShrink: 0 }}
                         onMouseEnter={e => e.currentTarget.style.color = "var(--muted)"}
@@ -279,6 +271,7 @@ export default function TransactionsPage() {
                         onMouseLeave={e => e.currentTarget.style.color = "transparent"}>
                         <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                       </button>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: isInc ? "#22C55E" : "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums", flexShrink: 0, minWidth: 80, textAlign: "right" }}>{isInc ? "+" : "-"}{fmt(amt)}</p>
                     </div>
                   );
                 })}
@@ -331,7 +324,7 @@ export default function TransactionsPage() {
               <div style={{ marginBottom: 10 }}>
                 <label style={{ display: "block", marginBottom: 4, fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.05 }}>Category</label>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                  {currentCats.map(c => (
+                  {getCats(txType).map(c => (
                     <button key={c.value} onClick={() => setCategory(c.value)}
                       style={{ padding: "5px 10px", borderRadius: 5, border: "1px solid " + (category === c.value ? c.color : "var(--border)"), background: category === c.value ? c.color + "14" : "var(--bg)", color: category === c.value ? c.color : "var(--muted)", fontSize: 11, fontWeight: category === c.value ? 600 : 400, cursor: "pointer", fontFamily: "inherit", transition: "0.1s", display: "flex", alignItems: "center", gap: 4 }}>
                       <span style={{ width: 5, height: 5, borderRadius: 5, background: c.color, flexShrink: 0 }} />{c.label}
