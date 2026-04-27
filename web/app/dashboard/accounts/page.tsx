@@ -23,6 +23,7 @@ export default function AccountsPage() {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [type, setType] = useState("Bank");
   const [balance, setBalance] = useState("");
@@ -49,23 +50,49 @@ export default function AccountsPage() {
     total: accounts.filter(a => a.account_type === t.value).reduce((s, a) => s + Number(a.current_balance || 0), 0),
   })).filter(g => g.items.length > 0);
 
-  const handleAdd = async () => {
+  const resetForm = () => {
+    setName(""); setType("Bank"); setBalance(""); setError(""); setEditId(null);
+  };
+
+  const openAdd = () => { resetForm(); setShowForm(true); };
+
+  const openEdit = (a: any) => {
+    setEditId(a.id);
+    setName(a.name || a.account_name || "");
+    setType(a.account_type || "Bank");
+    setBalance(String(Number(a.current_balance || 0)));
+    setError("");
+    setShowForm(true);
+  };
+
+  const handleSave = async () => {
     if (!name.trim() || !balance) return;
     setSaving(true);
     setError("");
     const { data: u } = await supabase.auth.getUser();
     if (!u?.user) { setSaving(false); return; }
-    const { error: err } = await supabase.from("accounts").insert({
-      user_id: u.user.id,
-      name: name.trim(),
-      account_type: type,
-      current_balance: Number(balance),
-      currency: "INR",
-      color: "#22C55E",
-      is_active: true,
-    });
-    if (err) { setError(err.message); setSaving(false); return; }
-    setName(""); setType("Bank"); setBalance(""); setShowForm(false); setSaving(false); load();
+
+    if (editId) {
+      const { error: err } = await supabase.from("accounts").update({
+        name: name.trim(),
+        account_type: type,
+        current_balance: Number(balance),
+      }).eq("id", editId);
+      if (err) { setError(err.message); setSaving(false); return; }
+    } else {
+      const { error: err } = await supabase.from("accounts").insert({
+        user_id: u.user.id,
+        name: name.trim(),
+        account_type: type,
+        current_balance: Number(balance),
+        currency: "INR",
+        color: "#22C55E",
+        is_active: true,
+      });
+      if (err) { setError(err.message); setSaving(false); return; }
+    }
+
+    resetForm(); setShowForm(false); setSaving(false); load();
   };
 
   const handleDelete = async (id: string) => {
@@ -91,7 +118,7 @@ export default function AccountsPage() {
             <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 }}>Accounts</h1>
             <p style={{ fontSize: 13, color: "var(--muted)", margin: "3px 0 0 0" }}>Manage your financial accounts</p>
           </div>
-          <button onClick={() => { setShowForm(true); setError(""); }}
+          <button onClick={openAdd}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               padding: "9px 18px", borderRadius: 8, border: "none",
@@ -156,6 +183,12 @@ export default function AccountsPage() {
                         <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{accountName}</p>
                         <p style={{ fontSize: 10, color: "var(--muted)", margin: "1px 0 0 0" }}>{meta.label}</p>
                       </div>
+                      <button onClick={() => openEdit(a)}
+                        style={{ width: 24, height: 24, borderRadius: 5, border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--border)", transition: "color 0.12s", flexShrink: 0 }}
+                        onMouseEnter={e => e.currentTarget.style.color = "var(--muted)"}
+                        onMouseLeave={e => e.currentTarget.style.color = "var(--border)"}>
+                        <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z" /></svg>
+                      </button>
                       <button onClick={() => handleDelete(a.id)}
                         style={{ width: 24, height: 24, borderRadius: 5, border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--border)", transition: "color 0.12s", flexShrink: 0 }}
                         onMouseEnter={e => e.currentTarget.style.color = "#EF4444"}
@@ -178,7 +211,7 @@ export default function AccountsPage() {
             </div>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 4px" }}>No accounts yet</h2>
             <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 18px", maxWidth: 280, marginLeft: "auto", marginRight: "auto", lineHeight: 1.5 }}>Add your bank, card, or investment to get started.</p>
-            <button onClick={() => { setShowForm(true); setError(""); }}
+            <button onClick={openAdd}
               style={{ padding: "9px 20px", borderRadius: 8, border: "none", background: "#22C55E", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
               Add your first account
             </button>
@@ -188,12 +221,12 @@ export default function AccountsPage() {
 
       {showForm && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: 20 }}
-          onClick={() => setShowForm(false)}>
+          onClick={() => { setShowForm(false); resetForm(); }}>
           <div className="xm" style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, width: "100%", maxWidth: 400, maxHeight: "90vh", overflowY: "auto" }}
             onClick={e => e.stopPropagation()}>
             <div style={{ padding: "18px 22px 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: 0 }}>New Account</h2>
-              <button onClick={() => setShowForm(false)} style={{ width: 26, height: 26, borderRadius: 6, border: "1px solid var(--border)", background: "var(--card)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>
+              <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: 0 }}>{editId ? "Edit Account" : "New Account"}</h2>
+              <button onClick={() => { setShowForm(false); resetForm(); }} style={{ width: 26, height: 26, borderRadius: 6, border: "1px solid var(--border)", background: "var(--card)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>
                 <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
@@ -224,17 +257,17 @@ export default function AccountsPage() {
                   onBlur={e => e.currentTarget.style.borderColor = "var(--border)"} />
               </div>
               <div style={{ marginBottom: 16 }}>
-                <label style={{ display: "block", marginBottom: 4, fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.05 }}>Opening Balance</label>
+                <label style={{ display: "block", marginBottom: 4, fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.05 }}>Balance</label>
                 <input type="number" required value={balance} onChange={e => setBalance(e.target.value)} placeholder="0"
                   style={{ width: "100%", height: 38, borderRadius: 6, padding: "0 12px", fontSize: 13, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", boxSizing: "border-box", transition: "border-color 0.15s" }}
                   onFocus={e => e.currentTarget.style.borderColor = "#22C55E"}
                   onBlur={e => e.currentTarget.style.borderColor = "var(--border)"} />
               </div>
-              <button onClick={handleAdd} disabled={saving}
+              <button onClick={handleSave} disabled={saving}
                 style={{ width: "100%", height: 40, borderRadius: 8, border: "none", background: "#22C55E", color: "#fff", fontSize: 13, fontWeight: 600, cursor: saving ? "wait" : "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1, transition: "background 0.15s" }}
                 onMouseEnter={e => e.currentTarget.style.background = "#16A34A"}
                 onMouseLeave={e => e.currentTarget.style.background = "#22C55E"}>
-                {saving ? "Saving..." : "Add Account"}
+                {saving ? "Saving..." : editId ? "Update Account" : "Add Account"}
               </button>
             </div>
           </div>
