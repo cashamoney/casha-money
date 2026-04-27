@@ -66,7 +66,7 @@ export default function OverviewPage() {
   hs = Math.max(0, Math.min(1000, hs));
 
   const h = new Date().getHours();
-  const greet = h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+  const greet = h < 5 ? "Good night" : h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : h < 21 ? "Good evening" : "Good night";
   const healthLabel = hs >= 850 ? "Elite" : hs >= 700 ? "Strong" : hs >= 500 ? "Stable" : hs >= 300 ? "Fragile" : "Critical";
   const healthColor = hs >= 850 ? "#22C55E" : hs >= 700 ? "#3B82F6" : hs >= 500 ? "#06B6D4" : hs >= 300 ? "#F59E0B" : "#EF4444";
 
