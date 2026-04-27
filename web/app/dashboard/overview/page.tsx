@@ -88,7 +88,7 @@ export default function OverviewPage() {
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || "there";
 
   return (
-    <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 24px 64px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24, flexWrap: "wrap", gap: 8 }}>
         <div><p style={{ fontSize: 12, color: "var(--faint)", margin: "0 0 4px" }}>{now.toLocaleDateString("en-IN", { weekday: "long", month: "long", day: "numeric" })}</p><h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>{greet}, {firstName}</h1></div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, background: "var(--green-soft)", border: "1px solid var(--green-border)", borderRadius: 99, padding: "5px 12px" }}><div style={{ width: 6, height: 6, borderRadius: 9, background: "#22C55E" }} /><span style={{ fontSize: 11, fontWeight: 600, color: "var(--green-text)" }}>AI Active</span></div>
