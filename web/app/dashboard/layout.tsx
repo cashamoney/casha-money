@@ -26,12 +26,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>("light");
-  const [topMenu, setTopMenu] = useState(false);
   const [accMenu, setAccMenu] = useState(false);
 
   const router = useRouter();
   const pathname = usePathname();
-  const topRef = useRef<HTMLDivElement>(null);
   const accRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -48,7 +46,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
-      if (topRef.current && !topRef.current.contains(e.target as Node)) setTopMenu(false);
       if (accRef.current && !accRef.current.contains(e.target as Node)) setAccMenu(false);
     };
     document.addEventListener("mousedown", h);
@@ -63,9 +60,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const toggleTheme = () => {
     const n = theme === "light" ? "dark" : "light";
-    setTheme(n); localStorage.setItem("casha-theme", n);
+    setTheme(n);
+    localStorage.setItem("casha-theme", n);
     document.documentElement.setAttribute("data-theme", n);
-    setTopMenu(false);
   };
 
   if (loading) return <div style={{ height: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ width: 36, height: 36, borderRadius: 99, border: "3px solid var(--border)", borderTopColor: "#22C55E", animation: "spin 0.8s linear infinite" }} /></div>;
@@ -73,6 +70,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const name = user?.user_metadata?.full_name?.split(" ")[0] || user?.email?.split("@")[0];
   const email = user?.email || "";
   const ini = (user?.user_metadata?.full_name || user?.email || "U").split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2);
+
+  const currentPage = NAV.find(n => n.path === pathname);
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)", fontFamily: "'Inter', system-ui, sans-serif" }}>
@@ -99,37 +98,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     onClick={() => setSidebarOpen(false)}
                     className="nav-item"
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 9,
-                      padding: "9px 10px",
-                      borderRadius: 10,
-                      marginBottom: 2,
+                      display: "flex", alignItems: "center", gap: 9,
+                      padding: "9px 10px", borderRadius: 10, marginBottom: 2,
                       textDecoration: "none",
                       background: a ? "var(--sidebar-active-bg)" : "transparent",
                       color: a ? "#22C55E" : "rgba(255,255,255,0.95)",
-                      fontSize: 13,
-                      fontWeight: a ? 600 : 500,
-                      transition: "0.15s",
-                      cursor: "pointer",
+                      fontSize: 13, fontWeight: a ? 600 : 500,
+                      transition: "0.15s", cursor: "pointer",
                     }}
                   >
                     <span style={{ display: "flex", flexShrink: 0 }}>{i.icon}</span>
                     <span style={{ flex: 1 }}>{i.name}</span>
-                    <svg
-                      width="14"
-                      height="14"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      viewBox="0 0 24 24"
-                      style={{
-                        flexShrink: 0,
-                        opacity: a ? 0.9 : 0,
-                        transform: a ? "translateX(0)" : "translateX(-4px)",
-                        transition: "0.2s",
-                      }}
-                    >
+                    <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0, opacity: a ? 0.9 : 0, transform: a ? "translateX(0)" : "translateX(-4px)", transition: "0.2s" }}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                     </svg>
                   </Link>
@@ -156,8 +136,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 Sign out
               </button>
               <div style={{ borderTop: "1px solid var(--border)", padding: "8px 12px", display: "flex", gap: 10, fontSize: 11, color: "var(--muted)" }}>
-                <Link href="/terms" style={{ color: "var(--muted)", textDecoration: "none" }}>Terms of Use</Link>
-                <Link href="/privacy" style={{ color: "var(--muted)", textDecoration: "none" }}>Privacy Policy</Link>
+                <Link href="/terms" style={{ color: "var(--muted)", textDecoration: "none" }}>Terms</Link>
+                <Link href="/privacy" style={{ color: "var(--muted)", textDecoration: "none" }}>Privacy</Link>
                 <Link href="/cookies" style={{ color: "var(--muted)", textDecoration: "none" }}>Cookies</Link>
               </div>
             </div>
@@ -166,15 +146,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       <main className="dash-main" style={{ minHeight: "100vh", marginLeft: 244, display: "flex", flexDirection: "column" }}>
-        <div style={{ height: 54, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", background: "var(--topbar)", borderBottom: "1px solid var(--border)", position: "sticky", top: 0, zIndex: 30, backdropFilter: "blur(10px)" }}>
-          <button onClick={() => setSidebarOpen(true)} className="mob-menu" style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--muted)", display: "flex" }}><svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" /></svg></button>
-          <div style={{ flex: 1 }} />
-          <div ref={topRef} style={{ position: "relative" }}>
-            <button onClick={() => setTopMenu(v => !v)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4, color: "var(--muted)", display: "flex" }}><svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></svg></button>
-            {topMenu && <div style={{ position: "absolute", top: 36, right: 0, width: 170, background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", overflow: "hidden" }}><button onClick={toggleTheme} style={{ width: "100%", textAlign: "left", padding: "10px 12px", border: "none", background: "transparent", color: "var(--text)", fontSize: 13, cursor: "pointer" }}>{theme === "light" ? "Dark mode" : "Light mode"}</button></div>}
+        {/* Top Bar */}
+        <div style={{ height: 48, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", background: "var(--topbar)", borderBottom: "1px solid var(--border)", position: "sticky", top: 0, zIndex: 30, backdropFilter: "blur(10px)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={() => setSidebarOpen(true)} className="mob-menu" style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--muted)", display: "flex" }}><svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" /></svg></button>
+            {currentPage && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 500 }}>Dashboard</span>
+                <svg width="10" height="10" fill="none" stroke="var(--border)" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                <span style={{ fontSize: 12, color: "var(--text)", fontWeight: 600 }}>{currentPage.name}</span>
+              </div>
+            )}
           </div>
+          <button
+            onClick={toggleTheme}
+            style={{
+              width: 34, height: 34, borderRadius: 8, border: "1px solid var(--border)",
+              background: "var(--card)", cursor: "pointer", display: "flex",
+              alignItems: "center", justifyContent: "center", color: "var(--muted)",
+              transition: "background 0.15s, color 0.15s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = "#F0FDF4"; e.currentTarget.style.color = "#22C55E"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "var(--card)"; e.currentTarget.style.color = "var(--muted)"; }}
+          >
+            {theme === "light" ? (
+              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" /></svg>
+            ) : (
+              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" /></svg>
+            )}
+          </button>
         </div>
-        <div className="main-content" style={{ flex: 1, padding: 24 }}>{children}</div>
+
+        {/* Content — no extra padding, page controls its own */}
+        <div className="main-content" style={{ flex: 1 }}>{children}</div>
       </main>
 
       <style>{`
@@ -187,10 +191,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
         @media (max-width: 1023px) {
           .dash-main { margin-left: 0 !important; }
-          .main-content { padding: 16px !important; }
-        }
-        @media (max-width: 640px) {
-          .main-content { padding: 12px !important; }
         }
       `}</style>
     </div>
