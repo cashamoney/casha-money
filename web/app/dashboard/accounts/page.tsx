@@ -6,13 +6,20 @@ import { supabase } from "../../../lib/supabase";
 const fmt = (n: number) =>
   new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n || 0);
 
+const fmtShort = (n: number) => {
+  if (Math.abs(n) >= 10000000) return "₹" + (n / 10000000).toFixed(1) + "Cr";
+  if (Math.abs(n) >= 100000) return "₹" + (n / 100000).toFixed(1) + "L";
+  if (Math.abs(n) >= 1000) return "₹" + (n / 1000).toFixed(1) + "K";
+  return fmt(n);
+};
+
 const TYPES = [
-  { value: "Bank", label: "Bank Account", icon: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.4" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3" /></svg> },
-  { value: "Cash", label: "Cash", icon: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.4" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
-  { value: "Credit Card", label: "Credit Card", icon: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.4" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg> },
-  { value: "UPI", label: "UPI / Digital", icon: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.4" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg> },
-  { value: "Investment", label: "Investment", icon: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.4" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg> },
-  { value: "Other", label: "Other", icon: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.4" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg> },
+  { value: "Bank", label: "Bank Account", short: "Bank", icon: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.4" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3" /></svg> },
+  { value: "Cash", label: "Cash", short: "Cash", icon: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.4" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
+  { value: "Credit Card", label: "Credit Card", short: "Card", icon: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.4" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg> },
+  { value: "UPI", label: "UPI / Digital", short: "UPI", icon: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.4" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg> },
+  { value: "Investment", label: "Investment", short: "Invest", icon: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.4" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg> },
+  { value: "Other", label: "Other", short: "Other", icon: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.4" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg> },
 ];
 
 function getTypeMeta(type: string) {
@@ -83,114 +90,128 @@ export default function AccountsPage() {
   const assetPct = (assets + debts) > 0 ? (assets / (assets + debts)) * 100 : 100;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F7F7F8" }}>
-      <div className="xw" style={{ maxWidth: 880, margin: "0 auto", padding: "28px 24px 64px" }}>
+    <div style={{ minHeight: "100vh", background: "#F8F9FA" }}>
+      <div className="xw" style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px 64px" }}>
 
         {/* Header */}
-        <div className="xh" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 16 }}>
-          <h1 style={{ fontSize: 26, fontWeight: 800, color: "#111827", margin: 0, letterSpacing: "-0.04em" }}>Accounts</h1>
+        <div className="xh" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
+          <div>
+            <h1 style={{ fontSize: 24, fontWeight: 800, color: "#0F172A", margin: 0, letterSpacing: "-0.04em" }}>Accounts</h1>
+            <p style={{ fontSize: 13, color: "#94A3B8", margin: "4px 0 0 0", fontWeight: 400 }}>Manage your financial accounts</p>
+          </div>
           <button
             onClick={() => { setShowForm(true); setError(""); }}
             style={{
-              display: "inline-flex", alignItems: "center", gap: 8,
-              padding: "10px 22px", borderRadius: 10, border: "none",
+              display: "inline-flex", alignItems: "center", gap: 7,
+              padding: "10px 20px", borderRadius: 10, border: "none",
               background: "#22C55E", color: "#fff", fontSize: 13, fontWeight: 700,
               cursor: "pointer", fontFamily: "inherit",
-              boxShadow: "0 4px 14px rgba(34,197,94,0.30)",
-              transition: "transform 0.1s, box-shadow 0.1s",
+              boxShadow: "0 2px 8px rgba(34,197,94,0.25)",
+              transition: "all 0.15s",
             }}
-            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(34,197,94,0.35)"; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 14px rgba(34,197,94,0.30)"; }}>
+            onMouseEnter={e => { e.currentTarget.style.background = "#16A34A"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(34,197,94,0.35)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "#22C55E"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(34,197,94,0.25)"; }}>
             <svg width="14" height="14" fill="none" stroke="#fff" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
             Add Account
           </button>
         </div>
 
         {/* Net Worth */}
-        <div style={{ background: "#fff", borderRadius: 16, marginBottom: 14, display: "flex", overflow: "hidden", border: "1px solid #EBEBEB" }}>
-          <div style={{ width: 4, background: "linear-gradient(180deg, #22C55E, #16A34A)", flexShrink: 0 }} />
-          <div style={{ flex: 1, padding: "24px 28px 20px" }}>
+        <div style={{ background: "#0F172A", borderRadius: 16, padding: "24px 28px 20px", marginBottom: 14, position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", top: -30, right: -30, width: 120, height: 120, borderRadius: "50%", background: "rgba(34,197,94,0.08)", filter: "blur(40px)", pointerEvents: "none" }} />
+          <div style={{ position: "relative", zIndex: 2 }}>
             <div className="xnw" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16 }}>
               <div>
-                <p style={{ fontSize: 10, fontWeight: 600, color: "#9CA3AF", margin: "0 0 6px", textTransform: "uppercase", letterSpacing: 0.1 }}>Net Worth</p>
-                <p style={{ fontSize: 34, fontWeight: 800, color: "#111827", margin: 0, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{fmt(totalBalance)}</p>
-                <p style={{ fontSize: 12, color: "#9CA3AF", margin: "8px 0 0 0" }}>{accounts.length} account{accounts.length !== 1 ? "s" : ""}</p>
+                <p style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.4)", margin: "0 0 8px", textTransform: "uppercase", letterSpacing: 0.1 }}>Net Worth</p>
+                <p style={{ fontSize: 32, fontWeight: 800, color: "#fff", margin: 0, letterSpacing: "-0.04em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{fmt(totalBalance)}</p>
               </div>
-              <div style={{ display: "flex", gap: 24, alignItems: "center", paddingTop: 2 }}>
-                <div style={{ textAlign: "right" }}>
-                  <p style={{ fontSize: 10, color: "#9CA3AF", margin: "0 0 2px", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.05 }}>Assets</p>
-                  <p style={{ fontSize: 18, fontWeight: 800, color: "#22C55E", margin: 0, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>{fmt(assets)}</p>
+              <div style={{ display: "flex", gap: 20 }}>
+                <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 10, padding: "12px 16px", minWidth: 100 }}>
+                  <p style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", margin: "0 0 4px", fontWeight: 600, textTransform: "uppercase" }}>Assets</p>
+                  <p style={{ fontSize: 16, fontWeight: 800, color: "#22C55E", margin: 0, fontVariantNumeric: "tabular-nums" }}>{fmtShort(assets)}</p>
                 </div>
-                <div style={{ width: 1, height: 28, background: "#F0F0F0" }} />
-                <div style={{ textAlign: "right" }}>
-                  <p style={{ fontSize: 10, color: "#9CA3AF", margin: "0 0 2px", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.05 }}>Debts</p>
-                  <p style={{ fontSize: 18, fontWeight: 800, color: debts > 0 ? "#EF4444" : "#9CA3AF", margin: 0, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>{debts > 0 ? fmt(debts) : "\u2014"}</p>
+                <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 10, padding: "12px 16px", minWidth: 100 }}>
+                  <p style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", margin: "0 0 4px", fontWeight: 600, textTransform: "uppercase" }}>Debts</p>
+                  <p style={{ fontSize: 16, fontWeight: 800, color: debts > 0 ? "#F87171" : "rgba(255,255,255,0.25)", margin: 0, fontVariantNumeric: "tabular-nums" }}>{debts > 0 ? fmtShort(debts) : "None"}</p>
                 </div>
               </div>
             </div>
-            <div style={{ marginTop: 18 }}>
-              <div style={{ height: 5, borderRadius: 5, background: "#F3F4F6", overflow: "hidden" }}>
-                <div style={{ width: `${assetPct}%`, height: "100%", borderRadius: 5, background: "linear-gradient(90deg, #22C55E, #16A34A)", transition: "width 0.5s ease" }} />
+            <div style={{ marginTop: 16 }}>
+              <div style={{ height: 4, borderRadius: 4, background: "rgba(255,255,255,0.08)", overflow: "hidden", display: "flex" }}>
+                <div style={{ width: `${assetPct}%`, height: "100%", background: "#22C55E", borderRadius: 4, transition: "width 0.5s ease" }} />
+                {assetPct < 100 && <div style={{ flex: 1, height: "100%", background: debts > 0 ? "#F87171" : "transparent", borderRadius: 4 }} />}
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                <span style={{ fontSize: 10, color: "#22C55E", fontWeight: 600 }}>{accounts.length} account{accounts.length !== 1 ? "s" : ""}</span>
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", fontWeight: 500 }}>{Math.round(assetPct)}% assets</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Quick Stats */}
-        <div className="xq" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 28 }}>
-          {[
-            { label: "Banks", count: accounts.filter(a => a.account_type === "Bank").length },
-            { label: "Cards", count: accounts.filter(a => a.account_type === "Credit Card").length },
-            { label: "Invested", count: accounts.filter(a => a.account_type === "Investment").length },
-            { label: "Other", count: accounts.filter(a => !["Bank", "Credit Card", "Investment"].includes(a.account_type)).length },
-          ].map((s, i) => (
-            <div key={i} style={{ background: "#fff", border: "1px solid #EBEBEB", borderRadius: 12, padding: "14px 16px", display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ width: 7, height: 7, borderRadius: 7, background: "#22C55E", flexShrink: 0, opacity: 0.6 }} />
-              <div>
-                <p style={{ fontSize: 17, fontWeight: 800, color: "#111827", margin: 0, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{s.count}</p>
-                <p style={{ fontSize: 10, color: "#9CA3AF", margin: "2px 0 0 0", fontWeight: 500 }}>{s.label}</p>
-              </div>
-            </div>
-          ))}
+        {/* Type Summary Row */}
+        <div className="xq" style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 6, marginBottom: 28 }}>
+          {TYPES.map(t => {
+            const count = accounts.filter(a => a.account_type === t.value).length;
+            const total = accounts.filter(a => a.account_type === t.value).reduce((s, a) => s + Number(a.current_balance || 0), 0);
+            return (
+              <button key={t.value} onClick={() => { setType(t.value); setShowForm(true); setError(""); }}
+                style={{
+                  background: "#fff", border: "1px solid #EBEBEB", borderRadius: 10,
+                  padding: "12px 10px", cursor: "pointer", textAlign: "center",
+                  transition: "border-color 0.15s, box-shadow 0.15s", fontFamily: "inherit",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "#22C55E"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(34,197,94,0.08)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "#EBEBEB"; e.currentTarget.style.boxShadow = "none"; }}>
+                <div style={{ width: 28, height: 28, borderRadius: 7, background: count > 0 ? "#F0FDF4" : "#F8F9FA", display: "flex", alignItems: "center", justifyContent: "center", color: count > 0 ? "#22C55E" : "#CBD5E1", margin: "0 auto 6px" }}>{t.icon}</div>
+                <p style={{ fontSize: 10, fontWeight: 600, color: "#64748B", margin: "0 0 2px" }}>{t.short}</p>
+                <p style={{ fontSize: 12, fontWeight: 800, color: count > 0 ? "#0F172A" : "#CBD5E1", margin: 0, fontVariantNumeric: "tabular-nums" }}>{count > 0 ? fmtShort(total) : "0"}</p>
+              </button>
+            );
+          })}
         </div>
 
         {/* Grouped Accounts */}
         {grouped.length > 0 && grouped.map(g => (
           <div key={g.value} style={{ marginBottom: 20 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, padding: "0 2px" }}>
-              <div style={{ width: 28, height: 28, borderRadius: 8, background: "#F0FDF4", border: "1px solid #DCFCE7", display: "flex", alignItems: "center", justifyContent: "center", color: "#22C55E", flexShrink: 0 }}>{g.icon}</div>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>{g.label}</span>
-              <span style={{ fontSize: 11, color: "#9CA3AF" }}>{g.items.length}</span>
-              <div style={{ flex: 1, height: 1, background: "#F0F0F0" }} />
-              <span style={{ fontSize: 13, fontWeight: 800, color: "#111827", letterSpacing: "-0.01em", fontVariantNumeric: "tabular-nums" }}>{fmt(g.total)}</span>
+              <div style={{ width: 26, height: 26, borderRadius: 7, background: "#F0FDF4", display: "flex", alignItems: "center", justifyContent: "center", color: "#22C55E", flexShrink: 0 }}>{g.icon}</div>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>{g.label}</span>
+              <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 400 }}>{g.items.length}</span>
+              <div style={{ flex: 1, height: 1, background: "#F1F5F9" }} />
+              <span style={{ fontSize: 13, fontWeight: 800, color: "#0F172A", fontVariantNumeric: "tabular-nums" }}>{fmt(g.total)}</span>
             </div>
-            <div className="xcg" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(255px, 1fr))", gap: 10 }}>
+            <div className="xcg" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 8 }}>
               {g.items.map(a => {
                 const meta = getTypeMeta(a.account_type);
                 const bal = Number(a.current_balance || 0);
                 const accountName = a.name || a.account_name || "Untitled";
                 return (
                   <div key={a.id}
-                    style={{ background: "#fff", border: "1px solid #EBEBEB", borderRadius: 14, display: "flex", overflow: "hidden", transition: "border-color 0.15s, box-shadow 0.15s, transform 0.15s" }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = "#BBF7D0"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(34,197,94,0.08)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                    style={{ background: "#fff", border: "1px solid #EBEBEB", borderRadius: 12, display: "flex", overflow: "hidden", transition: "all 0.15s" }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = "#BBF7D0"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(34,197,94,0.06)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = "#EBEBEB"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "translateY(0)"; }}>
-                    <div style={{ width: 4, background: "linear-gradient(180deg, #22C55E, #16A34A)", flexShrink: 0 }} />
-                    <div style={{ flex: 1, padding: "16px 18px 18px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                        <div style={{ width: 36, height: 36, borderRadius: 9, background: "#F0FDF4", border: "1px solid #DCFCE7", display: "flex", alignItems: "center", justifyContent: "center", color: "#22C55E", flexShrink: 0 }}>{meta.icon}</div>
+                    <div style={{ width: 3, background: bal >= 0 ? "#22C55E" : "#EF4444", flexShrink: 0 }} />
+                    <div style={{ flex: 1, padding: "14px 16px 16px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                        <div style={{ width: 34, height: 34, borderRadius: 8, background: "#F0FDF4", display: "flex", alignItems: "center", justifyContent: "center", color: "#22C55E", flexShrink: 0 }}>{meta.icon}</div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 13, fontWeight: 700, color: "#111827", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{accountName}</p>
-                          <p style={{ fontSize: 10, color: "#9CA3AF", margin: "2px 0 0 0" }}>{meta.label}</p>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{accountName}</p>
+                          <p style={{ fontSize: 10, color: "#94A3B8", margin: "1px 0 0 0" }}>{meta.label}</p>
                         </div>
                         <button onClick={() => handleDelete(a.id)}
-                          style={{ width: 26, height: 26, borderRadius: 7, border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#E5E7EB", transition: "color 0.12s, background 0.12s" }}
+                          style={{ width: 24, height: 24, borderRadius: 6, border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#E2E8F0", transition: "all 0.12s", flexShrink: 0 }}
                           onMouseEnter={e => { e.currentTarget.style.color = "#EF4444"; e.currentTarget.style.background = "#FEF2F2"; }}
-                          onMouseLeave={e => { e.currentTarget.style.color = "#E5E7EB"; e.currentTarget.style.background = "transparent"; }}>
+                          onMouseLeave={e => { e.currentTarget.style.color = "#E2E8F0"; e.currentTarget.style.background = "transparent"; }}>
                           <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.6" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                       </div>
-                      <p style={{ fontSize: 9, fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: 0.08, margin: "0 0 3px" }}>Balance</p>
-                      <p style={{ fontSize: 20, fontWeight: 800, color: bal >= 0 ? "#111827" : "#DC2626", margin: 0, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>{fmt(bal)}</p>
+                      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+                        <div>
+                          <p style={{ fontSize: 9, fontWeight: 600, color: "#94A3B8", textTransform: "uppercase", letterSpacing: 0.08, margin: "0 0 2px" }}>Balance</p>
+                          <p style={{ fontSize: 20, fontWeight: 800, color: bal >= 0 ? "#0F172A" : "#DC2626", margin: 0, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>{fmt(bal)}</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );
@@ -201,14 +222,14 @@ export default function AccountsPage() {
 
         {/* Empty State */}
         {accounts.length === 0 && (
-          <div style={{ textAlign: "center", padding: "72px 24px 40px" }}>
-            <div style={{ width: 64, height: 64, borderRadius: 16, background: "#F0FDF4", border: "1px solid #DCFCE7", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
-              <svg width="28" height="28" fill="none" stroke="#22C55E" strokeWidth="1.2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" /></svg>
+          <div style={{ textAlign: "center", padding: "64px 24px 40px" }}>
+            <div style={{ width: 56, height: 56, borderRadius: 14, background: "#F0FDF4", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+              <svg width="26" height="26" fill="none" stroke="#22C55E" strokeWidth="1.2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" /></svg>
             </div>
-            <h2 style={{ fontSize: 20, fontWeight: 800, color: "#111827", margin: "0 0 6px", letterSpacing: "-0.02em" }}>No accounts yet</h2>
-            <p style={{ fontSize: 14, color: "#6B7280", margin: "0 0 24px", maxWidth: 320, marginLeft: "auto", marginRight: "auto", lineHeight: 1.6 }}>Add your bank, card, or investment account to get started.</p>
+            <h2 style={{ fontSize: 18, fontWeight: 800, color: "#0F172A", margin: "0 0 6px", letterSpacing: "-0.02em" }}>No accounts yet</h2>
+            <p style={{ fontSize: 13, color: "#64748B", margin: "0 0 22px", maxWidth: 300, marginLeft: "auto", marginRight: "auto", lineHeight: 1.6 }}>Add your bank, card, or investment to see your full financial picture.</p>
             <button onClick={() => { setShowForm(true); setError(""); }}
-              style={{ padding: "11px 26px", borderRadius: 10, border: "none", background: "#22C55E", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 14px rgba(34,197,94,0.30)" }}>
+              style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "#22C55E", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(34,197,94,0.25)" }}>
               Add your first account
             </button>
           </div>
@@ -217,59 +238,58 @@ export default function AccountsPage() {
 
       {/* Modal */}
       {showForm && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(17,24,39,0.45)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: 20 }}
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: 20 }}
           onClick={() => setShowForm(false)}>
-          <div className="xm" style={{ background: "#fff", borderRadius: 18, width: "100%", maxWidth: 440, boxShadow: "0 32px 64px rgba(0,0,0,0.18)", maxHeight: "90vh", overflowY: "auto" }}
+          <div className="xm" style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 420, boxShadow: "0 24px 48px rgba(0,0,0,0.15)", maxHeight: "90vh", overflowY: "auto" }}
             onClick={e => e.stopPropagation()}>
-            <div style={{ display: "flex", overflow: "hidden", borderRadius: "18px 18px 0 0" }}>
-              <div style={{ width: 4, background: "linear-gradient(180deg, #22C55E, #16A34A)" }} />
-              <div style={{ flex: 1, padding: "20px 24px 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h2 style={{ fontSize: 16, fontWeight: 800, color: "#111827", margin: 0 }}>New Account</h2>
-                <button onClick={() => setShowForm(false)} style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid #EBEBEB", background: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#9CA3AF" }}>
-                  <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-              </div>
+            <div style={{ padding: "20px 24px 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h2 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", margin: 0 }}>New Account</h2>
+              <button onClick={() => setShowForm(false)} style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid #E2E8F0", background: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#94A3B8" }}>
+                <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
             </div>
 
-            <div style={{ padding: "16px 26px 26px" }}>
+            <div style={{ padding: "16px 24px 24px" }}>
               {error && (
-                <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "10px 14px", marginBottom: 14 }}>
+                <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "8px 12px", marginBottom: 12 }}>
                   <p style={{ margin: 0, fontSize: 12, color: "#DC2626", fontWeight: 500 }}>{error}</p>
                 </div>
               )}
 
-              <label style={{ display: "block", marginBottom: 8, fontSize: 10, fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: 0.06 }}>Type</label>
-              <div className="xmt" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginBottom: 18 }}>
+              <label style={{ display: "block", marginBottom: 6, fontSize: 10, fontWeight: 600, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.06 }}>Type</label>
+              <div className="xmt" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginBottom: 16 }}>
                 {TYPES.map(t => {
                   const sel = type === t.value;
                   return (
                     <button key={t.value} onClick={() => setType(t.value)}
-                      style={{ background: sel ? "#F0FDF4" : "#FAFAFA", border: sel ? "1.5px solid #22C55E" : "1.5px solid #EBEBEB", borderRadius: 10, padding: "12px 6px", cursor: "pointer", textAlign: "center", transition: "0.12s", fontFamily: "inherit" }}>
-                      <div style={{ width: 26, height: 26, borderRadius: 7, background: sel ? "#DCFCE7" : "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center", color: sel ? "#22C55E" : "#9CA3AF", margin: "0 auto 4px" }}>{t.icon}</div>
-                      <span style={{ fontSize: 10, fontWeight: sel ? 700 : 500, color: sel ? "#22C55E" : "#6B7280" }}>{t.label}</span>
+                      style={{ background: sel ? "#F0FDF4" : "#F8F9FA", border: sel ? "1.5px solid #22C55E" : "1.5px solid #E2E8F0", borderRadius: 8, padding: "10px 4px", cursor: "pointer", textAlign: "center", transition: "0.12s", fontFamily: "inherit" }}>
+                      <div style={{ width: 24, height: 24, borderRadius: 6, background: sel ? "#DCFCE7" : "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center", color: sel ? "#22C55E" : "#94A3B8", margin: "0 auto 4px" }}>{t.icon}</div>
+                      <span style={{ fontSize: 9, fontWeight: sel ? 700 : 500, color: sel ? "#22C55E" : "#64748B" }}>{t.short}</span>
                     </button>
                   );
                 })}
               </div>
 
               <div style={{ marginBottom: 12 }}>
-                <label style={{ display: "block", marginBottom: 5, fontSize: 10, fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: 0.06 }}>Account Name</label>
+                <label style={{ display: "block", marginBottom: 4, fontSize: 10, fontWeight: 600, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.06 }}>Account Name</label>
                 <input type="text" required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. HDFC Savings"
-                  style={{ width: "100%", height: 42, borderRadius: 10, padding: "0 14px", fontSize: 13, outline: "none", fontFamily: "inherit", background: "#FAFAFA", border: "1.5px solid #EBEBEB", color: "#111827", boxSizing: "border-box", transition: "border-color 0.15s" }}
+                  style={{ width: "100%", height: 40, borderRadius: 8, padding: "0 12px", fontSize: 13, outline: "none", fontFamily: "inherit", background: "#F8F9FA", border: "1.5px solid #E2E8F0", color: "#0F172A", boxSizing: "border-box", transition: "border-color 0.15s" }}
                   onFocus={e => e.currentTarget.style.borderColor = "#22C55E"}
-                  onBlur={e => e.currentTarget.style.borderColor = "#EBEBEB"} />
+                  onBlur={e => e.currentTarget.style.borderColor = "#E2E8F0"} />
               </div>
 
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ display: "block", marginBottom: 5, fontSize: 10, fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: 0.06 }}>Opening Balance</label>
+              <div style={{ marginBottom: 18 }}>
+                <label style={{ display: "block", marginBottom: 4, fontSize: 10, fontWeight: 600, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.06 }}>Opening Balance</label>
                 <input type="number" required value={balance} onChange={e => setBalance(e.target.value)} placeholder="0"
-                  style={{ width: "100%", height: 42, borderRadius: 10, padding: "0 14px", fontSize: 13, outline: "none", fontFamily: "inherit", background: "#FAFAFA", border: "1.5px solid #EBEBEB", color: "#111827", boxSizing: "border-box", transition: "border-color 0.15s" }}
+                  style={{ width: "100%", height: 40, borderRadius: 8, padding: "0 12px", fontSize: 13, outline: "none", fontFamily: "inherit", background: "#F8F9FA", border: "1.5px solid #E2E8F0", color: "#0F172A", boxSizing: "border-box", transition: "border-color 0.15s" }}
                   onFocus={e => e.currentTarget.style.borderColor = "#22C55E"}
-                  onBlur={e => e.currentTarget.style.borderColor = "#EBEBEB"} />
+                  onBlur={e => e.currentTarget.style.borderColor = "#E2E8F0"} />
               </div>
 
               <button onClick={handleAdd} disabled={saving}
-                style={{ width: "100%", height: 44, borderRadius: 10, border: "none", background: "#22C55E", color: "#fff", fontSize: 14, fontWeight: 700, cursor: saving ? "wait" : "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1, boxShadow: "0 4px 14px rgba(34,197,94,0.30)" }}>
+                style={{ width: "100%", height: 42, borderRadius: 10, border: "none", background: "#22C55E", color: "#fff", fontSize: 13, fontWeight: 700, cursor: saving ? "wait" : "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1, boxShadow: "0 2px 8px rgba(34,197,94,0.25)", transition: "background 0.15s" }}
+                onMouseEnter={e => e.currentTarget.style.background = "#16A34A"}
+                onMouseLeave={e => e.currentTarget.style.background = "#22C55E"}>
                 {saving ? "Saving..." : "Add Account"}
               </button>
             </div>
@@ -280,18 +300,23 @@ export default function AccountsPage() {
       <style>{`
         * { box-sizing: border-box; }
         @keyframes xsp { to { transform: rotate(360deg); } }
-        @media (max-width: 900px) { .xq { grid-template-columns: repeat(2, 1fr) !important; } }
+        @media (max-width: 900px) { .xq { grid-template-columns: repeat(3, 1fr) !important; } }
         @media (max-width: 640px) {
           .xw { padding: 20px 16px 0 !important; }
           .xq { grid-template-columns: repeat(2, 1fr) !important; }
           .xcg { grid-template-columns: 1fr !important; }
           .xnw { flex-direction: column !important; }
+          .xnw > div:last-child { width: 100% !important; }
+          .xnw > div:last-child > div { flex: 1 !important; min-width: 0 !important; }
           .xh { flex-direction: column !important; align-items: flex-start !important; }
-          .xh h1 { font-size: 22px !important; }
+          .xh h1 { font-size: 20px !important; }
           .xm { max-width: 100% !important; border-radius: 14px !important; }
           .xmt { grid-template-columns: repeat(2, 1fr) !important; }
         }
-        @media (max-width: 480px) { .xw { padding: 16px 12px 0 !important; } }
+        @media (max-width: 480px) {
+          .xw { padding: 16px 12px 0 !important; }
+          .xq { grid-template-columns: repeat(2, 1fr) !important; }
+        }
       `}</style>
     </div>
   );
