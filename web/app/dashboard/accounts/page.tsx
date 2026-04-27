@@ -152,7 +152,7 @@ export default function AccountsPage() {
                   <div key={a.id}
                     style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, padding: "14px 16px", transition: "border-color 0.15s" }}
                     onMouseEnter={e => e.currentTarget.style.borderColor = "#22C55E"}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border)">
+                    onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border)"}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
                       <div style={{ width: 32, height: 32, borderRadius: 7, background: "var(--bg)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", color: "#22C55E", flexShrink: 0 }}>{meta.icon}</div>
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -162,7 +162,7 @@ export default function AccountsPage() {
                       <button onClick={() => handleDelete(a.id)}
                         style={{ width: 24, height: 24, borderRadius: 5, border: "none", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--border)", transition: "color 0.12s", flexShrink: 0 }}
                         onMouseEnter={e => e.currentTarget.style.color = "#EF4444"}
-                        onMouseLeave={e => e.currentTarget.style.color = "var(--border)">
+                        onMouseLeave={e => e.currentTarget.style.color = "var(--border)"}>
                         <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       </button>
                     </div>
