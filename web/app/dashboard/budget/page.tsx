@@ -98,18 +98,8 @@ function DonutChart({ pct, color, size }: { pct: number; color: string; size: nu
   return (
     <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--border)" strokeWidth={sw} />
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={sw}
-        strokeDasharray={`${filled} ${circ - filled}`} strokeLinecap="round"
-        style={{ transition: "stroke-dasharray 1s ease-out" }} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={sw} strokeDasharray={`${filled} ${circ - filled}`} strokeLinecap="round" style={{ transition: "stroke-dasharray 1s ease-out" }} />
     </svg>
-  );
-}
-
-function MiniBar({ pct, color }: { pct: number; color: string }) {
-  return (
-    <div style={{ width: "100%", height: 6, borderRadius: 6, background: "var(--border)", overflow: "hidden" }}>
-      <div style={{ width: `${Math.min(100, pct)}%`, height: "100%", borderRadius: 6, background: color, transition: "width 0.7s ease-out" }} />
-    </div>
   );
 }
 
@@ -117,10 +107,13 @@ export default function BudgetPage() {
   const [income, setIncome] = useState(0);
   const [budgets, setBudgets] = useState<Record<string, number>>({});
   const [spent, setSpent] = useState<Record<string, number>>({});
+  const [lastSpent, setLastSpent] = useState<Record<string, number>>({});
+  const [dailyMap, setDailyMap] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [aiGenerated, setAiGenerated] = useState(false);
+  const [optimized, setOptimized] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "setup">("overview");
 
   useEffect(() => { loadData(); }, []);
@@ -130,145 +123,183 @@ export default function BudgetPage() {
     if (!authData.user) return;
     const uid = authData.user.id;
 
-    const { data: incomeTxns } = await supabase
-      .from("transactions")
-      .select("amount, transaction_date")
-      .eq("user_id", uid)
-      .eq("transaction_type", "income");
-
-    const totalIncome = (incomeTxns || []).reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
-    const months = new Set((incomeTxns || []).map((t: any) => t.transaction_date?.slice(0, 7)));
-    const monthCount = Math.max(1, months.size);
-    const monthlyIncome = Math.round(totalIncome / monthCount);
-    setIncome(monthlyIncome);
+    const { data: incomeTxns } = await supabase.from("transactions").select("amount, transaction_date").eq("user_id", uid).eq("transaction_type", "income");
+    const totalIncome = (incomeTxns || []).reduce((s: number, t: any) => s + Math.abs(Number(t.amount)), 0);
+    const mSet = new Set((incomeTxns || []).map((t: any) => t.transaction_date?.slice(0, 7)));
+    const mCount = Math.max(1, mSet.size);
+    setIncome(Math.round(totalIncome / mCount));
 
     const now = new Date();
-    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+    const thisStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+    const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastStart = `${lm.getFullYear()}-${String(lm.getMonth() + 1).padStart(2, "0")}-01`;
+    const sixtyAgo = new Date(now.getTime() - 60 * 86400000).toISOString().split("T")[0];
 
-    const { data: expenseTxns } = await supabase
-      .from("transactions")
-      .select("amount, category")
-      .eq("user_id", uid)
-      .eq("transaction_type", "expense")
-      .gte("transaction_date", monthStart);
+    const { data: expTxns } = await supabase.from("transactions").select("amount, category, transaction_date").eq("user_id", uid).eq("transaction_type", "expense").gte("transaction_date", sixtyAgo);
 
-    const spentMap: Record<string, number> = {};
-    (expenseTxns || []).forEach((t: any) => {
+    const thisS: Record<string, number> = {};
+    const lastS: Record<string, number> = {};
+    const dMap: Record<string, number> = {};
+    (expTxns || []).forEach((t: any) => {
       const cat = t.category || "Other Expense";
-      spentMap[cat] = (spentMap[cat] || 0) + Math.abs(Number(t.amount));
+      const amt = Math.abs(Number(t.amount));
+      const d = t.transaction_date;
+      if (d >= thisStart) { thisS[cat] = (thisS[cat] || 0) + amt; }
+      else if (d >= lastStart) { lastS[cat] = (lastS[cat] || 0) + amt; }
+      const dk = d?.slice(0, 10);
+      if (dk) { dMap[dk] = (dMap[dk] || 0) + amt; }
     });
-    setSpent(spentMap);
+    setSpent(thisS);
+    setLastSpent(lastS);
+    setDailyMap(dMap);
 
-    const { data: savedBudget } = await supabase
-      .from("budgets")
-      .select("categories")
-      .eq("user_id", uid)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .single();
-
+    const { data: savedBudget } = await supabase.from("budgets").select("categories").eq("user_id", uid).order("created_at", { ascending: false }).limit(1).single();
     if (savedBudget?.categories && Object.keys(savedBudget.categories).length > 0) {
       setBudgets(savedBudget.categories);
-    } else if (monthlyIncome > 0) {
-      const autoBudgets: Record<string, number> = {};
-      BUDGET_CATEGORIES.forEach(cat => {
-        autoBudgets[cat.name] = Math.round(monthlyIncome * cat.recommended / 100);
-      });
-      setBudgets(autoBudgets);
+    } else if (totalIncome / mCount > 0) {
+      const ab: Record<string, number> = {};
+      BUDGET_CATEGORIES.forEach(c => { ab[c.name] = Math.round((totalIncome / mCount) * c.recommended / 100); });
+      setBudgets(ab);
     }
     setLoading(false);
   };
 
   const generateAIBudget = () => {
     if (income === 0) return;
-    const autoBudgets: Record<string, number> = {};
-    BUDGET_CATEGORIES.forEach(cat => {
-      autoBudgets[cat.name] = Math.round(income * cat.recommended / 100);
-    });
-    setBudgets(autoBudgets);
+    const ab: Record<string, number> = {};
+    BUDGET_CATEGORIES.forEach(c => { ab[c.name] = Math.round(income * c.recommended / 100); });
+    setBudgets(ab);
     setAiGenerated(true);
     setActiveTab("setup");
     setTimeout(() => { setAiGenerated(false); }, 5000);
+  };
+
+  const optimizeBudget = () => {
+    const nb = { ...budgets };
+    let pool = 0;
+    BUDGET_CATEGORIES.forEach(c => {
+      const b = nb[c.name] || 0;
+      const s = spent[c.name] || 0;
+      if (b > 0 && s / b < 0.4 && c.recommended > 0) {
+        const ex = Math.round(b * 0.25);
+        nb[c.name] = b - ex;
+        pool += ex;
+      }
+    });
+    const overs = BUDGET_CATEGORIES.filter(c => { const b = nb[c.name] || 0; const s = spent[c.name] || 0; return b > 0 && s / b > 0.8; });
+    if (overs.length > 0 && pool > 0) {
+      const each = Math.round(pool / overs.length);
+      overs.forEach(c => { nb[c.name] = (nb[c.name] || 0) + each; });
+    }
+    setBudgets(nb);
+    setOptimized(true);
+    setTimeout(() => { setOptimized(false); }, 3000);
   };
 
   const saveBudgets = async () => {
     setSaving(true);
     const { data: authData } = await supabase.auth.getUser();
     if (!authData.user) { setSaving(false); return; }
-
     const now = new Date();
-    const startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-    const endDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()}`;
-
+    const sd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+    const ed = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()}`;
     await supabase.from("budgets").delete().eq("user_id", authData.user.id);
-
-    const { error } = await supabase.from("budgets").insert({
-      user_id: authData.user.id,
-      name: `Budget ${now.toLocaleDateString("en-IN", { month: "long", year: "numeric" })}`,
-      period_type: "monthly",
-      start_date: startDate,
-      end_date: endDate,
-      total_budget: Object.values(budgets).reduce((s, v) => s + v, 0),
-      currency: "INR",
-      categories: budgets,
-      status: "active",
-    });
-
+    const { error } = await supabase.from("budgets").insert({ user_id: authData.user.id, name: `Budget ${now.toLocaleDateString("en-IN", { month: "long", year: "numeric" })}`, period_type: "monthly", start_date: sd, end_date: ed, total_budget: Object.values(budgets).reduce((s, v) => s + v, 0), currency: "INR", categories: budgets, status: "active" });
     setSaving(false);
     if (!error) { setSaved(true); setTimeout(() => { setSaved(false); }, 4000); }
   };
 
-  const fmt = (n: number) => new Intl.NumberFormat("en-IN", {
-    style: "currency", currency: "INR", maximumFractionDigits: 0
-  }).format(n);
-
-  const totalBudget = Object.values(budgets).reduce((s, v) => s + v, 0);
-  const totalSpent = Object.values(spent).reduce((s, v) => s + v, 0);
-  const totalRemaining = totalBudget - totalSpent;
+  const fmt = (n: number) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n || 0);
 
   const now = new Date();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const daysPassed = now.getDate();
   const daysLeft = daysInMonth - daysPassed;
+  const timePct = Math.round((daysPassed / daysInMonth) * 100);
+
+  const totalBudget = Object.values(budgets).reduce((s, v) => s + v, 0);
+  const totalSpent = Object.values(spent).reduce((s, v) => s + v, 0);
+  const totalRemaining = totalBudget - totalSpent;
+  const budgetPct = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
   const perDay = daysLeft > 0 ? totalRemaining / daysLeft : 0;
   const projected = daysPassed > 0 ? (totalSpent / daysPassed) * daysInMonth : 0;
   const projDiff = totalBudget - projected;
-
-  const healthScore = useMemo(() => {
-    const activeCats = BUDGET_CATEGORIES.filter(c => (budgets[c.name] || 0) > 0);
-    if (activeCats.length === 0) return 0;
-    const scores = activeCats.map(c => {
-      const b = budgets[c.name] || 0;
-      const s = spent[c.name] || 0;
-      const pct = (s / b) * 100;
-      if (pct <= 50) return 100;
-      if (pct <= 80) return 100 - ((pct - 50) / 30) * 30;
-      if (pct <= 100) return 70 - ((pct - 80) / 20) * 40;
-      return Math.max(0, 30 - (pct - 100) * 1.5);
-    });
-    return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
-  }, [budgets, spent]);
-
-  const health = healthInfo(healthScore);
-  const monthLabel = now.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+  const savingsRate = income > 0 ? Math.round(((income - totalSpent) / income) * 100) : 0;
   const utilized = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
 
-  const unbudgetedSpent = useMemo(() => {
-    const budgetedNames = new Set(Object.keys(budgets));
-    const arr: { name: string; amount: number; color: string }[] = [];
-    Object.entries(spent).forEach(([k, v]) => {
-      if (!budgetedNames.has(k) && v > 0) {
-        const cat = BUDGET_CATEGORIES.find(c => c.name === k);
-        arr.push({ name: k, amount: v, color: cat?.color || "#6B7280" });
+  const healthScore = useMemo(() => {
+    const ac = BUDGET_CATEGORIES.filter(c => (budgets[c.name] || 0) > 0);
+    if (ac.length === 0) return 0;
+    const sc = ac.map(c => { const b = budgets[c.name] || 0; const s = spent[c.name] || 0; const p = (s / b) * 100; if (p <= 50) return 100; if (p <= 80) return 100 - ((p - 50) / 30) * 30; if (p <= 100) return 70 - ((p - 80) / 20) * 40; return Math.max(0, 30 - (p - 100) * 1.5); });
+    return Math.round(sc.reduce((a, b) => a + b, 0) / sc.length);
+  }, [budgets, spent]);
+  const health = healthInfo(healthScore);
+
+  const onTrackCount = BUDGET_CATEGORIES.filter(c => { const b = budgets[c.name] || 0; return b > 0 && (spent[c.name] || 0) < b * 0.6; }).length;
+  const overCount = BUDGET_CATEGORIES.filter(c => { const b = budgets[c.name] || 0; return b > 0 && (spent[c.name] || 0) >= b; }).length;
+
+  const insights = useMemo(() => {
+    const r: { icon: React.ReactElement; color: string; title: string; desc: string }[] = [];
+    if (timePct > 0 && budgetPct > 0) {
+      if (budgetPct > timePct + 15) {
+        r.push({ icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>, color: "#EF4444", title: "Spending Ahead", desc: `${budgetPct}% budget used but only ${timePct}% of month passed.` });
+      } else if (budgetPct < timePct - 15) {
+        r.push({ icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><path d="M22 4L12 14.01l-3-3" /></svg>, color: "#22C55E", title: "Great Pace", desc: `Spending slower than month pace. ${fmt(totalRemaining)} available.` });
       }
-    });
-    return arr.sort((a, b) => b.amount - a.amount);
+    }
+    const topCat = BUDGET_CATEGORIES.reduce((mx, c) => (spent[c.name] || 0) > (spent[mx.name] || 0) ? c : mx, BUDGET_CATEGORIES[0]);
+    if (spent[topCat.name] > 0) {
+      const p = totalSpent > 0 ? Math.round((spent[topCat.name] / totalSpent) * 100) : 0;
+      r.push({ icon: <CatIcon name={topCat.name} color={topCat.color} />, color: topCat.color, title: `Top: ${topCat.name}`, desc: `${fmt(spent[topCat.name])} — ${p}% of all spending` });
+    }
+    let maxInc = { cat: "", pct: 0 };
+    BUDGET_CATEGORIES.forEach(c => { const cu = spent[c.name] || 0; const pv = lastSpent[c.name] || 0; if (pv > 0 && cu > pv) { const ch = Math.round(((cu - pv) / pv) * 100); if (ch > maxInc.pct) maxInc = { cat: c.name, pct: ch }; } });
+    if (maxInc.cat && maxInc.pct > 20) {
+      const mc = BUDGET_CATEGORIES.find(c => c.name === maxInc.cat);
+      r.push({ icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>, color: "#F97316", title: `${maxInc.cat} Up ${maxInc.pct}%`, desc: `vs last month. ${fmt(lastSpent[maxInc.cat] || 0)} → ${fmt(spent[maxInc.cat] || 0)}` });
+    }
+    if (income > 0 && totalSpent > 0) {
+      r.push({ icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={savingsRate >= 20 ? "#10B981" : "#EAB308"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>, color: savingsRate >= 20 ? "#10B981" : "#EAB308", title: `${Math.max(0, savingsRate)}% Savings Rate`, desc: savingsRate >= 20 ? "Above the recommended 20%. Great job!" : "Below 20%. Try to save more this month." });
+    }
+    return r.slice(0, 4);
+  }, [spent, lastSpent, budgets, income, totalSpent, totalRemaining, timePct, budgetPct]);
+
+  const velocity7 = useMemo(() => {
+    const dn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const res: { day: string; amount: number }[] = [];
+    for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); const k = d.toISOString().split("T")[0]; res.push({ day: dn[d.getDay()], amount: dailyMap[k] || 0 }); }
+    return res;
+  }, [dailyMap]);
+
+  const trends = useMemo(() => {
+    const m = new Map<string, "up" | "down" | "flat">();
+    BUDGET_CATEGORIES.forEach(c => { const cu = spent[c.name] || 0; const pv = lastSpent[c.name] || 0; if (pv > 0 && cu > pv * 1.05) m.set(c.name, "up"); else if (pv > 0 && cu < pv * 0.95) m.set(c.name, "down"); else m.set(c.name, "flat"); });
+    return m;
+  }, [spent, lastSpent]);
+
+  const trendPct = useMemo(() => {
+    const m = new Map<string, number>();
+    BUDGET_CATEGORIES.forEach(c => { const cu = spent[c.name] || 0; const pv = lastSpent[c.name] || 0; m.set(c.name, pv > 0 ? Math.round(((cu - pv) / pv) * 100) : 0); });
+    return m;
+  }, [spent, lastSpent]);
+
+  const monthTimeline = useMemo(() => {
+    const arr: { day: number; amount: number; isToday: boolean; isFuture: boolean }[] = [];
+    const dailyAvg = totalBudget > 0 ? totalBudget / daysInMonth : 0;
+    for (let i = 1; i <= daysInMonth; i++) {
+      const ds = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
+      arr.push({ day: i, amount: dailyMap[ds] || 0, isToday: i === daysPassed, isFuture: i > daysPassed });
+    }
+    return { days: arr, dailyAvg };
+  }, [dailyMap, daysInMonth, daysPassed, totalBudget]);
+
+  const unbudgetedSpent = useMemo(() => {
+    const bn = new Set(Object.keys(budgets));
+    return Object.entries(spent).filter(([k, v]) => !bn.has(k) && v > 0).map(([k, v]) => ({ name: k, amount: v, color: BUDGET_CATEGORIES.find(c => c.name === k)?.color || "#6B7280" })).sort((a, b) => b.amount - a.amount);
   }, [spent, budgets]);
   const unbudgetedTotal = unbudgetedSpent.reduce((s, u) => s + u.amount, 0);
 
-  const activeCats = BUDGET_CATEGORIES.filter(c => (budgets[c.name] || 0) > 0 || (spent[c.name] || 0) > 0);
-  const overCount = activeCats.filter(c => { const b = budgets[c.name] || 0; return b > 0 && (spent[c.name] || 0) >= b; }).length;
-  const onTrackCount = activeCats.filter(c => { const b = budgets[c.name] || 0; return b > 0 && (spent[c.name] || 0) < b * 0.6; }).length;
+  const monthLabel = now.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
 
   if (loading) return (
     <div style={{ height: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -282,19 +313,17 @@ export default function BudgetPage() {
       <div className="bw" style={{ maxWidth: 920, margin: "0 auto", padding: "28px 24px 64px" }}>
 
         {/* Header */}
-        <div className="bh" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
+        <div className="bh" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 }}>Smart Budget</h1>
-            <p style={{ fontSize: 13, color: "var(--muted)", margin: "3px 0 0 0" }}>{monthLabel} · AI-powered based on your income</p>
+            <p style={{ fontSize: 13, color: "var(--muted)", margin: "3px 0 0 0" }}>{monthLabel} · AI-powered</p>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button onClick={generateAIBudget}
-              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 8, border: `1px solid ${aiGenerated ? "rgba(34,197,94,0.3)" : "var(--border)"}`, background: aiGenerated ? "rgba(34,197,94,0.08)" : "var(--card)", color: aiGenerated ? "#22C55E" : "var(--text)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "0.2s" }}>
+            <button onClick={generateAIBudget} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 8, border: `1px solid ${aiGenerated ? "rgba(34,197,94,0.3)" : "var(--border)"}`, background: aiGenerated ? "rgba(34,197,94,0.08)" : "var(--card)", color: aiGenerated ? "#22C55E" : "var(--text)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "0.2s" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a4 4 0 014 4c0 1.95-1.4 3.58-3.25 3.93M8 6a4 4 0 014-4M12 18v4M8 22h8M12 2v4" /><circle cx="12" cy="14" r="4" /></svg>
               {aiGenerated ? "Generated!" : "AI Generate"}
             </button>
-            <button onClick={saveBudgets} disabled={saving}
-              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 18px", borderRadius: 8, border: "none", background: saved ? "#22C55E" : "#0C0D10", color: "#fff", fontSize: 13, fontWeight: 600, cursor: saving ? "wait" : "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1, transition: "0.2s" }}>
+            <button onClick={saveBudgets} disabled={saving} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 18px", borderRadius: 8, border: "none", background: saved ? "#22C55E" : "#0C0D10", color: "#fff", fontSize: 13, fontWeight: 600, cursor: saving ? "wait" : "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1, transition: "0.2s" }}>
               {saving ? "Saving..." : saved ? "✓ Saved!" : "Save Budget"}
             </button>
           </div>
@@ -302,121 +331,162 @@ export default function BudgetPage() {
 
         {/* AI Banner */}
         {aiGenerated && (
-          <div style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 10, padding: "14px 18px", marginBottom: 20, display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 10, padding: "14px 18px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(34,197,94,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a4 4 0 014 4c0 1.95-1.4 3.58-3.25 3.93M8 6a4 4 0 014-4M12 18v4M8 22h8M12 2v4" /><circle cx="12" cy="14" r="4" /></svg>
             </div>
             <div>
               <p style={{ fontSize: 13, fontWeight: 700, color: "#22C55E", margin: "0 0 2px" }}>AI Budget Generated</p>
-              <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>Based on {fmt(income)}/month using the 50/30/20 rule. Edit any amount and save.</p>
+              <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>Based on {fmt(income)}/month using 50/30/20 rule. Edit and save.</p>
             </div>
           </div>
         )}
 
-        {/* Summary Cards */}
-        <div className="bs" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 20 }}>
-          <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "16px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-              <div style={{ width: 24, height: 24, borderRadius: 6, background: "rgba(59,130,246,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></svg>
-              </div>
-              <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", margin: 0, textTransform: "uppercase", letterSpacing: 0.05 }}>Income</p>
+        {/* Month Timeline */}
+        <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px", marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.05 }}>Spending Pattern · {monthLabel}</span>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 9, color: "var(--muted)" }}><span style={{ width: 6, height: 6, borderRadius: 3, background: "#22C55E" }} />Low</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 9, color: "var(--muted)" }}><span style={{ width: 6, height: 6, borderRadius: 3, background: "#EAB308" }} />Med</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 9, color: "var(--muted)" }}><span style={{ width: 6, height: 6, borderRadius: 3, background: "#EF4444" }} />High</span>
             </div>
-            <p style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums" }}>{income > 0 ? fmt(income) : "—"}</p>
           </div>
-          <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "16px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-              <div style={{ width: 24, height: 24, borderRadius: 6, background: "rgba(139,92,246,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="M2 10h20" /></svg>
-              </div>
-              <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", margin: 0, textTransform: "uppercase", letterSpacing: 0.05 }}>Budgeted</p>
-            </div>
-            <p style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums" }}>{fmt(totalBudget)}</p>
+          <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+            {monthTimeline.days.map(d => {
+              let bg = "var(--border)";
+              if (!d.isFuture && d.amount > 0) {
+                const avg = monthTimeline.dailyAvg || 1;
+                if (d.amount < avg * 0.8) bg = "#22C55E";
+                else if (d.amount < avg * 1.5) bg = "#EAB308";
+                else bg = "#EF4444";
+              }
+              if (d.isFuture) bg = "var(--border)";
+              return <div key={d.day} title={`Day ${d.day}: ${fmt(d.amount)}`} style={{ width: 8, height: 8, borderRadius: 4, background: bg, opacity: d.isFuture ? 0.3 : 1, border: d.isToday ? "2px solid var(--text)" : "none", boxSizing: "border-box", transition: "0.2s" }} />;
+            })}
           </div>
-          <div style={{ background: totalRemaining >= 0 ? "rgba(34,197,94,0.06)" : "rgba(239,68,68,0.06)", border: `1px solid ${totalRemaining >= 0 ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}`, borderRadius: 10, padding: "16px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-              <div style={{ width: 24, height: 24, borderRadius: 6, background: totalRemaining >= 0 ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={totalRemaining >= 0 ? "#22C55E" : "#EF4444"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></svg>
-              </div>
-              <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", margin: 0, textTransform: "uppercase", letterSpacing: 0.05 }}>{totalRemaining >= 0 ? "Remaining" : "Over"}</p>
-            </div>
-            <p style={{ fontSize: 20, fontWeight: 700, color: totalRemaining >= 0 ? "#22C55E" : "#EF4444", margin: 0, fontVariantNumeric: "tabular-nums" }}>{totalRemaining >= 0 ? "" : "-"}{fmt(Math.abs(totalRemaining))}</p>
-          </div>
-          <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "16px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-              <div style={{ width: 24, height: 24, borderRadius: 6, background: "rgba(234,179,8,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#EAB308" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
-              </div>
-              <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", margin: 0, textTransform: "uppercase", letterSpacing: 0.05 }}>Per Day</p>
-            </div>
-            <p style={{ fontSize: 20, fontWeight: 700, color: perDay >= 0 ? "#22C55E" : "#EF4444", margin: 0, fontVariantNumeric: "tabular-nums" }}>
-              {perDay >= 0 ? fmt(perDay) : "—"}
-            </p>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+            <span style={{ fontSize: 9, color: "var(--muted)" }}>1</span>
+            <span style={{ fontSize: 9, color: "var(--muted)" }}>{Math.round(daysInMonth / 2)}</span>
+            <span style={{ fontSize: 9, color: "var(--muted)" }}>{daysInMonth}</span>
           </div>
         </div>
 
-        {/* Health Score + Insight */}
-        <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "24px", marginBottom: 20, display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
+        {/* Summary Cards */}
+        <div className="bs" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }}>
+          <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px" }}>
+            <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", margin: "0 0 6px", textTransform: "uppercase", letterSpacing: 0.05 }}>Income</p>
+            <p style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums" }}>{income > 0 ? fmt(income) : "—"}</p>
+          </div>
+          <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px" }}>
+            <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", margin: "0 0 6px", textTransform: "uppercase", letterSpacing: 0.05 }}>Budgeted</p>
+            <p style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums" }}>{fmt(totalBudget)}</p>
+          </div>
+          <div style={{ background: totalRemaining >= 0 ? "rgba(34,197,94,0.06)" : "rgba(239,68,68,0.06)", border: `1px solid ${totalRemaining >= 0 ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}`, borderRadius: 10, padding: "14px" }}>
+            <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", margin: "0 0 6px", textTransform: "uppercase", letterSpacing: 0.05 }}>{totalRemaining >= 0 ? "Remaining" : "Over"}</p>
+            <p style={{ fontSize: 18, fontWeight: 700, color: totalRemaining >= 0 ? "#22C55E" : "#EF4444", margin: 0, fontVariantNumeric: "tabular-nums" }}>{totalRemaining >= 0 ? "" : "-"}{fmt(Math.abs(totalRemaining))}</p>
+          </div>
+          <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px" }}>
+            <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", margin: "0 0 6px", textTransform: "uppercase", letterSpacing: 0.05 }}>Daily Target</p>
+            <p style={{ fontSize: 18, fontWeight: 700, color: perDay >= 0 ? "#22C55E" : "#EF4444", margin: 0, fontVariantNumeric: "tabular-nums" }}>{perDay >= 0 ? fmt(perDay) : "—"}</p>
+          </div>
+        </div>
+
+        {/* Health + Spend Pace */}
+        <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "22px", marginBottom: 16, display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
           <div style={{ position: "relative", flexShrink: 0 }}>
-            <DonutChart pct={healthScore} color={health.color} size={100} />
+            <DonutChart pct={healthScore} color={health.color} size={96} />
             <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ fontSize: 22, fontWeight: 800, color: health.color, fontVariantNumeric: "tabular-nums" }}>{healthScore}</span>
+              <span style={{ fontSize: 20, fontWeight: 800, color: health.color, fontVariantNumeric: "tabular-nums" }}>{healthScore}</span>
             </div>
           </div>
           <div style={{ flex: 1, minWidth: 200 }}>
-            <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", margin: "0 0 2px" }}>Budget Health — <span style={{ color: health.color }}>{health.label}</span></p>
-            <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 12px", lineHeight: 1.5 }}>
-              {daysLeft > 0 ? <>{daysLeft} day{daysLeft !== 1 ? "s" : ""} left. </> : null}
-              {projDiff > 0
-                ? <span style={{ color: "#22C55E" }}>On track to save {fmt(projDiff)} by month end.</span>
-                : projDiff < 0
-                  ? <span style={{ color: "#EF4444" }}>At this pace, you'll exceed by {fmt(Math.abs(projDiff))}.</span>
-                  : <span>Right on target.</span>
-              }
-            </p>
-            <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-              <div>
-                <p style={{ fontSize: 10, color: "var(--muted)", margin: 0, textTransform: "uppercase", letterSpacing: 0.05 }}>Utilized</p>
-                <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "2px 0 0 0", fontVariantNumeric: "tabular-nums" }}>{utilized}%</p>
+            <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", margin: "0 0 8px" }}>Budget Health — <span style={{ color: health.color }}>{health.label}</span></p>
+            {/* Spend Pace */}
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                <span style={{ fontSize: 10, color: "var(--muted)", fontWeight: 500 }}>Time Passed</span>
+                <span style={{ fontSize: 10, color: "var(--muted)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{timePct}%</span>
               </div>
-              <div>
-                <p style={{ fontSize: 10, color: "var(--muted)", margin: 0, textTransform: "uppercase", letterSpacing: 0.05 }}>Projected</p>
-                <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "2px 0 0 0", fontVariantNumeric: "tabular-nums" }}>{fmt(projected)}</p>
+              <div style={{ height: 6, background: "var(--border)", borderRadius: 6, overflow: "hidden", marginBottom: 6 }}>
+                <div style={{ height: "100%", width: `${timePct}%`, background: "#3B82F6", borderRadius: 6, transition: "width 0.6s" }} />
               </div>
-              <div>
-                <p style={{ fontSize: 10, color: "#22C55E", margin: 0, textTransform: "uppercase", letterSpacing: 0.05 }}>On Track</p>
-                <p style={{ fontSize: 15, fontWeight: 700, color: "#22C55E", margin: "2px 0 0 0" }}>{onTrackCount}</p>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                <span style={{ fontSize: 10, color: "var(--muted)", fontWeight: 500 }}>Budget Used</span>
+                <span style={{ fontSize: 10, fontWeight: 600, color: budgetPct > timePct + 15 ? "#EF4444" : "#22C55E", fontVariantNumeric: "tabular-nums" }}>{budgetPct}%</span>
               </div>
-              {overCount > 0 && (
-                <div>
-                  <p style={{ fontSize: 10, color: "#EF4444", margin: 0, textTransform: "uppercase", letterSpacing: 0.05 }}>Over</p>
-                  <p style={{ fontSize: 15, fontWeight: 700, color: "#EF4444", margin: "2px 0 0 0" }}>{overCount}</p>
-                </div>
-              )}
+              <div style={{ height: 6, background: "var(--border)", borderRadius: 6, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${Math.min(100, budgetPct)}%`, background: budgetPct > timePct + 15 ? "#EF4444" : budgetPct > timePct ? "#EAB308" : "#22C55E", borderRadius: 6, transition: "width 0.6s" }} />
+              </div>
             </div>
+            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+              <div><p style={{ fontSize: 9, color: "var(--muted)", margin: 0, textTransform: "uppercase" }}>Projected</p><p style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", margin: "1px 0 0 0", fontVariantNumeric: "tabular-nums" }}>{fmt(projected)}</p></div>
+              <div><p style={{ fontSize: 9, color: "#22C55E", margin: 0, textTransform: "uppercase" }}>On Track</p><p style={{ fontSize: 14, fontWeight: 700, color: "#22C55E", margin: "1px 0 0 0" }}>{onTrackCount}</p></div>
+              {overCount > 0 && <div><p style={{ fontSize: 9, color: "#EF4444", margin: 0, textTransform: "uppercase" }}>Over</p><p style={{ fontSize: 14, fontWeight: 700, color: "#EF4444", margin: "1px 0 0 0" }}>{overCount}</p></div>}
+              <div><p style={{ fontSize: 9, color: "var(--muted)", margin: 0, textTransform: "uppercase" }}>Days Left</p><p style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", margin: "1px 0 0 0" }}>{daysLeft}</p></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Smart Insights */}
+        {insights.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <p style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", margin: "0 0 8px", textTransform: "uppercase", letterSpacing: 0.05 }}>Smart Insights</p>
+            <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(insights.length, 4)}, 1fr)`, gap: 8 }} className="bi">
+              {insights.map((ins, i) => (
+                <div key={i} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "12px 14px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                    <div style={{ width: 22, height: 22, borderRadius: 6, background: ins.color + "18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{ins.icon}</div>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: ins.color }}>{ins.title}</span>
+                  </div>
+                  <p style={{ fontSize: 10, color: "var(--muted)", margin: 0, lineHeight: 1.4 }}>{ins.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 7-Day Velocity */}
+        <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px", marginBottom: 16 }}>
+          <p style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", margin: "0 0 10px", textTransform: "uppercase", letterSpacing: 0.05 }}>Last 7 Days</p>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 44 }}>
+            {velocity7.map((v, i) => {
+              const mx = Math.max(...velocity7.map(x => x.amount), 1);
+              const h = Math.max(4, (v.amount / mx) * 40);
+              return (
+                <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                  <div style={{ width: "100%", height: h, borderRadius: 3, background: v.amount > 0 ? (v.amount > mx * 0.7 ? "#F97316" : "#22C55E") : "var(--border)", transition: "height 0.5s", minWidth: 8 }} />
+                  <span style={{ fontSize: 9, color: "var(--muted)", fontWeight: 500 }}>{v.day}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
         {/* Overall Progress */}
-        <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "18px 20px", marginBottom: 20 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+        <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "16px 18px", marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text)" }}>Overall Budget Used</span>
             <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>{utilized}%</span>
           </div>
-          <div style={{ height: 10, background: "var(--border)", borderRadius: 10, overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${Math.min(100, utilized)}%`, background: utilized >= 100 ? "#EF4444" : utilized >= 80 ? "#F97316" : utilized >= 60 ? "#EAB308" : "#22C55E", borderRadius: 10, transition: "width 0.8s ease-out" }} />
+          <div style={{ height: 8, background: "var(--border)", borderRadius: 8, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${Math.min(100, utilized)}%`, background: utilized >= 100 ? "#EF4444" : utilized >= 80 ? "#F97316" : utilized >= 60 ? "#EAB308" : "#22C55E", borderRadius: 8, transition: "width 0.8s" }} />
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
-            <span style={{ fontSize: 10, color: "var(--muted)" }}>Spent: {fmt(totalSpent)}</span>
-            <span style={{ fontSize: 10, color: "var(--muted)" }}>Budget: {fmt(totalBudget)}</span>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5 }}>
+            <span style={{ fontSize: 10, color: "var(--muted)" }}>Spent {fmt(totalSpent)}</span>
+            <span style={{ fontSize: 10, color: "var(--muted)" }}>Budget {fmt(totalBudget)}</span>
           </div>
+          {projDiff !== 0 && (
+            <p style={{ fontSize: 11, margin: "6px 0 0 0", fontWeight: 500, color: projDiff > 0 ? "#22C55E" : "#EF4444" }}>
+              {projDiff > 0 ? `On track to save ${fmt(projDiff)} by month end` : `At this pace, exceed by ${fmt(Math.abs(projDiff))}`}
+            </p>
+          )}
         </div>
 
         {/* Tabs */}
-        <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>
+        <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
           {([["overview", "Overview"], ["setup", "Edit Budget"]] as const).map(([key, label]) => (
-            <button key={key} onClick={() => { setActiveTab(key as "overview" | "setup"); }}
-              style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid " + (activeTab === key ? "var(--text)" : "var(--border)"), background: activeTab === key ? "var(--text)" : "var(--card)", color: activeTab === key ? "var(--bg)" : "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "0.15s" }}>
+            <button key={key} onClick={() => { setActiveTab(key as "overview" | "setup"); }} style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid " + (activeTab === key ? "var(--text)" : "var(--border)"), background: activeTab === key ? "var(--text)" : "var(--card)", color: activeTab === key ? "var(--bg)" : "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "0.15s" }}>
               {label}
             </button>
           ))}
@@ -425,13 +495,14 @@ export default function BudgetPage() {
         {/* Overview Tab */}
         {activeTab === "overview" && (
           <>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
               {BUDGET_CATEGORIES.map(cat => {
                 const budgeted = budgets[cat.name] || 0;
                 const spentAmt = spent[cat.name] || 0;
                 const status = getStatus(budgeted, spentAmt);
+                const trend = trends.get(cat.name);
+                const tp = trendPct.get(cat.name) || 0;
                 if (budgeted === 0 && spentAmt === 0) return null;
-
                 return (
                   <div key={cat.name} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px", borderLeft: `4px solid ${cat.color}`, transition: "background 0.1s, border-color 0.15s" }}
                     onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg)"; e.currentTarget.style.borderColor = cat.color + "44"; }}
@@ -440,7 +511,14 @@ export default function BudgetPage() {
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <CatIcon name={cat.name} color={cat.color} />
                         <div>
-                          <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{cat.name}</p>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{cat.name}</p>
+                            {trend && trend !== "flat" && tp > 0 && (
+                              <span style={{ fontSize: 9, fontWeight: 700, color: trend === "up" ? "#EF4444" : "#22C55E", background: (trend === "up" ? "#EF4444" : "#22C55E") + "14", padding: "1px 5px", borderRadius: 4 }}>
+                                {trend === "up" ? "↑" : "↓"}{tp}%
+                              </span>
+                            )}
+                          </div>
                           <p style={{ fontSize: 10, color: "var(--muted)", margin: "2px 0 0 0", fontVariantNumeric: "tabular-nums" }}>{fmt(spentAmt)} spent{budgeted > 0 ? ` of ${fmt(budgeted)}` : ""}</p>
                         </div>
                       </div>
@@ -455,27 +533,27 @@ export default function BudgetPage() {
                         )}
                       </div>
                     </div>
-                    {budgeted > 0 && <MiniBar pct={status.pct} color={status.color} />}
+                    {budgeted > 0 && (
+                      <div style={{ height: 5, background: "var(--border)", borderRadius: 5, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${Math.min(100, status.pct)}%`, background: status.color, borderRadius: 5, transition: "width 0.6s" }} />
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
 
-            {/* Unbudgeted */}
             {unbudgetedSpent.length > 0 && (
-              <div style={{ background: "rgba(234,179,8,0.06)", border: "1px solid rgba(234,179,8,0.2)", borderRadius: 10, padding: "16px 18px", marginBottom: 20 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <div style={{ width: 24, height: 24, borderRadius: 6, background: "rgba(234,179,8,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#EAB308" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
-                  </div>
+              <div style={{ background: "rgba(234,179,8,0.06)", border: "1px solid rgba(234,179,8,0.2)", borderRadius: 10, padding: "16px 18px", marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#EAB308" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
                   <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>Unbudgeted Spending</p>
                 </div>
-                <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 10px" }}>{fmt(unbudgetedTotal)} spent without a budget this month</p>
+                <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 10px" }}>{fmt(unbudgetedTotal)} spent without a budget</p>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {unbudgetedSpent.map(u => (
-                    <span key={u.name} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 6, background: u.color + "14", border: `1px solid ${u.color}33`, fontSize: 11, color: u.color, fontWeight: 500 }}>
-                      <span style={{ width: 6, height: 6, borderRadius: 6, background: u.color, flexShrink: 0 }} />
-                      {u.name} · {fmt(u.amount)}
+                    <span key={u.name} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 6, background: u.color + "14", border: `1px solid ${u.color}33`, fontSize: 11, color: u.color, fontWeight: 500 }}>
+                      <span style={{ width: 5, height: 5, borderRadius: 5, background: u.color }} />{u.name} · {fmt(u.amount)}
                     </span>
                   ))}
                 </div>
@@ -484,32 +562,48 @@ export default function BudgetPage() {
           </>
         )}
 
-        {/* Edit Budget Tab */}
+        {/* Edit Tab */}
         {activeTab === "setup" && (
           <>
-            <div style={{ background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.2)", borderRadius: 10, padding: "14px 18px", marginBottom: 18, display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.2)", borderRadius: 10, padding: "14px 18px", marginBottom: 14, display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(59,130,246,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01" /></svg>
               </div>
               <div>
-                <p style={{ fontSize: 13, fontWeight: 600, color: "#3B82F6", margin: "0 0 2px" }}>How AI Budget Works</p>
-                <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>Based on <strong>{fmt(income)}/month</strong> using the 50/30/20 rule adapted for India. Edit any amount and save.</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "#3B82F6", margin: "0 0 2px" }}>AI Budget Engine</p>
+                <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>Based on <strong>{fmt(income)}/month</strong> using 50/30/20 rule. Edit any amount and save.</p>
               </div>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 20 }}>
+            {/* Optimizer */}
+            <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+              <button onClick={optimizeBudget} style={{ flex: 1, padding: "10px 16px", borderRadius: 8, border: `1px solid ${optimized ? "rgba(34,197,94,0.3)" : "var(--border)"}`, background: optimized ? "rgba(34,197,94,0.08)" : "var(--card)", color: optimized ? "#22C55E" : "var(--text)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "0.2s" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a4 4 0 014 4c0 1.95-1.4 3.58-3.25 3.93M8 6a4 4 0 014-4M12 18v4M8 22h8M12 2v4" /><circle cx="12" cy="14" r="4" /></svg>
+                {optimized ? "Optimized!" : "Auto-Optimize Budget"}
+              </button>
+              <button onClick={generateAIBudget} style={{ padding: "10px 16px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--card)", color: "var(--text)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "0.2s" }}>Reset to AI</button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
               {BUDGET_CATEGORIES.map(cat => {
                 const budgeted = budgets[cat.name] || 0;
                 const spentAmt = spent[cat.name] || 0;
+                const trend = trends.get(cat.name);
+                const tp = trendPct.get(cat.name) || 0;
                 return (
                   <div key={cat.name} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, transition: "border-color 0.15s" }}
                     onMouseEnter={(e) => { e.currentTarget.style.borderColor = cat.color + "44"; }}
                     onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}>
                     <CatIcon name={cat.name} color={cat.color} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{cat.name}</p>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{cat.name}</p>
+                        {trend && trend !== "flat" && tp > 0 && (
+                          <span style={{ fontSize: 9, fontWeight: 700, color: trend === "up" ? "#EF4444" : "#22C55E" }}>{trend === "up" ? "↑" : "↓"}{tp}%</span>
+                        )}
+                      </div>
                       <p style={{ fontSize: 10, color: "var(--muted)", margin: "2px 0 0 0" }}>
-                        {cat.recommended > 0 ? `AI: ${cat.recommended}% = ${fmt(Math.round(income * cat.recommended / 100))}` : "Set your own amount"}
+                        {cat.recommended > 0 ? `AI: ${cat.recommended}% = ${fmt(Math.round(income * cat.recommended / 100))}` : "Set your own"}
                         {spentAmt > 0 ? <span style={{ color: getStatus(budgeted, spentAmt).color }}> · Spent: {fmt(spentAmt)}</span> : ""}
                       </p>
                     </div>
@@ -520,10 +614,8 @@ export default function BudgetPage() {
                         onFocus={(e) => { e.currentTarget.style.borderColor = cat.color; }}
                         onBlur={(e) => { e.currentTarget.style.borderColor = budgeted > 0 ? cat.color : "var(--border)"; }} />
                     </div>
-                    <div style={{ width: 40, textAlign: "right", flexShrink: 0 }}>
-                      <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
-                        {income > 0 && budgeted ? `${Math.round((budgeted / income) * 100)}%` : "0%"}
-                      </span>
+                    <div style={{ width: 38, textAlign: "right", flexShrink: 0 }}>
+                      <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>{income > 0 && budgeted ? `${Math.round((budgeted / income) * 100)}%` : "0%"}</span>
                     </div>
                   </div>
                 );
@@ -531,27 +623,26 @@ export default function BudgetPage() {
             </div>
 
             {/* Budget vs Income */}
-            <div style={{ background: totalBudget > income ? "rgba(239,68,68,0.06)" : "rgba(34,197,94,0.06)", border: `1px solid ${totalBudget > income ? "rgba(239,68,68,0.2)" : "rgba(34,197,94,0.2)"}`, borderRadius: 10, padding: "18px", marginBottom: 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+            <div style={{ background: totalBudget > income ? "rgba(239,68,68,0.06)" : "rgba(34,197,94,0.06)", border: `1px solid ${totalBudget > income ? "rgba(239,68,68,0.2)" : "rgba(34,197,94,0.2)"}`, borderRadius: 10, padding: "16px", marginBottom: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>Total Budgeted</span>
                 <span style={{ fontSize: 16, fontWeight: 700, color: totalBudget > income ? "#EF4444" : "#22C55E", fontVariantNumeric: "tabular-nums" }}>{fmt(totalBudget)}</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                 <span style={{ fontSize: 12, color: "var(--muted)" }}>Monthly Income</span>
                 <span style={{ fontSize: 12, color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>{fmt(income)}</span>
               </div>
-              <div style={{ height: 1, background: totalBudget > income ? "rgba(239,68,68,0.2)" : "rgba(34,197,94,0.2)", marginBottom: 8 }} />
+              <div style={{ height: 1, background: totalBudget > income ? "rgba(239,68,68,0.2)" : "rgba(34,197,94,0.2)", marginBottom: 6 }} />
               {totalBudget > income ? (
-                <p style={{ fontSize: 12, color: "#EF4444", margin: 0, fontWeight: 500 }}>Budget exceeds income by {fmt(totalBudget - income)}. Reduce some categories.</p>
+                <p style={{ fontSize: 12, color: "#EF4444", margin: 0, fontWeight: 500 }}>Exceeds income by {fmt(totalBudget - income)}. Reduce some categories.</p>
               ) : totalBudget > 0 ? (
-                <p style={{ fontSize: 12, color: "#22C55E", margin: 0, fontWeight: 500 }}>{fmt(income - totalBudget)} unallocated — consider adding to Savings!</p>
+                <p style={{ fontSize: 12, color: "#22C55E", margin: 0, fontWeight: 500 }}>{fmt(income - totalBudget)} unallocated — add to Savings!</p>
               ) : (
-                <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>Click "AI Generate" to auto-fill budgets.</p>
+                <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>Click "AI Generate" to auto-fill.</p>
               )}
             </div>
 
-            <button onClick={saveBudgets} disabled={saving}
-              style={{ width: "100%", height: 44, borderRadius: 10, border: "none", background: saved ? "#22C55E" : "#0C0D10", color: "#fff", fontSize: 14, fontWeight: 600, cursor: saving ? "wait" : "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1, transition: "0.2s" }}>
+            <button onClick={saveBudgets} disabled={saving} style={{ width: "100%", height: 44, borderRadius: 10, border: "none", background: saved ? "#22C55E" : "#0C0D10", color: "#fff", fontSize: 14, fontWeight: 600, cursor: saving ? "wait" : "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1, transition: "0.2s" }}>
               {saving ? "Saving..." : saved ? "Budget Saved!" : "Save Budget"}
             </button>
           </>
@@ -563,10 +654,12 @@ export default function BudgetPage() {
         @keyframes bsp { to { transform: rotate(360deg); } }
         @media (max-width: 768px) {
           .bs { grid-template-columns: repeat(2, 1fr) !important; }
+          .bi { grid-template-columns: 1fr !important; }
         }
         @media (max-width: 640px) {
           .bw { padding: 20px 16px 0 !important; }
           .bh { flex-direction: column !important; align-items: flex-start !important; }
+          .bi { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </div>
