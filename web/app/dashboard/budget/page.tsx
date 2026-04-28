@@ -60,8 +60,6 @@ export default function BudgetPage() {
   const [saved, setSaved] = useState(false);
   const [aiGenerated, setAiGenerated] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "setup">("overview");
-  const [editCat, setEditCat] = useState<string | null>(null);
-  const [editVal, setEditVal] = useState("");
 
   useEffect(() => { loadData(); }, []);
 
@@ -322,7 +320,7 @@ export default function BudgetPage() {
         {/* Tabs */}
         <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>
           {([["overview", "📊 Overview"], ["setup", "⚙️ Edit Budget"]] as const).map(([key, label]) => (
-            <button key={key} onClick={() => setActiveTab(key as any)}
+            <button key={key} onClick={() => setActiveTab(key as "overview" | "setup")}
               style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid " + (activeTab === key ? "var(--text)" : "var(--border)"), background: activeTab === key ? "var(--text)" : "var(--card)", color: activeTab === key ? "var(--bg)" : "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "0.15s" }}>
               {label}
             </button>
@@ -341,8 +339,8 @@ export default function BudgetPage() {
 
                 return (
                   <div key={cat.name} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px", borderLeft: `4px solid ${cat.color}`, transition: "background 0.1s" }}
-                    onMouseEnter={e => e.currentTarget.style.background = "var(--bg)"}
-                    onMouseLeave={e => e.currentTarget.style.background = "var(--card)"}>
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "var(--card)"; }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: budgeted > 0 ? 8 : 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <div style={{ width: 32, height: 32, borderRadius: 8, background: cat.color + "22", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>{cat.emoji}</div>
@@ -402,8 +400,8 @@ export default function BudgetPage() {
             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 20 }}>
               {BUDGET_CATEGORIES.map(cat => (
                 <div key={cat.name} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, transition: "border-color 0.15s" }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = cat.color + "44"}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border)">
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = cat.color + "44"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}>
                   <div style={{ width: 36, height: 36, borderRadius: 8, background: cat.color + "22", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0 }}>{cat.emoji}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{cat.name}</p>
@@ -416,8 +414,8 @@ export default function BudgetPage() {
                     <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 600 }}>₹</span>
                     <input type="number" min="0" value={budgets[cat.name] || ""} onChange={e => setBudgets({ ...budgets, [cat.name]: Number(e.target.value) })} placeholder="0"
                       style={{ width: 100, height: 36, borderRadius: 8, padding: "0 10px", fontSize: 13, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: `1px solid ${(budgets[cat.name] || 0) > 0 ? cat.color : "var(--border)"}`, color: "var(--text)", boxSizing: "border-box", textAlign: "right", fontWeight: 600, fontVariantNumeric: "tabular-nums", transition: "border-color 0.15s" }}
-                      onFocus={e => e.currentTarget.style.borderColor = cat.color}
-                      onBlur={e => e.currentTarget.style.borderColor = (budgets[cat.name] || 0) > 0 ? cat.color : "var(--border)"} />
+                      onFocus={(e) => { e.currentTarget.style.borderColor = cat.color; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = (budgets[cat.name] || 0) > 0 ? cat.color : "var(--border)"; }} />
                   </div>
                   <div style={{ width: 40, textAlign: "right", flexShrink: 0 }}>
                     <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
