@@ -23,46 +23,37 @@ const CATS = [
 function getCat(n: string) { return CATS.find(c => c.name === n) || CATS[CATS.length - 1]; }
 
 function Av({ name, color, small }: { name: string; color: string; small?: boolean }) {
-  const sz = small ? 28 : 32;
-  let letter: string;
-  if (name === "Housing/Rent") letter = "H";
-  else if (name === "Food Delivery") letter = "FD";
-  else if (name === "EMI Payment") letter = "EM";
-  else if (name === "Streaming/OTT") letter = "ST";
-  else if (name === "Other Expense") letter = "OT";
-  else letter = name.charAt(0);
+  const sz = small ? 26 : 30;
+  let l: string;
+  if (name === "Housing/Rent") l = "H";
+  else if (name === "Food Delivery") l = "FD";
+  else if (name === "EMI Payment") l = "EM";
+  else if (name === "Streaming/OTT") l = "ST";
+  else if (name === "Other Expense") l = "OT";
+  else l = name.charAt(0);
   return (
-    <div style={{ width: sz, height: sz, borderRadius: 8, background: color + "14", color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: small ? 10 : 12, fontWeight: 700, flexShrink: 0, border: `1px solid ${color}20` }}>
-      {letter}
-    </div>
+    <div style={{
+      width: sz, height: sz, borderRadius: 7,
+      background: color + "12", color,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      fontSize: small ? 9 : 11, fontWeight: 700, flexShrink: 0,
+      border: `1px solid ${color}18`
+    }}>{l}</div>
   );
 }
 
-function sColor(pct: number) {
-  if (pct >= 100) return "#EF4444";
-  if (pct >= 85) return "#F97316";
-  if (pct >= 60) return "#EAB308";
+function sC(p: number) {
+  if (p >= 100) return "#EF4444";
+  if (p >= 85) return "#F97316";
+  if (p >= 60) return "#EAB308";
   return "#22C55E";
 }
 
-function hInfo(s: number) {
+function hI(s: number) {
   if (s >= 80) return { l: "On Track", c: "#22C55E" };
   if (s >= 60) return { l: "Good", c: "#84CC16" };
   if (s >= 40) return { l: "Fair", c: "#F59E0B" };
   return { l: "At Risk", c: "#EF4444" };
-}
-
-function Donut({ pct, color, sz }: { pct: number; color: string; sz: number }) {
-  const sw = 7;
-  const r = (sz - sw) / 2;
-  const c = 2 * Math.PI * r;
-  const f = (Math.min(pct, 100) / 100) * c;
-  return (
-    <svg width={sz} height={sz} style={{ transform: "rotate(-90deg)" }}>
-      <circle cx={sz / 2} cy={sz / 2} r={r} fill="none" stroke="var(--border)" strokeWidth={sw} />
-      <circle cx={sz / 2} cy={sz / 2} r={r} fill="none" stroke={color} strokeWidth={sw} strokeDasharray={`${f} ${c - f}`} strokeLinecap="round" style={{ transition: "stroke-dasharray 0.6s ease-out" }} />
-    </svg>
-  );
 }
 
 export default function BudgetPage() {
@@ -199,7 +190,7 @@ export default function BudgetPage() {
     });
     return Math.round(sc.reduce((a, b) => a + b, 0) / sc.length);
   }, [budgets, spent]);
-  const hi = hInfo(hScore);
+  const hi = hI(hScore);
 
   const trends = useMemo(() => {
     const m = new Map<string, number>();
@@ -224,13 +215,13 @@ export default function BudgetPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
-      <div className="bw" style={{ maxWidth: 800, margin: "0 auto", padding: "28px 24px 64px" }}>
+      <div className="bw" style={{ maxWidth: 780, margin: "0 auto", padding: "28px 24px 64px" }}>
 
         {/* Header */}
         <div className="bh" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28, flexWrap: "wrap", gap: 12 }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 }}>Budget</h1>
-            <p style={{ fontSize: 13, color: "var(--muted)", margin: "2px 0 0 0" }}>{mLbl}</p>
+            <p style={{ fontSize: 13, color: "var(--muted)", margin: "2px 0 0 0" }}>Plan your monthly spending</p>
           </div>
           <button onClick={aiFill}
             style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: "#22C55E", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "background 0.15s" }}
@@ -250,11 +241,11 @@ export default function BudgetPage() {
 
         {activeCats.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 24px 40px" }}>
-            <div style={{ width: 56, height: 56, borderRadius: 14, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01" /></svg>
+            <div style={{ width: 52, height: 52, borderRadius: 12, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.15)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01" /></svg>
             </div>
             <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Take control of your spending</h2>
-            <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 20px", maxWidth: 300, marginLeft: "auto", marginRight: "auto", lineHeight: 1.5 }}>Set budgets for each category and see how much you have left.</p>
+            <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 20px", maxWidth: 280, marginLeft: "auto", marginRight: "auto", lineHeight: 1.5 }}>Set budgets for each category and see how much you have left.</p>
             <button onClick={aiFill}
               style={{ padding: "10px 24px", borderRadius: 8, border: "none", background: "#22C55E", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "#16A34A"; }}
@@ -266,54 +257,52 @@ export default function BudgetPage() {
               <div style={{ textAlign: "center" }}><p style={{ fontSize: 18, fontWeight: 700, color: "#8B5CF6", margin: 0 }}>30%</p><p style={{ fontSize: 10, color: "var(--muted)", margin: "2px 0 0 0" }}>Wants</p></div>
               <div style={{ textAlign: "center" }}><p style={{ fontSize: 18, fontWeight: 700, color: "#3B82F6", margin: 0 }}>20%</p><p style={{ fontSize: 10, color: "var(--muted)", margin: "2px 0 0 0" }}>Savings</p></div>
             </div>
-            <p style={{ fontSize: 10, color: "var(--muted)", margin: "10px 0 0 0" }}>The 50/30/20 rule — a proven framework</p>
           </div>
         ) : (
           <>
-            {/* Hero */}
-            <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, padding: "24px", marginBottom: 12 }}>
-              <p style={{ fontSize: 28, fontWeight: 700, color: rem >= 0 ? "#22C55E" : "#EF4444", margin: "0 0 2px", fontVariantNumeric: "tabular-nums", lineHeight: 1.2 }}>
+            {/* Hero - no card, just the number */}
+            <div style={{ marginBottom: 20 }}>
+              <p style={{ fontSize: 32, fontWeight: 700, color: rem >= 0 ? "#22C55E" : "#EF4444", margin: 0, fontVariantNumeric: "tabular-nums", lineHeight: 1.1 }}>
                 {rem >= 0 ? "" : "-"}{fmt(Math.abs(rem))}
               </p>
-              <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 16px" }}>left to spend</p>
-              <div style={{ position: "relative", marginBottom: 8 }}>
-                <div style={{ height: 6, background: "var(--border)", borderRadius: 6, overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: `${Math.min(100, usedPct)}%`, background: sColor(usedPct), borderRadius: 6, transition: "width 0.7s" }} />
+              <p style={{ fontSize: 13, color: "var(--muted)", margin: "4px 0 18px" }}>left to spend in {mLbl}</p>
+
+              {/* Progress */}
+              <div style={{ position: "relative", marginBottom: 6 }}>
+                <div style={{ height: 5, background: "var(--border)", borderRadius: 5, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${Math.min(100, usedPct)}%`, background: sC(usedPct), borderRadius: 5, transition: "width 0.7s" }} />
                 </div>
-                <div style={{ position: "absolute", top: -2, left: `${Math.min(98, timePct)}%`, width: 2, height: 10, background: "var(--text)", borderRadius: 1, opacity: 0.2 }} />
+                <div style={{ position: "absolute", top: -3, left: `${Math.min(98, timePct)}%`, width: 1, height: 11, background: "var(--text)", borderRadius: 1, opacity: 0.12 }} />
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 11, color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>{usedPct}% of {fmt(totalBudget)}</span>
-                <span style={{ fontSize: 11, color: "var(--muted)" }}>
-                  {dl > 0 && perDay > 0 ? `${fmt(perDay)}/day` : ""}{dl > 0 && perDay > 0 ? " · " : ""}{dl > 0 ? `${dl} days left` : ""}
-                </span>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 11, color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>{usedPct}% used</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  {dl > 0 && perDay > 0 && <span style={{ fontSize: 11, color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>{fmt(perDay)}/day</span>}
+                  {dl > 0 && perDay > 0 && <span style={{ fontSize: 11, color: "var(--border)" }}>·</span>}
+                  {dl > 0 && <span style={{ fontSize: 11, color: "var(--muted)" }}>{dl} days left</span>}
+                </div>
               </div>
             </div>
 
-            {/* Health */}
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, padding: "0 4px", flexWrap: "wrap" }}>
-              <div style={{ position: "relative", width: 32, height: 32, flexShrink: 0 }}>
-                <Donut pct={hScore} color={hi.c} sz={32} />
-                <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{ fontSize: 9, fontWeight: 800, color: hi.c, fontVariantNumeric: "tabular-nums" }}>{hScore}</span>
-                </div>
-              </div>
-              <span style={{ fontSize: 12, fontWeight: 600, color: hi.c }}>{hi.l}</span>
-              <span style={{ fontSize: 11, color: "var(--muted)" }}>·</span>
-              <span style={{ fontSize: 11, color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>Projected: {fmt(proj)}</span>
+            {/* Health - simple dot, no circle */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18, padding: "0 1px", flexWrap: "wrap" }}>
+              <span style={{ width: 7, height: 7, borderRadius: 4, background: hi.c, flexShrink: 0 }} />
+              <span style={{ fontSize: 12, fontWeight: 600, color: hi.c }}>{hScore} {hi.l}</span>
+              <span style={{ fontSize: 11, color: "var(--border)" }}>|</span>
+              <span style={{ fontSize: 11, color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>Projected {fmt(proj)}</span>
               {overCount > 0 && (
                 <>
-                  <span style={{ fontSize: 11, color: "var(--muted)" }}>·</span>
-                  <span style={{ fontSize: 11, color: "#EF4444", fontWeight: 500 }}>{overCount} over</span>
+                  <span style={{ fontSize: 11, color: "var(--border)" }}>|</span>
+                  <span style={{ fontSize: 11, color: "#EF4444", fontWeight: 500 }}>{overCount} over budget</span>
                 </>
               )}
             </div>
 
             {/* Tabs */}
-            <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+            <div style={{ display: "flex", gap: 4, marginBottom: 12, borderBottom: "1px solid var(--border)", paddingBottom: -1 }}>
               {([["overview", "Overview"], ["edit", "Edit"]] as const).map(([k, l]) => (
                 <button key={k} onClick={() => { setTab(k as "overview" | "edit"); }}
-                  style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid " + (tab === k ? "#22C55E" : "var(--border)"), background: tab === k ? "rgba(34,197,94,0.08)" : "transparent", color: tab === k ? "#22C55E" : "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "0.15s" }}>
+                  style={{ padding: "8px 14px", borderRadius: "8px 8px 0 0", border: "none", background: tab === k ? "var(--card)" : "transparent", color: tab === k ? "var(--text)" : "var(--muted)", fontSize: 12, fontWeight: tab === k ? 600 : 500, cursor: "pointer", fontFamily: "inherit", transition: "0.15s", borderBottom: tab === k ? "2px solid #22C55E" : "2px solid transparent", marginBottom: -1 }}>
                   {l}
                 </button>
               ))}
@@ -321,44 +310,39 @@ export default function BudgetPage() {
 
             {/* Overview */}
             {tab === "overview" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingTop: 8 }}>
                 {CATS.map(cat => {
                   const b = budgets[cat.name] || 0;
                   const s = spent[cat.name] || 0;
                   if (b === 0 && s === 0) return null;
                   const pct = b > 0 ? (s / b) * 100 : 0;
-                  const sc = sColor(pct);
+                  const sc = sC(pct);
                   const tr = trends.get(cat.name) || 0;
                   return (
-                    <div key={cat.name} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, padding: "12px 14px", transition: "border-color 0.15s" }}
-                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = cat.color + "33"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}>
+                    <div key={cat.name} style={{ padding: "10px 12px", borderRadius: 6, transition: "background 0.1s", cursor: "default" }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "var(--card)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <Av name={cat.name} color={cat.color} />
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{cat.name}</span>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text)" }}>{cat.name}</span>
                             {tr !== 0 && b > 0 && (
-                              <span style={{ fontSize: 9, fontWeight: 600, color: tr > 0 ? "#EF4444" : "#22C55E", background: (tr > 0 ? "#EF4444" : "#22C55E") + "12", padding: "1px 5px", borderRadius: 4 }}>
+                              <span style={{ fontSize: 9, fontWeight: 600, color: tr > 0 ? "#EF4444" : "#22C55E", background: (tr > 0 ? "#EF4444" : "#22C55E") + "0F", padding: "1px 5px", borderRadius: 3 }}>
                                 {tr > 0 ? "+" : ""}{tr}%
-                              </span>
-                            )}
-                            {b > 0 && (
-                              <span style={{ fontSize: 9, fontWeight: 500, color: sc, marginLeft: "auto" }}>
-                                {pct >= 100 ? "Over" : pct >= 85 ? "Almost full" : pct >= 60 ? "Caution" : "On track"}
                               </span>
                             )}
                           </div>
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <div style={{ flex: 1, height: 4, background: "var(--border)", borderRadius: 4, overflow: "hidden" }}>
-                              <div style={{ height: "100%", width: `${Math.min(100, pct)}%`, background: sc, borderRadius: 4, transition: "width 0.5s" }} />
+                            <div style={{ flex: 1, height: 3, background: "var(--border)", borderRadius: 3, overflow: "hidden" }}>
+                              <div style={{ height: "100%", width: `${Math.min(100, pct)}%`, background: sc, borderRadius: 3, transition: "width 0.4s" }} />
                             </div>
                             <span style={{ fontSize: 10, color: "var(--muted)", fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{fmt(s)}{b > 0 ? ` / ${fmt(b)}` : ""}</span>
                           </div>
                         </div>
                         {b > 0 && (
-                          <div style={{ textAlign: "right", minWidth: 56, flexShrink: 0, marginLeft: 4 }}>
-                            <p style={{ fontSize: 12, fontWeight: 700, color: s >= b ? "#EF4444" : "#22C55E", margin: 0, fontVariantNumeric: "tabular-nums" }}>
+                          <div style={{ textAlign: "right", minWidth: 52, flexShrink: 0, marginLeft: 4 }}>
+                            <p style={{ fontSize: 11, fontWeight: 700, color: s >= b ? "#EF4444" : "#22C55E", margin: 0, fontVariantNumeric: "tabular-nums" }}>
                               {s >= b ? fmt(s - b) : fmt(b - s)}
                             </p>
                             <p style={{ fontSize: 9, color: "var(--muted)", margin: "1px 0 0 0" }}>{s >= b ? "over" : "left"}</p>
@@ -376,12 +360,11 @@ export default function BudgetPage() {
                   if (ub.length === 0) return null;
                   const ubt = ub.reduce((s, u) => s + u.amount, 0);
                   return (
-                    <div style={{ background: "rgba(234,179,8,0.05)", border: "1px solid rgba(234,179,8,0.15)", borderRadius: 8, padding: "12px 14px", marginTop: 4 }}>
-                      <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: "0 0 4px" }}>Unbudgeted</p>
-                      <p style={{ fontSize: 10, color: "var(--muted)", margin: "0 0 8px" }}>{fmt(ubt)} spent without a budget</p>
+                    <div style={{ background: "rgba(234,179,8,0.04)", border: "1px solid rgba(234,179,8,0.12)", borderRadius: 6, padding: "10px 12px", marginTop: 6 }}>
+                      <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text)", margin: "0 0 4px" }}>Unbudgeted · {fmt(ubt)}</p>
                       <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                         {ub.map(u => (
-                          <span key={u.name} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 5, background: u.color + "12", color: u.color, fontWeight: 500 }}>
+                          <span key={u.name} style={{ fontSize: 10, padding: "2px 7px", borderRadius: 4, background: u.color + "0F", color: u.color, fontWeight: 500 }}>
                             {u.name} · {fmt(u.amount)}
                           </span>
                         ))}
@@ -395,61 +378,61 @@ export default function BudgetPage() {
             {/* Edit */}
             {tab === "edit" && (
               <>
-                <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
-                  <button onClick={aiFill} style={{ flex: 1, padding: "8px 14px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--card)", color: "var(--text)", fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "inherit", transition: "border-color 0.15s" }}
+                <div style={{ display: "flex", gap: 6, marginBottom: 10, paddingTop: 8 }}>
+                  <button onClick={aiFill} style={{ flex: 1, padding: "7px 12px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--card)", color: "var(--text)", fontSize: 11, fontWeight: 500, cursor: "pointer", fontFamily: "inherit", transition: "border-color 0.15s" }}
                     onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#22C55E44"; }}
                     onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}>
                     Reset to Suggested
                   </button>
-                  <button onClick={rebalance} style={{ flex: 1, padding: "8px 14px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--card)", color: "var(--text)", fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "inherit", transition: "border-color 0.15s" }}
+                  <button onClick={rebalance} style={{ flex: 1, padding: "7px 12px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--card)", color: "var(--text)", fontSize: 11, fontWeight: 500, cursor: "pointer", fontFamily: "inherit", transition: "border-color 0.15s" }}
                     onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#22C55E44"; }}
                     onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}>
                     Rebalance
                   </button>
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 14 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                   {CATS.map(cat => {
                     const b = budgets[cat.name] || 0;
                     const s = spent[cat.name] || 0;
                     return (
-                      <div key={cat.name} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", display: "flex", alignItems: "center", gap: 10, transition: "border-color 0.15s" }}
-                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = cat.color + "33"; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}>
+                      <div key={cat.name} style={{ padding: "8px 12px", borderRadius: 6, display: "flex", alignItems: "center", gap: 10, transition: "background 0.1s" }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = "var(--card)"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
                         <Av name={cat.name} color={cat.color} small />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: 0 }}>{cat.name}</p>
                           <p style={{ fontSize: 9, color: "var(--muted)", margin: "1px 0 0 0" }}>
                             {cat.rec > 0 ? `${cat.rec}% = ${fmt(Math.round(income * cat.rec / 100))}` : "Custom"}
-                            {s > 0 ? <span style={{ color: sColor(b > 0 ? (s / b) * 100 : 0) }}> · Spent {fmt(s)}</span> : ""}
+                            {s > 0 ? <span style={{ color: sC(b > 0 ? (s / b) * 100 : 0) }}> · Spent {fmt(s)}</span> : ""}
                           </p>
                         </div>
                         <input type="number" min="0" value={b || ""} onChange={(e) => { setBudgets({ ...budgets, [cat.name]: Number(e.target.value) }); }} placeholder="0"
-                          style={{ width: 88, height: 30, borderRadius: 6, padding: "0 8px", fontSize: 13, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: `1px solid ${b > 0 ? cat.color + "55" : "var(--border)"}`, color: "var(--text)", boxSizing: "border-box", textAlign: "right", fontWeight: 600, fontVariantNumeric: "tabular-nums", transition: "border-color 0.15s" }}
+                          style={{ width: 84, height: 28, borderRadius: 6, padding: "0 8px", fontSize: 12, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: `1px solid ${b > 0 ? cat.color + "44" : "var(--border)"}`, color: "var(--text)", boxSizing: "border-box", textAlign: "right", fontWeight: 600, fontVariantNumeric: "tabular-nums", transition: "border-color 0.15s" }}
                           onFocus={(e) => { e.currentTarget.style.borderColor = cat.color; }}
-                          onBlur={(e) => { e.currentTarget.style.borderColor = b > 0 ? cat.color + "55" : "var(--border)"; }} />
+                          onBlur={(e) => { e.currentTarget.style.borderColor = b > 0 ? cat.color + "44" : "var(--border)"; }} />
                       </div>
                     );
                   })}
                 </div>
 
                 {/* Total */}
-                <div style={{ background: totalBudget > income && income > 0 ? "rgba(239,68,68,0.05)" : "var(--card)", border: `1px solid ${totalBudget > income && income > 0 ? "rgba(239,68,68,0.15)" : "var(--border)"}`, borderRadius: 8, padding: "12px 14px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 6, background: totalBudget > income && income > 0 ? "rgba(239,68,68,0.04)" : "var(--card)", border: `1px solid ${totalBudget > income && income > 0 ? "rgba(239,68,68,0.12)" : "var(--border)"}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
                     <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text)" }}>Total</span>
                     {income > 0 && <span style={{ fontSize: 10, color: "var(--muted)", marginLeft: 6 }}>of {fmt(income)}</span>}
                   </div>
-                  <span style={{ fontSize: 15, fontWeight: 700, color: totalBudget > income && income > 0 ? "#EF4444" : "var(--text)", fontVariantNumeric: "tabular-nums" }}>{fmt(totalBudget)}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: totalBudget > income && income > 0 ? "#EF4444" : "var(--text)", fontVariantNumeric: "tabular-nums" }}>{fmt(totalBudget)}</span>
                 </div>
                 {totalBudget > income && income > 0 && (
-                  <p style={{ fontSize: 11, color: "#EF4444", margin: "0 0 10px", fontWeight: 500 }}>Exceeds income by {fmt(totalBudget - income)}</p>
+                  <p style={{ fontSize: 11, color: "#EF4444", margin: "6px 0 0 0", fontWeight: 500 }}>Exceeds income by {fmt(totalBudget - income)}</p>
                 )}
                 {totalBudget <= income && income > 0 && totalBudget > 0 && (
-                  <p style={{ fontSize: 11, color: "#22C55E", margin: "0 0 10px", fontWeight: 500 }}>{fmt(income - totalBudget)} unallocated</p>
+                  <p style={{ fontSize: 11, color: "#22C55E", margin: "6px 0 0 0", fontWeight: 500 }}>{fmt(income - totalBudget)} unallocated</p>
                 )}
 
                 <button onClick={save} disabled={saving}
-                  style={{ width: "100%", height: 42, borderRadius: 8, border: "none", background: saved ? "#16A34A" : "#22C55E", color: "#fff", fontSize: 13, fontWeight: 600, cursor: saving ? "wait" : "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1, transition: "background 0.15s" }}
+                  style={{ width: "100%", height: 40, borderRadius: 6, border: "none", background: saved ? "#16A34A" : "#22C55E", color: "#fff", fontSize: 13, fontWeight: 600, cursor: saving ? "wait" : "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1, transition: "background 0.15s", marginTop: 12 }}
                   onMouseEnter={(e) => { if (!saving && !saved) e.currentTarget.style.background = "#16A34A"; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = saved ? "#16A34A" : "#22C55E"; }}>
                   {saving ? "Saving..." : saved ? "Saved" : "Save Budget"}
