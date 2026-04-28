@@ -90,7 +90,8 @@ export default function AccountsPage() {
   var load = async function () {
     var { data: u } = await supabase.auth.getUser();
     if (!u?.user) return;
-    var { data } = await supabase.from("accounts").select("id, name, type, balance, created_at").eq("user_id", u.user.id).order("created_at", { ascending: true });
+    var { data, error } = await supabase.from("accounts").select("id, name, type, balance, created_at").eq("user_id", u.user.id).order("created_at", { ascending: true });
+    if (error) { console.error("Load accounts error:", error.message); }
     setAccounts(data || []);
     setLoading(false);
   };
@@ -127,7 +128,11 @@ export default function AccountsPage() {
       error = r.error;
     }
     setSubmitting(false);
-    if (error) { setErr("Something went wrong. Try again."); return; }
+    if (error) {
+      console.error("Save account error:", error.message, error.details, error.hint);
+      setErr(error.message || "Something went wrong. Try again.");
+      return;
+    }
     setSaved(true);
     setTimeout(function () { setSaved(false); closeForm(); }, 1200);
     load();
