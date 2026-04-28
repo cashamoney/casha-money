@@ -25,25 +25,27 @@ const CATS = [
   { name: "Other Expense", color: "#64748B" },
 ];
 
-function getCat(n: string) { return CATS.find(c => c.name === n) || CATS[CATS.length - 1]; }
+function getCat(n: string) {
+  return CATS.find(function (c) { return c.name === n; }) || CATS[CATS.length - 1];
+}
 
-function Av({ name, color, small }: { name: string; color: string; small?: boolean }) {
-  const sz = small ? 26 : 30;
-  let l: string;
-  if (name === "Housing/Rent") l = "H";
-  else if (name === "Food Delivery") l = "FD";
-  else if (name === "EMI Payment") l = "EM";
-  else if (name === "Streaming/OTT") l = "ST";
-  else if (name === "Other Expense") l = "OT";
-  else if (name === "Other Income") l = "OI";
-  else l = name.charAt(0);
+function Av(props: { name: string; color: string; small?: boolean }) {
+  var sz = props.small ? 26 : 30;
+  var l: string;
+  if (props.name === "Housing/Rent") l = "H";
+  else if (props.name === "Food Delivery") l = "FD";
+  else if (props.name === "EMI Payment") l = "EM";
+  else if (props.name === "Streaming/OTT") l = "ST";
+  else if (props.name === "Other Expense") l = "OT";
+  else if (props.name === "Other Income") l = "OI";
+  else l = props.name.charAt(0);
   return (
     <div style={{
       width: sz, height: sz, borderRadius: 7,
-      background: color + "12", color,
+      background: props.color + "12", color: props.color,
       display: "flex", alignItems: "center", justifyContent: "center",
-      fontSize: small ? 9 : 11, fontWeight: 700, flexShrink: 0,
-      border: `1px solid ${color}18`
+      fontSize: props.small ? 9 : 11, fontWeight: 700, flexShrink: 0,
+      border: "1px solid " + props.color + "18"
     }}>{l}</div>
   );
 }
@@ -53,140 +55,141 @@ function fmt(n: number) {
 }
 
 function fmtDate(d: string) {
-  const dt = new Date(d + "T00:00:00");
-  const t = new Date();
-  const y = new Date(); y.setDate(y.getDate() - 1);
+  var dt = new Date(d + "T00:00:00");
+  var t = new Date();
+  var y = new Date();
+  y.setDate(y.getDate() - 1);
   if (dt.toDateString() === t.toDateString()) return "Today";
   if (dt.toDateString() === y.toDateString()) return "Yesterday";
   return dt.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }
 
-type Txn = {
-  id: string;
-  description: string;
-  amount: number;
-  category: string;
-  transaction_type: string;
-  transaction_date: string;
-  account_id: string;
-  accounts?: { name: string } | null;
-};
-
 export default function TransactionsPage() {
-  const [txns, setTxns] = useState<Txn[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"all" | "income" | "expense">("all");
-  const [search, setSearch] = useState("");
-  const [catFilter, setCatFilter] = useState("");
-  const [sort, setSort] = useState<"date" | "amount">("date");
-  const [showAdd, setShowAdd] = useState(false);
-  const [accounts, setAccounts] = useState<{ id: string; name: string }[]>([]);
+  var [txns, setTxns] = useState<Array<{
+    id: string;
+    description: string;
+    amount: number;
+    category: string;
+    transaction_type: string;
+    transaction_date: string;
+    account_id: string;
+    accounts: Array<{ name: string }> | null;
+  }>>([]);
+  var [loading, setLoading] = useState(true);
+  var [tab, setTab] = useState<"all" | "income" | "expense">("all");
+  var [search, setSearch] = useState("");
+  var [catFilter, setCatFilter] = useState("");
+  var [sort, setSort] = useState<"date" | "amount">("date");
+  var [showAdd, setShowAdd] = useState(false);
+  var [accounts, setAccounts] = useState<Array<{ id: string; name: string }>>([]);
+  var [desc, setDesc] = useState("");
+  var [amt, setAmt] = useState("");
+  var [cat, setCat] = useState("Groceries");
+  var [typ, setTyp] = useState<"income" | "expense">("expense");
+  var [dt, setDt] = useState(new Date().toISOString().split("T")[0]);
+  var [accId, setAccId] = useState("");
+  var [submitting, setSubmitting] = useState(false);
+  var [added, setAdded] = useState(false);
+  var [err, setErr] = useState("");
 
-  const [form, setForm] = useState({
-    description: "",
-    amount: "",
-    category: "Groceries",
-    type: "expense" as "income" | "expense",
-    date: new Date().toISOString().split("T")[0],
-    account_id: "",
-  });
-  const [submitting, setSubmitting] = useState(false);
-  const [added, setAdded] = useState(false);
-  const [err, setErr] = useState("");
+  useEffect(function () { load(); }, []);
 
-  useEffect(() => { load(); }, []);
-
-  const load = async () => {
-    const { data: u } = await supabase.auth.getUser();
+  var load = async function () {
+    var { data: u } = await supabase.auth.getUser();
     if (!u?.user) return;
-    const uid = u.user.id;
+    var uid = u.user.id;
 
-    const { data: aData } = await supabase.from("accounts").select("id, name").eq("user_id", uid);
-    setAccounts((aData || []) as { id: string; name: string }[]);
-    if (aData && aData.length > 0 && !form.account_id) {
-      setForm(f => ({ ...f, account_id: aData[0].id }));
+    var { data: aData } = await supabase.from("accounts").select("id, name").eq("user_id", uid);
+    setAccounts((aData || []) as Array<{ id: string; name: string }>);
+    if (aData && aData.length > 0 && !accId) {
+      setAccId(aData[0].id);
     }
 
-    const { data: tData } = await supabase
+    var { data: tData } = await supabase
       .from("transactions")
       .select("id, description, amount, category, transaction_type, transaction_date, account_id, accounts(name)")
       .eq("user_id", uid)
       .order("transaction_date", { ascending: false })
       .order("created_at", { ascending: false });
 
-    setTxns((tData || []) as Txn[]);
+    setTxns((tData || []) as typeof txns);
     setLoading(false);
   };
 
-  const submit = async () => {
+  var submit = async function () {
     setErr("");
-    if (!form.description.trim()) { setErr("Enter a description."); return; }
-    if (!form.amount || Number(form.amount) <= 0) { setErr("Enter a valid amount."); return; }
-    if (!form.account_id) { setErr("Select an account."); return; }
+    if (!desc.trim()) { setErr("Enter a description."); return; }
+    if (!amt || Number(amt) <= 0) { setErr("Enter a valid amount."); return; }
+    if (!accId) { setErr("Select an account."); return; }
     setSubmitting(true);
-    const { data: u } = await supabase.auth.getUser();
+    var { data: u } = await supabase.auth.getUser();
     if (!u?.user) { setSubmitting(false); return; }
 
-    const amt = form.type === "expense" ? -Math.abs(Number(form.amount)) : Math.abs(Number(form.amount));
-    const { error } = await supabase.from("transactions").insert({
+    var a = typ === "expense" ? -Math.abs(Number(amt)) : Math.abs(Number(amt));
+    var { error } = await supabase.from("transactions").insert({
       user_id: u.user.id,
-      description: form.description.trim(),
-      amount: amt,
-      category: form.category,
-      transaction_type: form.type,
-      transaction_date: form.date,
-      account_id: form.account_id,
+      description: desc.trim(),
+      amount: a,
+      category: cat,
+      transaction_type: typ,
+      transaction_date: dt,
+      account_id: accId,
     });
 
     setSubmitting(false);
     if (error) { setErr("Failed to add. Try again."); return; }
     setAdded(true);
-    setTimeout(() => { setAdded(false); setShowAdd(false); }, 1500);
-    setForm({ description: "", amount: "", category: "Groceries", type: "expense", date: new Date().toISOString().split("T")[0], account_id: form.account_id });
+    setTimeout(function () { setAdded(false); setShowAdd(false); }, 1500);
+    setDesc(""); setAmt(""); setCat("Groceries"); setTyp("expense");
+    setDt(new Date().toISOString().split("T")[0]);
     load();
   };
 
-  const filtered = useMemo(() => {
-    let f = [...txns];
-    if (tab === "income") f = f.filter(t => t.transaction_type === "income");
-    if (tab === "expense") f = f.filter(t => t.transaction_type === "expense");
+  var filtered = useMemo(function () {
+    var f = [...txns];
+    if (tab === "income") f = f.filter(function (t) { return t.transaction_type === "income"; });
+    if (tab === "expense") f = f.filter(function (t) { return t.transaction_type === "expense"; });
     if (search.trim()) {
-      const s = search.toLowerCase();
-      f = f.filter(t => t.description?.toLowerCase().includes(s) || t.category?.toLowerCase().includes(s));
+      var s = search.toLowerCase();
+      f = f.filter(function (t) { return (t.description || "").toLowerCase().indexOf(s) >= 0 || (t.category || "").toLowerCase().indexOf(s) >= 0; });
     }
-    if (catFilter) f = f.filter(t => t.category === catFilter);
-    if (sort === "date") f.sort((a, b) => b.transaction_date.localeCompare(a.transaction_date));
-    else f.sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
+    if (catFilter) f = f.filter(function (t) { return t.category === catFilter; });
+    if (sort === "date") f.sort(function (a, b) { return b.transaction_date.localeCompare(a.transaction_date); });
+    else f.sort(function (a, b) { return Math.abs(b.amount) - Math.abs(a.amount); });
     return f;
   }, [txns, tab, search, catFilter, sort]);
 
-  const totalIn = txns.filter(t => t.transaction_type === "income").reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
-  const totalOut = txns.filter(t => t.transaction_type === "expense").reduce((s, t) => s + Math.abs(Number(t.amount)), 0);
-  const net = totalIn - totalOut;
+  var totalIn = txns.filter(function (t) { return t.transaction_type === "income"; }).reduce(function (s, t) { return s + Math.abs(Number(t.amount)); }, 0);
+  var totalOut = txns.filter(function (t) { return t.transaction_type === "expense"; }).reduce(function (s, t) { return s + Math.abs(Number(t.amount)); }, 0);
+  var net = totalIn - totalOut;
 
-  const grouped = useMemo(() => {
-    const g: { label: string; items: Txn[] }[] = [];
-    let cur = "";
-    filtered.forEach(t => {
-      const l = fmtDate(t.transaction_date);
+  var grouped = useMemo(function () {
+    var g: Array<{ label: string; items: typeof txns }> = [];
+    var cur = "";
+    filtered.forEach(function (t) {
+      var l = fmtDate(t.transaction_date);
       if (l !== cur) { cur = l; g.push({ label: l, items: [] }); }
       g[g.length - 1].items.push(t);
     });
     return g;
   }, [filtered]);
 
-  const activeCats = useMemo(() => {
-    const s = new Set<string>();
-    txns.forEach(t => { if (t.category) s.add(t.category); });
+  var activeCats = useMemo(function () {
+    var s = new Set<string>();
+    txns.forEach(function (t) { if (t.category) s.add(t.category); });
     return Array.from(s).sort();
   }, [txns]);
 
   if (loading) return (
     <div style={{ height: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ width: 20, height: 20, border: "2px solid var(--border)", borderTopColor: "#22C55E", borderRadius: "50%", animation: "sp 0.6s linear infinite" }} />
-      <style>{`@keyframes sp{to{transform:rotate(360deg)}}`}</style>
+      <style>{"@keyframes sp{to{transform:rotate(360deg)}}"}</style>
     </div>
   );
+
+  var incomeCats = ["Salary", "Freelance", "Investment", "Refund", "Other Income"];
+  var expenseCats = ["Housing/Rent", "Groceries", "Food Delivery", "Transportation", "EMI Payment", "Entertainment", "Shopping", "Healthcare", "Education", "Subscription", "Streaming/OTT", "Insurance", "Savings", "Other Expense"];
+  var catList = typ === "income" ? incomeCats : expenseCats;
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
@@ -198,10 +201,10 @@ export default function TransactionsPage() {
             <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 }}>Transactions</h1>
             <p style={{ fontSize: 13, color: "var(--muted)", margin: "2px 0 0 0" }}>Track every rupee in and out</p>
           </div>
-          <button onClick={() => { setShowAdd(!showAdd); setErr(""); }}
+          <button onClick={function () { setShowAdd(!showAdd); setErr(""); }}
             style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: "#22C55E", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "background 0.15s", display: "flex", alignItems: "center", gap: 5 }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "#16A34A"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "#22C55E"; }}>
+            onMouseEnter={function (e) { e.currentTarget.style.background = "#16A34A"; }}
+            onMouseLeave={function (e) { e.currentTarget.style.background = "#22C55E"; }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
             Add
           </button>
@@ -214,33 +217,33 @@ export default function TransactionsPage() {
 
             {/* Type toggle */}
             <div style={{ display: "flex", gap: 4, marginBottom: 12 }}>
-              {(["expense", "income"] as const).map(t => (
-                <button key={t} onClick={() => { setForm({ ...form, type: t, category: t === "income" ? "Salary" : "Groceries" }); }}
-                  style={{ flex: 1, padding: "7px 0", borderRadius: 6, border: "1px solid " + (form.type === t ? (t === "income" ? "#22C55E" : "#EF4444") + "44" : "var(--border)"), background: form.type === t ? (t === "income" ? "rgba(34,197,94,0.06)" : "rgba(239,68,68,0.06)") : "transparent", color: form.type === t ? (t === "income" ? "#22C55E" : "#EF4444") : "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "0.15s" }}>
-                  {t === "income" ? "Income" : "Expense"}
-                </button>
-              ))}
+              <button onClick={function () { setTyp("expense"); setCat("Groceries"); }}
+                style={{ flex: 1, padding: "7px 0", borderRadius: 6, border: typ === "expense" ? "1px solid rgba(239,68,68,0.25)" : "1px solid var(--border)", background: typ === "expense" ? "rgba(239,68,68,0.06)" : "transparent", color: typ === "expense" ? "#EF4444" : "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "0.15s" }}>
+                Expense
+              </button>
+              <button onClick={function () { setTyp("income"); setCat("Salary"); }}
+                style={{ flex: 1, padding: "7px 0", borderRadius: 6, border: typ === "income" ? "1px solid rgba(34,197,94,0.25)" : "1px solid var(--border)", background: typ === "income" ? "rgba(34,197,94,0.06)" : "transparent", color: typ === "income" ? "#22C55E" : "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "0.15s" }}>
+                Income
+              </button>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
-              <input placeholder="Description" value={form.description} onChange={(e) => { setForm({ ...form, description: e.target.value }); }}
+              <input placeholder="Description" value={desc} onChange={function (e) { setDesc(e.target.value); }}
                 style={{ height: 34, borderRadius: 6, padding: "0 10px", fontSize: 12, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", boxSizing: "border-box", width: "100%" }} />
-              <input type="number" placeholder="Amount" value={form.amount} onChange={(e) => { setForm({ ...form, amount: e.target.value }); }}
+              <input type="number" placeholder="Amount" value={amt} onChange={function (e) { setAmt(e.target.value); }}
                 style={{ height: 34, borderRadius: 6, padding: "0 10px", fontSize: 12, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", boxSizing: "border-box", width: "100%", fontVariantNumeric: "tabular-nums" }} />
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
-              <select value={form.category} onChange={(e) => { setForm({ ...form, category: e.target.value }); }}
+              <select value={cat} onChange={function (e) { setCat(e.target.value); }}
                 style={{ height: 34, borderRadius: 6, padding: "0 8px", fontSize: 12, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", boxSizing: "border-box", width: "100%" }}>
-                {(form.type === "income" ? ["Salary", "Freelance", "Investment", "Refund", "Other Income"] : ["Housing/Rent", "Groceries", "Food Delivery", "Transportation", "EMI Payment", "Entertainment", "Shopping", "Healthcare", "Education", "Subscription", "Streaming/OTT", "Insurance", "Savings", "Other Expense"]).map(c => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
+                {catList.map(function (c) { return <option key={c} value={c}>{c}</option>; })}
               </select>
-              <input type="date" value={form.date} onChange={(e) => { setForm({ ...form, date: e.target.value }); }}
+              <input type="date" value={dt} onChange={function (e) { setDt(e.target.value); }}
                 style={{ height: 34, borderRadius: 6, padding: "0 8px", fontSize: 12, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", boxSizing: "border-box", width: "100%" }} />
-              <select value={form.account_id} onChange={(e) => { setForm({ ...form, account_id: e.target.value }); }}
+              <select value={accId} onChange={function (e) { setAccId(e.target.value); }}
                 style={{ height: 34, borderRadius: 6, padding: "0 8px", fontSize: 12, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", boxSizing: "border-box", width: "100%" }}>
-                {accounts.map(a => (<option key={a.id} value={a.id}>{a.name}</option>))}
+                {accounts.map(function (a) { return <option key={a.id} value={a.id}>{a.name}</option>; })}
               </select>
             </div>
 
@@ -248,8 +251,8 @@ export default function TransactionsPage() {
 
             <button onClick={submit} disabled={submitting}
               style={{ width: "100%", height: 36, borderRadius: 6, border: "none", background: added ? "#16A34A" : "#22C55E", color: "#fff", fontSize: 12, fontWeight: 600, cursor: submitting ? "wait" : "pointer", fontFamily: "inherit", opacity: submitting ? 0.7 : 1, transition: "background 0.15s" }}
-              onMouseEnter={(e) => { if (!submitting && !added) e.currentTarget.style.background = "#16A34A"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = added ? "#16A34A" : "#22C55E"; }}>
+              onMouseEnter={function (e) { if (!submitting && !added) e.currentTarget.style.background = "#16A34A"; }}
+              onMouseLeave={function (e) { e.currentTarget.style.background = added ? "#16A34A" : "#22C55E"; }}>
               {submitting ? "Adding..." : added ? "Added" : "Add Transaction"}
             </button>
           </div>
@@ -262,10 +265,10 @@ export default function TransactionsPage() {
             </div>
             <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>No transactions yet</h2>
             <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 20px", maxWidth: 280, marginLeft: "auto", marginRight: "auto", lineHeight: 1.5 }}>Add your first transaction to start tracking your money.</p>
-            <button onClick={() => { setShowAdd(true); }}
+            <button onClick={function () { setShowAdd(true); }}
               style={{ padding: "10px 24px", borderRadius: 8, border: "none", background: "#22C55E", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "#16A34A"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "#22C55E"; }}>
+              onMouseEnter={function (e) { e.currentTarget.style.background = "#16A34A"; }}
+              onMouseLeave={function (e) { e.currentTarget.style.background = "#22C55E"; }}>
               Add Transaction
             </button>
           </div>
@@ -293,18 +296,18 @@ export default function TransactionsPage() {
 
             {/* Filters */}
             <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
-              <input placeholder="Search..." value={search} onChange={(e) => { setSearch(e.target.value); }}
+              <input placeholder="Search..." value={search} onChange={function (e) { setSearch(e.target.value); }}
                 style={{ height: 30, borderRadius: 6, padding: "0 10px", fontSize: 12, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", boxSizing: "border-box", width: 160, transition: "border-color 0.15s" }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = "#22C55E44"; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }} />
+                onFocus={function (e) { e.currentTarget.style.borderColor = "rgba(34,197,94,0.25)"; }}
+                onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; }} />
               {activeCats.length > 1 && (
-                <select value={catFilter} onChange={(e) => { setCatFilter(e.target.value); }}
+                <select value={catFilter} onChange={function (e) { setCatFilter(e.target.value); }}
                   style={{ height: 30, borderRadius: 6, padding: "0 8px", fontSize: 11, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", boxSizing: "border-box" }}>
                   <option value="">All categories</option>
-                  {activeCats.map(c => (<option key={c} value={c}>{c}</option>))}
+                  {activeCats.map(function (c) { return <option key={c} value={c}>{c}</option>; })}
                 </select>
               )}
-              <select value={sort} onChange={(e) => { setSort(e.target.value as "date" | "amount"); }}
+              <select value={sort} onChange={function (e) { setSort(e.target.value as "date" | "amount"); }}
                 style={{ height: 30, borderRadius: 6, padding: "0 8px", fontSize: 11, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", boxSizing: "border-box", marginLeft: "auto" }}>
                 <option value="date">By date</option>
                 <option value="amount">By amount</option>
@@ -313,12 +316,18 @@ export default function TransactionsPage() {
 
             {/* Tabs */}
             <div style={{ display: "flex", gap: 4, marginBottom: 8, borderBottom: "1px solid var(--border)" }}>
-              {([["all", "All"], ["income", "Income"], ["expense", "Expense"]] as const).map(([k, l]) => (
-                <button key={k} onClick={() => { setTab(k as "all" | "income" | "expense"); }}
-                  style={{ padding: "8px 14px", borderRadius: "6px 6px 0 0", border: "none", background: tab === k ? "var(--card)" : "transparent", color: tab === k ? "var(--text)" : "var(--muted)", fontSize: 12, fontWeight: tab === k ? 600 : 500, cursor: "pointer", fontFamily: "inherit", transition: "0.15s", borderBottom: tab === k ? "2px solid #22C55E" : "2px solid transparent", marginBottom: -1 }}>
-                  {l}
-                </button>
-              ))}
+              <button onClick={function () { setTab("all"); }}
+                style={{ padding: "8px 14px", borderRadius: "6px 6px 0 0", border: "none", background: tab === "all" ? "var(--card)" : "transparent", color: tab === "all" ? "var(--text)" : "var(--muted)", fontSize: 12, fontWeight: tab === "all" ? 600 : 500, cursor: "pointer", fontFamily: "inherit", transition: "0.15s", borderBottom: tab === "all" ? "2px solid #22C55E" : "2px solid transparent", marginBottom: -1 }}>
+                All
+              </button>
+              <button onClick={function () { setTab("income"); }}
+                style={{ padding: "8px 14px", borderRadius: "6px 6px 0 0", border: "none", background: tab === "income" ? "var(--card)" : "transparent", color: tab === "income" ? "var(--text)" : "var(--muted)", fontSize: 12, fontWeight: tab === "income" ? 600 : 500, cursor: "pointer", fontFamily: "inherit", transition: "0.15s", borderBottom: tab === "income" ? "2px solid #22C55E" : "2px solid transparent", marginBottom: -1 }}>
+                Income
+              </button>
+              <button onClick={function () { setTab("expense"); }}
+                style={{ padding: "8px 14px", borderRadius: "6px 6px 0 0", border: "none", background: tab === "expense" ? "var(--card)" : "transparent", color: tab === "expense" ? "var(--text)" : "var(--muted)", fontSize: 12, fontWeight: tab === "expense" ? 600 : 500, cursor: "pointer", fontFamily: "inherit", transition: "0.15s", borderBottom: tab === "expense" ? "2px solid #22C55E" : "2px solid transparent", marginBottom: -1 }}>
+                Expense
+              </button>
             </div>
 
             {/* List */}
@@ -328,58 +337,56 @@ export default function TransactionsPage() {
               </div>
             ) : (
               <div style={{ paddingTop: 6 }}>
-                {grouped.map(g => (
-                  <div key={g.label}>
-                    <div style={{ padding: "8px 12px 4px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.03 }}>{g.label}</span>
-                      <span style={{ fontSize: 10, color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>
-                        {fmt(g.items.reduce((s, t) => s + (t.transaction_type === "income" ? Math.abs(Number(t.amount)) : -Math.abs(Number(t.amount))), 0))}
-                      </span>
-                    </div>
-                    {g.items.map(t => {
-                      const cat = getCat(t.category);
-                      const isInc = t.transaction_type === "income";
-                      const amt = Math.abs(Number(t.amount));
-                      const acct = (t.accounts as any)?.name || "";
-                      return (
-                        <div key={t.id} style={{ padding: "9px 12px", borderRadius: 6, display: "flex", alignItems: "center", gap: 10, transition: "background 0.1s", cursor: "default" }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = "var(--card)"; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
-                          <Av name={t.category || "Other Expense"} color={cat.color} />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.description || t.category}</p>
-                            <p style={{ fontSize: 10, color: "var(--muted)", margin: "1px 0 0 0" }}>
-                              {t.category}{acct ? ` · ${acct}` : ""}
-                            </p>
+                {grouped.map(function (g) {
+                  var dayNet = g.items.reduce(function (s, t) {
+                    return s + (t.transaction_type === "income" ? Math.abs(Number(t.amount)) : -Math.abs(Number(t.amount)));
+                  }, 0);
+                  return (
+                    <div key={g.label}>
+                      <div style={{ padding: "8px 12px 4px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.03 }}>{g.label}</span>
+                        <span style={{ fontSize: 10, color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>{fmt(dayNet)}</span>
+                      </div>
+                      {g.items.map(function (t) {
+                        var c = getCat(t.category);
+                        var isInc = t.transaction_type === "income";
+                        var a = Math.abs(Number(t.amount));
+                        var acct = t.accounts && t.accounts[0] ? t.accounts[0].name : "";
+                        return (
+                          <div key={t.id} style={{ padding: "9px 12px", borderRadius: 6, display: "flex", alignItems: "center", gap: 10, transition: "background 0.1s", cursor: "default" }}
+                            onMouseEnter={function (e) { e.currentTarget.style.background = "var(--card)"; }}
+                            onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; }}>
+                            <Av name={t.category || "Other Expense"} color={c.color} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.description || t.category}</p>
+                              <p style={{ fontSize: 10, color: "var(--muted)", margin: "1px 0 0 0" }}>
+                                {t.category}{acct ? " · " + acct : ""}
+                              </p>
+                            </div>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: isInc ? "#22C55E" : "#EF4444", fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>
+                              {isInc ? "+" : "-"}{fmt(a)}
+                            </span>
                           </div>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: isInc ? "#22C55E" : "#EF4444", fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>
-                            {isInc ? "+" : "-"}{fmt(amt)}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
+                        );
+                      })}
+                    </div>
+                  );
+                })}
               </div>
             )}
 
             {/* Count */}
             <div style={{ padding: "12px 12px 0", borderTop: "1px solid var(--border)", marginTop: 8 }}>
               <p style={{ fontSize: 10, color: "var(--muted)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
-                {filtered.length} transaction{filtered.length !== 1 ? "s" : ""}{catFilter ? ` in ${catFilter}` : ""}{tab !== "all" ? ` · ${tab}` : ""}
+                {filtered.length} transaction{filtered.length !== 1 ? "s" : ""}{catFilter ? " in " + catFilter : ""}{tab !== "all" ? " · " + tab : ""}
               </p>
             </div>
           </>
         )}
       </div>
 
-      <style>{`
-        *{box-sizing:border-box}
-        @keyframes sp{to{transform:rotate(360deg)}}
-        @media(max-width:640px){
-          .bh{flex-direction:column!important;align-items:flex-start!important}
-        }
-      `}</style>
+      <style>{"@keyframes sp{to{transform:rotate(360deg)}}"}</style>
+      <style>{"@media(max-width:640px){.bh{flex-direction:column!important;align-items:flex-start!important}}"}</style>
     </div>
   );
 }
