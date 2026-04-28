@@ -4,21 +4,75 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../../lib/supabase";
 
 const BUDGET_CATEGORIES = [
-  { name: "Housing/Rent", emoji: "🏠", color: "#6366F1", recommended: 25 },
-  { name: "Groceries", emoji: "🛒", color: "#22C55E", recommended: 10 },
-  { name: "Food Delivery", emoji: "🍔", color: "#F97316", recommended: 5 },
-  { name: "Transportation", emoji: "🚗", color: "#3B82F6", recommended: 8 },
-  { name: "EMI Payment", emoji: "📅", color: "#EF4444", recommended: 15 },
-  { name: "Entertainment", emoji: "🎬", color: "#F43F5E", recommended: 3 },
-  { name: "Shopping", emoji: "🛍️", color: "#EC4899", recommended: 4 },
-  { name: "Healthcare", emoji: "🏥", color: "#14B8A6", recommended: 3 },
-  { name: "Education", emoji: "📚", color: "#8B5CF6", recommended: 3 },
-  { name: "Subscription", emoji: "🔄", color: "#A855F7", recommended: 2 },
-  { name: "Streaming/OTT", emoji: "📺", color: "#F43F5E", recommended: 1 },
-  { name: "Insurance", emoji: "🛡️", color: "#6366F1", recommended: 1 },
-  { name: "Savings", emoji: "💰", color: "#10B981", recommended: 20 },
-  { name: "Other Expense", emoji: "📦", color: "#94A3B8", recommended: 0 },
+  { name: "Housing/Rent", color: "#6366F1", recommended: 25 },
+  { name: "Groceries", color: "#22C55E", recommended: 10 },
+  { name: "Food Delivery", color: "#F97316", recommended: 5 },
+  { name: "Transportation", color: "#3B82F6", recommended: 8 },
+  { name: "EMI Payment", color: "#EF4444", recommended: 15 },
+  { name: "Entertainment", color: "#EC4899", recommended: 3 },
+  { name: "Shopping", color: "#A855F7", recommended: 4 },
+  { name: "Healthcare", color: "#14B8A6", recommended: 3 },
+  { name: "Education", color: "#8B5CF6", recommended: 3 },
+  { name: "Subscription", color: "#F43F5E", recommended: 2 },
+  { name: "Streaming/OTT", color: "#E11D48", recommended: 1 },
+  { name: "Insurance", color: "#0EA5E9", recommended: 1 },
+  { name: "Savings", color: "#10B981", recommended: 20 },
+  { name: "Other Expense", color: "#6B7280", recommended: 0 },
 ];
+
+function CatIcon({ name, color }: { name: string; color: string }) {
+  const s = 16;
+  let svg: React.ReactElement;
+  switch (name) {
+    case "Housing/Rent":
+      svg = <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12l9-9 9 9" /><path d="M5 10v10a1 1 0 001 1h3a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V10" /></svg>;
+      break;
+    case "Groceries":
+      svg = <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 7v13a2 2 0 002 2h14a2 2 0 002-2V7l-3-5zM3 7h18M16 11a4 4 0 01-8 0" /></svg>;
+      break;
+    case "Food Delivery":
+      svg = <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 14h18M5 14c0 4 3 7 7 7s7-3 7-7M12 3v2m-3-1l1 2m5-2l-1 2M9 7h6c0 2-1.5 3-3 3S9 9 9 7z" /></svg>;
+      break;
+    case "Transportation":
+      svg = <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="6" width="15" height="10" rx="2" /><path d="M16 10h4l2 4v4h-6v-4zM5 18a2 2 0 104 0 2 2 0 00-4 0zm12 0a2 2 0 104 0 2 2 0 00-4 0z" /></svg>;
+      break;
+    case "EMI Payment":
+      svg = <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01" /></svg>;
+      break;
+    case "Entertainment":
+      svg = <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>;
+      break;
+    case "Shopping":
+      svg = <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M6 6h15l-1.5 9h-12zM6 6L5 2H2m4 4l1.5 9m0 0L7 21m10-6l1.5 6M9 20a1 1 0 102 0 1 1 0 00-2 0zm7 0a1 1 0 102 0 1 1 0 00-2 0z" /></svg>;
+      break;
+    case "Healthcare":
+      svg = <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg>;
+      break;
+    case "Education":
+      svg = <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg>;
+      break;
+    case "Subscription":
+      svg = <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6M1 20v-6h6" /><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" /></svg>;
+      break;
+    case "Streaming/OTT":
+      svg = <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="14" rx="2" /><path d="M10 9l5 3-5 3V9z" /></svg>;
+      break;
+    case "Insurance":
+      svg = <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>;
+      break;
+    case "Savings":
+      svg = <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>;
+      break;
+    default:
+      svg = <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="18" cy="12" r="1.5" /></svg>;
+      break;
+  }
+  return (
+    <div style={{ width: 36, height: 36, borderRadius: 10, background: color + "22", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      {svg}
+    </div>
+  );
+}
 
 function getStatus(budgeted: number, spentAmt: number) {
   if (budgeted === 0) return { color: "#6B7280", label: "No limit", pct: 0 };
@@ -48,6 +102,14 @@ function DonutChart({ pct, color, size }: { pct: number; color: string; size: nu
         strokeDasharray={`${filled} ${circ - filled}`} strokeLinecap="round"
         style={{ transition: "stroke-dasharray 1s ease-out" }} />
     </svg>
+  );
+}
+
+function MiniBar({ pct, color }: { pct: number; color: string }) {
+  return (
+    <div style={{ width: "100%", height: 6, borderRadius: 6, background: "var(--border)", overflow: "hidden" }}>
+      <div style={{ width: `${Math.min(100, pct)}%`, height: "100%", borderRadius: 6, background: color, transition: "width 0.7s ease-out" }} />
+    </div>
   );
 }
 
@@ -126,7 +188,7 @@ export default function BudgetPage() {
     setBudgets(autoBudgets);
     setAiGenerated(true);
     setActiveTab("setup");
-    setTimeout(() => setAiGenerated(false), 5000);
+    setTimeout(() => { setAiGenerated(false); }, 5000);
   };
 
   const saveBudgets = async () => {
@@ -153,7 +215,7 @@ export default function BudgetPage() {
     });
 
     setSaving(false);
-    if (!error) { setSaved(true); setTimeout(() => setSaved(false), 4000); }
+    if (!error) { setSaved(true); setTimeout(() => { setSaved(false); }, 4000); }
   };
 
   const fmt = (n: number) => new Intl.NumberFormat("en-IN", {
@@ -193,16 +255,20 @@ export default function BudgetPage() {
 
   const unbudgetedSpent = useMemo(() => {
     const budgetedNames = new Set(Object.keys(budgets));
-    const arr: { name: string; amount: number; color: string; emoji: string }[] = [];
+    const arr: { name: string; amount: number; color: string }[] = [];
     Object.entries(spent).forEach(([k, v]) => {
       if (!budgetedNames.has(k) && v > 0) {
         const cat = BUDGET_CATEGORIES.find(c => c.name === k);
-        arr.push({ name: k, amount: v, color: cat?.color || "#6B7280", emoji: cat?.emoji || "📦" });
+        arr.push({ name: k, amount: v, color: cat?.color || "#6B7280" });
       }
     });
     return arr.sort((a, b) => b.amount - a.amount);
   }, [spent, budgets]);
   const unbudgetedTotal = unbudgetedSpent.reduce((s, u) => s + u.amount, 0);
+
+  const activeCats = BUDGET_CATEGORIES.filter(c => (budgets[c.name] || 0) > 0 || (spent[c.name] || 0) > 0);
+  const overCount = activeCats.filter(c => { const b = budgets[c.name] || 0; return b > 0 && (spent[c.name] || 0) >= b; }).length;
+  const onTrackCount = activeCats.filter(c => { const b = budgets[c.name] || 0; return b > 0 && (spent[c.name] || 0) < b * 0.6; }).length;
 
   if (loading) return (
     <div style={{ height: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -223,12 +289,13 @@ export default function BudgetPage() {
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button onClick={generateAIBudget}
-              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 8, border: `1px solid ${aiGenerated ? "#BBF7D0" : "var(--border)"}`, background: aiGenerated ? "rgba(34,197,94,0.08)" : "var(--card)", color: aiGenerated ? "#22C55E" : "var(--text)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "0.2s" }}>
-              {aiGenerated ? "✓ Generated!" : "🤖 AI Generate"}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 8, border: `1px solid ${aiGenerated ? "rgba(34,197,94,0.3)" : "var(--border)"}`, background: aiGenerated ? "rgba(34,197,94,0.08)" : "var(--card)", color: aiGenerated ? "#22C55E" : "var(--text)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "0.2s" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a4 4 0 014 4c0 1.95-1.4 3.58-3.25 3.93M8 6a4 4 0 014-4M12 18v4M8 22h8M12 2v4" /><circle cx="12" cy="14" r="4" /></svg>
+              {aiGenerated ? "Generated!" : "AI Generate"}
             </button>
             <button onClick={saveBudgets} disabled={saving}
-              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 18px", borderRadius: 8, border: "none", background: saved ? "#22C55E" : "#0C0D10", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1, transition: "0.2s" }}>
-              {saving ? "Saving..." : saved ? "✓ Saved!" : "💾 Save Budget"}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 18px", borderRadius: 8, border: "none", background: saved ? "#22C55E" : "#0C0D10", color: "#fff", fontSize: 13, fontWeight: 600, cursor: saving ? "wait" : "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1, transition: "0.2s" }}>
+              {saving ? "Saving..." : saved ? "✓ Saved!" : "Save Budget"}
             </button>
           </div>
         </div>
@@ -236,10 +303,12 @@ export default function BudgetPage() {
         {/* AI Banner */}
         {aiGenerated && (
           <div style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 10, padding: "14px 18px", marginBottom: 20, display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ fontSize: 22 }}>🤖</span>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(34,197,94,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a4 4 0 014 4c0 1.95-1.4 3.58-3.25 3.93M8 6a4 4 0 014-4M12 18v4M8 22h8M12 2v4" /><circle cx="12" cy="14" r="4" /></svg>
+            </div>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 700, color: "#22C55E", margin: "0 0 2px" }}>AI Budget Generated!</p>
-              <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>Based on {fmt(income)}/month using the 50/30/20 rule. Edit below and save.</p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "#22C55E", margin: "0 0 2px" }}>AI Budget Generated</p>
+              <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>Based on {fmt(income)}/month using the 50/30/20 rule. Edit any amount and save.</p>
             </div>
           </div>
         )}
@@ -247,21 +316,41 @@ export default function BudgetPage() {
         {/* Summary Cards */}
         <div className="bs" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 20 }}>
           <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "16px" }}>
-            <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", margin: "0 0 6px", textTransform: "uppercase", letterSpacing: 0.05 }}>Monthly Income</p>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+              <div style={{ width: 24, height: 24, borderRadius: 6, background: "rgba(59,130,246,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></svg>
+              </div>
+              <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", margin: 0, textTransform: "uppercase", letterSpacing: 0.05 }}>Income</p>
+            </div>
             <p style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums" }}>{income > 0 ? fmt(income) : "—"}</p>
           </div>
           <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "16px" }}>
-            <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", margin: "0 0 6px", textTransform: "uppercase", letterSpacing: 0.05 }}>Total Budgeted</p>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+              <div style={{ width: 24, height: 24, borderRadius: 6, background: "rgba(139,92,246,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="M2 10h20" /></svg>
+              </div>
+              <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", margin: 0, textTransform: "uppercase", letterSpacing: 0.05 }}>Budgeted</p>
+            </div>
             <p style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", margin: 0, fontVariantNumeric: "tabular-nums" }}>{fmt(totalBudget)}</p>
           </div>
           <div style={{ background: totalRemaining >= 0 ? "rgba(34,197,94,0.06)" : "rgba(239,68,68,0.06)", border: `1px solid ${totalRemaining >= 0 ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}`, borderRadius: 10, padding: "16px" }}>
-            <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", margin: "0 0 6px", textTransform: "uppercase", letterSpacing: 0.05 }}>{totalRemaining >= 0 ? "Remaining" : "Over Budget"}</p>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+              <div style={{ width: 24, height: 24, borderRadius: 6, background: totalRemaining >= 0 ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={totalRemaining >= 0 ? "#22C55E" : "#EF4444"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></svg>
+              </div>
+              <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", margin: 0, textTransform: "uppercase", letterSpacing: 0.05 }}>{totalRemaining >= 0 ? "Remaining" : "Over"}</p>
+            </div>
             <p style={{ fontSize: 20, fontWeight: 700, color: totalRemaining >= 0 ? "#22C55E" : "#EF4444", margin: 0, fontVariantNumeric: "tabular-nums" }}>{totalRemaining >= 0 ? "" : "-"}{fmt(Math.abs(totalRemaining))}</p>
           </div>
           <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "16px" }}>
-            <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", margin: "0 0 6px", textTransform: "uppercase", letterSpacing: 0.05 }}>Per Day</p>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+              <div style={{ width: 24, height: 24, borderRadius: 6, background: "rgba(234,179,8,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#EAB308" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+              </div>
+              <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", margin: 0, textTransform: "uppercase", letterSpacing: 0.05 }}>Per Day</p>
+            </div>
             <p style={{ fontSize: 20, fontWeight: 700, color: perDay >= 0 ? "#22C55E" : "#EF4444", margin: 0, fontVariantNumeric: "tabular-nums" }}>
-              {perDay >= 0 ? fmt(perDay) : "—"}{perDay >= 0 ? <span style={{ fontSize: 11, fontWeight: 500, color: "var(--muted)" }}> /day</span> : null}
+              {perDay >= 0 ? fmt(perDay) : "—"}
             </p>
           </div>
         </div>
@@ -275,8 +364,8 @@ export default function BudgetPage() {
             </div>
           </div>
           <div style={{ flex: 1, minWidth: 200 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: "0 0 2px" }}>Budget Health — <span style={{ color: health.color }}>{health.label}</span></p>
-            <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 8px", lineHeight: 1.5 }}>
+            <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", margin: "0 0 2px" }}>Budget Health — <span style={{ color: health.color }}>{health.label}</span></p>
+            <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 12px", lineHeight: 1.5 }}>
               {daysLeft > 0 ? <>{daysLeft} day{daysLeft !== 1 ? "s" : ""} left. </> : null}
               {projDiff > 0
                 ? <span style={{ color: "#22C55E" }}>On track to save {fmt(projDiff)} by month end.</span>
@@ -285,19 +374,25 @@ export default function BudgetPage() {
                   : <span>Right on target.</span>
               }
             </p>
-            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
               <div>
                 <p style={{ fontSize: 10, color: "var(--muted)", margin: 0, textTransform: "uppercase", letterSpacing: 0.05 }}>Utilized</p>
-                <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", margin: "1px 0 0 0", fontVariantNumeric: "tabular-nums" }}>{utilized}%</p>
+                <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "2px 0 0 0", fontVariantNumeric: "tabular-nums" }}>{utilized}%</p>
               </div>
               <div>
                 <p style={{ fontSize: 10, color: "var(--muted)", margin: 0, textTransform: "uppercase", letterSpacing: 0.05 }}>Projected</p>
-                <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", margin: "1px 0 0 0", fontVariantNumeric: "tabular-nums" }}>{fmt(projected)}</p>
+                <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "2px 0 0 0", fontVariantNumeric: "tabular-nums" }}>{fmt(projected)}</p>
               </div>
               <div>
-                <p style={{ fontSize: 10, color: "var(--muted)", margin: 0, textTransform: "uppercase", letterSpacing: 0.05 }}>Days Left</p>
-                <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", margin: "1px 0 0 0" }}>{daysLeft}</p>
+                <p style={{ fontSize: 10, color: "#22C55E", margin: 0, textTransform: "uppercase", letterSpacing: 0.05 }}>On Track</p>
+                <p style={{ fontSize: 15, fontWeight: 700, color: "#22C55E", margin: "2px 0 0 0" }}>{onTrackCount}</p>
               </div>
+              {overCount > 0 && (
+                <div>
+                  <p style={{ fontSize: 10, color: "#EF4444", margin: 0, textTransform: "uppercase", letterSpacing: 0.05 }}>Over</p>
+                  <p style={{ fontSize: 15, fontWeight: 700, color: "#EF4444", margin: "2px 0 0 0" }}>{overCount}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -319,8 +414,8 @@ export default function BudgetPage() {
 
         {/* Tabs */}
         <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>
-          {([["overview", "📊 Overview"], ["setup", "⚙️ Edit Budget"]] as const).map(([key, label]) => (
-            <button key={key} onClick={() => setActiveTab(key as "overview" | "setup")}
+          {([["overview", "Overview"], ["setup", "Edit Budget"]] as const).map(([key, label]) => (
+            <button key={key} onClick={() => { setActiveTab(key as "overview" | "setup"); }}
               style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid " + (activeTab === key ? "var(--text)" : "var(--border)"), background: activeTab === key ? "var(--text)" : "var(--card)", color: activeTab === key ? "var(--bg)" : "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "0.15s" }}>
               {label}
             </button>
@@ -338,47 +433,49 @@ export default function BudgetPage() {
                 if (budgeted === 0 && spentAmt === 0) return null;
 
                 return (
-                  <div key={cat.name} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px", borderLeft: `4px solid ${cat.color}`, transition: "background 0.1s" }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg)"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = "var(--card)"; }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: budgeted > 0 ? 8 : 0 }}>
+                  <div key={cat.name} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px", borderLeft: `4px solid ${cat.color}`, transition: "background 0.1s, border-color 0.15s" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg)"; e.currentTarget.style.borderColor = cat.color + "44"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "var(--card)"; e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.borderLeftColor = cat.color; }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: budgeted > 0 ? 10 : 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={{ width: 32, height: 32, borderRadius: 8, background: cat.color + "22", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>{cat.emoji}</div>
+                        <CatIcon name={cat.name} color={cat.color} />
                         <div>
                           <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{cat.name}</p>
-                          <p style={{ fontSize: 10, color: "var(--muted)", margin: "1px 0 0 0" }}>{fmt(spentAmt)} spent{budgeted > 0 ? ` · ${fmt(budgeted)} budget` : ""}</p>
+                          <p style={{ fontSize: 10, color: "var(--muted)", margin: "2px 0 0 0", fontVariantNumeric: "tabular-nums" }}>{fmt(spentAmt)} spent{budgeted > 0 ? ` of ${fmt(budgeted)}` : ""}</p>
                         </div>
                       </div>
                       <div style={{ textAlign: "right" }}>
-                        <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 6, background: status.color + "18", color: status.color, textTransform: "uppercase", letterSpacing: 0.04 }}>
+                        <span style={{ fontSize: 9, fontWeight: 600, padding: "2px 8px", borderRadius: 6, background: status.color + "18", color: status.color, textTransform: "uppercase", letterSpacing: 0.04 }}>
                           {budgeted === 0 ? "No budget" : status.label}
                         </span>
                         {budgeted > 0 && (
-                          <p style={{ fontSize: 11, fontWeight: 600, color: spentAmt >= budgeted ? "#EF4444" : "#22C55E", margin: "3px 0 0 0", fontVariantNumeric: "tabular-nums" }}>
+                          <p style={{ fontSize: 11, fontWeight: 700, color: spentAmt >= budgeted ? "#EF4444" : "#22C55E", margin: "4px 0 0 0", fontVariantNumeric: "tabular-nums" }}>
                             {spentAmt >= budgeted ? `${fmt(spentAmt - budgeted)} over` : `${fmt(budgeted - spentAmt)} left`}
                           </p>
                         )}
                       </div>
                     </div>
-                    {budgeted > 0 && (
-                      <div style={{ height: 6, background: "var(--border)", borderRadius: 6, overflow: "hidden" }}>
-                        <div style={{ height: "100%", width: `${Math.min(100, status.pct)}%`, background: status.color, borderRadius: 6, transition: "width 0.6s ease-out" }} />
-                      </div>
-                    )}
+                    {budgeted > 0 && <MiniBar pct={status.pct} color={status.color} />}
                   </div>
                 );
               })}
             </div>
 
-            {/* Unbudgeted Spending */}
+            {/* Unbudgeted */}
             {unbudgetedSpent.length > 0 && (
               <div style={{ background: "rgba(234,179,8,0.06)", border: "1px solid rgba(234,179,8,0.2)", borderRadius: 10, padding: "16px 18px", marginBottom: 20 }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: "0 0 4px" }}>⚠️ Unbudgeted Spending</p>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  <div style={{ width: 24, height: 24, borderRadius: 6, background: "rgba(234,179,8,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#EAB308" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
+                  </div>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>Unbudgeted Spending</p>
+                </div>
                 <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 10px" }}>{fmt(unbudgetedTotal)} spent without a budget this month</p>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {unbudgetedSpent.map(u => (
-                    <span key={u.name} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, background: u.color + "14", border: `1px solid ${u.color}33`, fontSize: 11, color: u.color, fontWeight: 500 }}>
-                      {u.emoji} {u.name} · {fmt(u.amount)}
+                    <span key={u.name} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 6, background: u.color + "14", border: `1px solid ${u.color}33`, fontSize: 11, color: u.color, fontWeight: 500 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: 6, background: u.color, flexShrink: 0 }} />
+                      {u.name} · {fmt(u.amount)}
                     </span>
                   ))}
                 </div>
@@ -390,40 +487,47 @@ export default function BudgetPage() {
         {/* Edit Budget Tab */}
         {activeTab === "setup" && (
           <>
-            <div style={{ background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.2)", borderRadius: 10, padding: "14px 18px", marginBottom: 18 }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "#3B82F6", margin: "0 0 2px" }}>💡 How AI Budget Works</p>
-              <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>
-                Based on your income of <strong>{fmt(income)}/month</strong>, AI uses the 50/30/20 rule adapted for India. Edit any amount and save.
-              </p>
+            <div style={{ background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.2)", borderRadius: 10, padding: "14px 18px", marginBottom: 18, display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(59,130,246,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01" /></svg>
+              </div>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "#3B82F6", margin: "0 0 2px" }}>How AI Budget Works</p>
+                <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>Based on <strong>{fmt(income)}/month</strong> using the 50/30/20 rule adapted for India. Edit any amount and save.</p>
+              </div>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 20 }}>
-              {BUDGET_CATEGORIES.map(cat => (
-                <div key={cat.name} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, transition: "border-color 0.15s" }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = cat.color + "44"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 8, background: cat.color + "22", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0 }}>{cat.emoji}</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{cat.name}</p>
-                    <p style={{ fontSize: 10, color: "var(--muted)", margin: "1px 0 0 0" }}>
-                      {cat.recommended > 0 ? `AI: ${cat.recommended}% = ${fmt(Math.round(income * cat.recommended / 100))}` : "Set your own amount"}
-                      {spent[cat.name] ? ` · Spent: ${fmt(spent[cat.name])}` : ""}
-                    </p>
+              {BUDGET_CATEGORIES.map(cat => {
+                const budgeted = budgets[cat.name] || 0;
+                const spentAmt = spent[cat.name] || 0;
+                return (
+                  <div key={cat.name} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, transition: "border-color 0.15s" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = cat.color + "44"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}>
+                    <CatIcon name={cat.name} color={cat.color} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{cat.name}</p>
+                      <p style={{ fontSize: 10, color: "var(--muted)", margin: "2px 0 0 0" }}>
+                        {cat.recommended > 0 ? `AI: ${cat.recommended}% = ${fmt(Math.round(income * cat.recommended / 100))}` : "Set your own amount"}
+                        {spentAmt > 0 ? <span style={{ color: getStatus(budgeted, spentAmt).color }}> · Spent: {fmt(spentAmt)}</span> : ""}
+                      </p>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                      <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 600 }}>₹</span>
+                      <input type="number" min="0" value={budgeted || ""} onChange={(e) => { setBudgets({ ...budgets, [cat.name]: Number(e.target.value) }); }} placeholder="0"
+                        style={{ width: 100, height: 36, borderRadius: 8, padding: "0 10px", fontSize: 13, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: `1px solid ${budgeted > 0 ? cat.color : "var(--border)"}`, color: "var(--text)", boxSizing: "border-box", textAlign: "right", fontWeight: 600, fontVariantNumeric: "tabular-nums", transition: "border-color 0.15s" }}
+                        onFocus={(e) => { e.currentTarget.style.borderColor = cat.color; }}
+                        onBlur={(e) => { e.currentTarget.style.borderColor = budgeted > 0 ? cat.color : "var(--border)"; }} />
+                    </div>
+                    <div style={{ width: 40, textAlign: "right", flexShrink: 0 }}>
+                      <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
+                        {income > 0 && budgeted ? `${Math.round((budgeted / income) * 100)}%` : "0%"}
+                      </span>
+                    </div>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-                    <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 600 }}>₹</span>
-                    <input type="number" min="0" value={budgets[cat.name] || ""} onChange={e => setBudgets({ ...budgets, [cat.name]: Number(e.target.value) })} placeholder="0"
-                      style={{ width: 100, height: 36, borderRadius: 8, padding: "0 10px", fontSize: 13, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: `1px solid ${(budgets[cat.name] || 0) > 0 ? cat.color : "var(--border)"}`, color: "var(--text)", boxSizing: "border-box", textAlign: "right", fontWeight: 600, fontVariantNumeric: "tabular-nums", transition: "border-color 0.15s" }}
-                      onFocus={(e) => { e.currentTarget.style.borderColor = cat.color; }}
-                      onBlur={(e) => { e.currentTarget.style.borderColor = (budgets[cat.name] || 0) > 0 ? cat.color : "var(--border)"; }} />
-                  </div>
-                  <div style={{ width: 40, textAlign: "right", flexShrink: 0 }}>
-                    <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>
-                      {income > 0 && budgets[cat.name] ? `${Math.round((budgets[cat.name] / income) * 100)}%` : "0%"}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Budget vs Income */}
@@ -438,17 +542,17 @@ export default function BudgetPage() {
               </div>
               <div style={{ height: 1, background: totalBudget > income ? "rgba(239,68,68,0.2)" : "rgba(34,197,94,0.2)", marginBottom: 8 }} />
               {totalBudget > income ? (
-                <p style={{ fontSize: 12, color: "#EF4444", margin: 0, fontWeight: 500 }}>⚠️ Budget exceeds income by {fmt(totalBudget - income)}. Reduce some categories.</p>
+                <p style={{ fontSize: 12, color: "#EF4444", margin: 0, fontWeight: 500 }}>Budget exceeds income by {fmt(totalBudget - income)}. Reduce some categories.</p>
               ) : totalBudget > 0 ? (
-                <p style={{ fontSize: 12, color: "#22C55E", margin: 0, fontWeight: 500 }}>✓ {fmt(income - totalBudget)} unallocated — consider adding to Savings!</p>
+                <p style={{ fontSize: 12, color: "#22C55E", margin: 0, fontWeight: 500 }}>{fmt(income - totalBudget)} unallocated — consider adding to Savings!</p>
               ) : (
-                <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>Click "🤖 AI Generate" to auto-fill budgets.</p>
+                <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>Click "AI Generate" to auto-fill budgets.</p>
               )}
             </div>
 
             <button onClick={saveBudgets} disabled={saving}
               style={{ width: "100%", height: 44, borderRadius: 10, border: "none", background: saved ? "#22C55E" : "#0C0D10", color: "#fff", fontSize: 14, fontWeight: 600, cursor: saving ? "wait" : "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1, transition: "0.2s" }}>
-              {saving ? "Saving..." : saved ? "✓ Budget Saved!" : "💾 Save Budget"}
+              {saving ? "Saving..." : saved ? "Budget Saved!" : "Save Budget"}
             </button>
           </>
         )}
