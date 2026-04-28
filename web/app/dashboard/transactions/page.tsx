@@ -96,6 +96,42 @@ function Drop(props: { value: string; options: string[]; placeholder: string; on
   );
 }
 
+function SortDrop(props: { value: string; onChange: (v: string) => void }) {
+  var [open, setOpen] = useState(false);
+  var opts = [{ v: "date", l: "By date", icon: "M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" }, { v: "amount", l: "By amount", icon: "M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" }];
+  var cur = opts.find(function (o) { return o.v === props.value; }) || opts[0];
+  return (
+    <div style={{ position: "relative" }}>
+      <button type="button" onClick={function () { setOpen(!open); }}
+        style={{ height: 34, borderRadius: 6, padding: "0 10px", display: "flex", alignItems: "center", gap: 6, background: "var(--bg)", border: open ? "1px solid rgba(34,197,94,0.3)" : "1px solid var(--border)", color: "var(--text)", fontSize: 12, fontFamily: "inherit", cursor: "pointer", transition: "border-color 0.15s", boxSizing: "border-box", outline: "none", whiteSpace: "nowrap" }}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={cur.icon} /></svg>
+        <span>{cur.l}</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}><path d="M6 9l6 6 6-6" /></svg>
+      </button>
+      {open ? (
+        <>
+          <div style={{ position: "fixed", inset: 0, zIndex: 40 }} onClick={function () { setOpen(false); }} />
+          <div style={{ position: "absolute", top: "100%", right: 0, zIndex: 50, marginTop: 2, background: "var(--card)", border: "1px solid var(--border)", borderRadius: 6, minWidth: 140, boxShadow: "0 4px 16px rgba(0,0,0,0.12)", overflow: "hidden" }}>
+            {opts.map(function (o) {
+              var isSel = o.v === props.value;
+              return (
+                <button key={o.v} type="button" onClick={function () { props.onChange(o.v); setOpen(false); }}
+                  style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", width: "100%", border: "none", background: isSel ? "rgba(34,197,94,0.06)" : "transparent", color: isSel ? "#22C55E" : "var(--text)", fontSize: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "background 0.1s" }}
+                  onMouseEnter={function (e) { e.currentTarget.style.background = "rgba(34,197,94,0.06)"; }}
+                  onMouseLeave={function (e) { e.currentTarget.style.background = isSel ? "rgba(34,197,94,0.06)" : "transparent"; }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={isSel ? "#22C55E" : "var(--muted)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={o.icon} /></svg>
+                  <span style={{ flex: 1 }}>{o.l}</span>
+                  {isSel ? <span style={{ width: 5, height: 5, borderRadius: 3, background: "#22C55E", flexShrink: 0 }} /> : null}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 function fmt(n: number) { return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n || 0); }
 
 function fmtDate(d: string) {
@@ -319,7 +355,7 @@ export default function TransactionsPage() {
             <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap", alignItems: "center" }}>
               <div style={{ flex: 1, minWidth: 180 }}>
                 <input placeholder="Search transactions..." value={search} onChange={function (e) { setSearch(e.target.value); }}
-                  style={{ height: 30, borderRadius: 6, padding: "0 10px 0 28px", fontSize: 12, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", boxSizing: "border-box", width: "100%", transition: "border-color 0.15s", backgroundImage: "none" }}
+                  style={{ height: 34, borderRadius: 6, padding: "0 10px 0 28px", fontSize: 12, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", boxSizing: "border-box", width: "100%", transition: "border-color 0.15s" }}
                   onFocus={function (e) { e.currentTarget.style.borderColor = "rgba(34,197,94,0.25)"; }}
                   onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; }} />
               </div>
@@ -328,11 +364,7 @@ export default function TransactionsPage() {
                   <Drop value={catFilter} options={["All categories"].concat(activeCats)} placeholder="All categories" onChange={function (v) { setCatFilter(v === "All categories" ? "" : v); }} />
                 </div>
               ) : null}
-              <select value={sort} onChange={function (e) { setSort(e.target.value as "date" | "amount"); }}
-                style={{ height: 30, borderRadius: 6, padding: "0 8px", fontSize: 11, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", boxSizing: "border-box" }}>
-                <option value="date">By date</option>
-                <option value="amount">By amount</option>
-              </select>
+              <SortDrop value={sort} onChange={function (v) { setSort(v as "date" | "amount"); }} />
             </div>
 
             {/* Tabs */}
