@@ -27,9 +27,9 @@ function getType(n: string) { return TYPES.find(function (t) { return t.name ===
 
 function Av(props: { typeName: string; small?: boolean }) {
   var t = getType(props.typeName);
-  var sz = props.small ? 26 : 30;
+  var sz = props.small ? 24 : 30;
   return (
-    <div style={{ width: sz, height: sz, borderRadius: 7, background: t.color + "12", color: t.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: props.small ? 9 : 11, fontWeight: 700, flexShrink: 0, border: "1px solid " + t.color + "18" }}>{t.letter}</div>
+    <div style={{ width: sz, height: sz, borderRadius: 7, background: t.color + "12", color: t.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: props.small ? 8 : 11, fontWeight: 700, flexShrink: 0, border: "1px solid " + t.color + "18" }}>{t.letter}</div>
   );
 }
 
@@ -41,7 +41,7 @@ function Drop(props: { value: string; options: string[]; placeholder: string; on
   return (
     <div style={{ position: "relative" }}>
       <button type="button" onClick={function () { setOpen(!open); }}
-        style={{ height: 34, width: "100%", borderRadius: 6, padding: "0 10px", display: "flex", alignItems: "center", gap: 6, background: "var(--bg)", border: open ? "1px solid " + sel.color + "44" : "1px solid var(--border)", color: props.value ? "var(--text)" : "var(--muted)", fontSize: 12, fontFamily: "inherit", cursor: "pointer", transition: "border-color 0.15s", boxSizing: "border-box", outline: "none" }}>
+        style={{ height: 38, width: "100%", borderRadius: 6, padding: "0 12px", display: "flex", alignItems: "center", gap: 8, background: "var(--bg)", border: open ? "1px solid " + sel.color + "44" : "1px solid var(--border)", color: props.value ? "var(--text)" : "var(--muted)", fontSize: 13, fontFamily: "inherit", cursor: "pointer", transition: "border-color 0.15s", boxSizing: "border-box", outline: "none" }}>
         {props.value ? <Av typeName={props.value} small /> : null}
         <span style={{ flex: 1, textAlign: "left", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{props.value || props.placeholder}</span>
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}><path d="M6 9l6 6 6-6" /></svg>
@@ -49,18 +49,18 @@ function Drop(props: { value: string; options: string[]; placeholder: string; on
       {open ? (
         <>
           <div style={{ position: "fixed", inset: 0, zIndex: 40 }} onClick={function () { setOpen(false); }} />
-          <div className="droplist" style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50, marginTop: 2, background: "var(--card)", border: "1px solid var(--border)", borderRadius: 6, maxHeight: 200, overflowY: "auto", boxShadow: "0 4px 16px rgba(0,0,0,0.12)" }}>
+          <div className="droplist" style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50, marginTop: 2, background: "var(--card)", border: "1px solid var(--border)", borderRadius: 6, maxHeight: 220, overflowY: "auto", boxShadow: "0 4px 16px rgba(0,0,0,0.12)" }}>
             {props.options.map(function (c) {
               var tp = getType(c);
               var isSel = c === props.value;
               return (
                 <button key={c} type="button" onClick={function () { props.onChange(c); setOpen(false); }}
-                  style={{ display: "flex", alignItems: "center", gap: 7, padding: "6px 10px", width: "100%", border: "none", background: isSel ? tp.color + "0F" : "transparent", color: "var(--text)", fontSize: 11, cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "background 0.1s" }}
+                  style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 12px", width: "100%", border: "none", background: isSel ? tp.color + "0F" : "transparent", color: "var(--text)", fontSize: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "background 0.1s" }}
                   onMouseEnter={function (e) { e.currentTarget.style.background = tp.color + "0F"; }}
                   onMouseLeave={function (e) { e.currentTarget.style.background = isSel ? tp.color + "0F" : "transparent"; }}>
                   <Av typeName={c} small />
                   <span style={{ flex: 1 }}>{c}</span>
-                  {isSel ? <span style={{ width: 4, height: 4, borderRadius: 2, background: tp.color, flexShrink: 0 }} /> : null}
+                  {isSel ? <span style={{ width: 5, height: 5, borderRadius: 3, background: tp.color, flexShrink: 0 }} /> : null}
                 </button>
               );
             })}
@@ -91,7 +91,7 @@ export default function AccountsPage() {
     var { data: u } = await supabase.auth.getUser();
     if (!u?.user) return;
     var { data, error } = await supabase.from("accounts").select("id, name, type, balance, created_at").eq("user_id", u.user.id).order("created_at", { ascending: true });
-    if (error) { console.error("Load accounts error:", error.message); }
+    if (error) { console.error("Load error:", error.message); }
     setAccounts(data || []);
     setLoading(false);
   };
@@ -101,7 +101,7 @@ export default function AccountsPage() {
   };
 
   var openEdit = function (a: any) {
-    setEditId(a.id); setName(a.name); setAccType(a.type || "Bank Account"); setBalance(String(Math.abs(Number(a.balance) || 0))); setErr(""); setDeleteId(""); setShowForm(true);
+    setEditId(a.id); setName(a.name || ""); setAccType(a.type || "Bank Account"); setBalance(String(Math.abs(Number(a.balance) || 0))); setErr(""); setDeleteId(""); setShowForm(true);
   };
 
   var closeForm = function () {
@@ -110,13 +110,12 @@ export default function AccountsPage() {
 
   var submit = async function () {
     setErr("");
-    if (!name.trim()) { setErr("Enter an account name."); return; }
-    if (!balance || Number(balance) < 0) { setErr("Enter a valid balance."); return; }
+    if (!name.trim()) { setErr("Give your account a name."); return; }
     setSubmitting(true);
     var { data: u } = await supabase.auth.getUser();
     if (!u?.user) { setSubmitting(false); return; }
-    var isCredit = accType === "Credit Card" || accType === "Loan";
-    var b = isCredit ? -Math.abs(Number(balance)) : Math.abs(Number(balance));
+    var isDebt = accType === "Credit Card" || accType === "Loan";
+    var b = balance ? (isDebt ? -Math.abs(Number(balance)) : Math.abs(Number(balance))) : 0;
     var payload: any = { name: name.trim(), type: accType, balance: b };
     var error;
     if (editId) {
@@ -129,8 +128,8 @@ export default function AccountsPage() {
     }
     setSubmitting(false);
     if (error) {
-      console.error("Save account error:", error.message, error.details, error.hint);
-      setErr(error.message || "Something went wrong. Try again.");
+      console.error("Save error:", error.message, error.details, error.hint);
+      setErr(error.message);
       return;
     }
     setSaved(true);
@@ -143,21 +142,13 @@ export default function AccountsPage() {
     setDeleteId(""); closeForm(); load();
   };
 
-  var totalBalance = useMemo(function () {
-    return accounts.reduce(function (s, a) { return s + Number(a.balance || 0); }, 0);
-  }, [accounts]);
+  var totalBalance = useMemo(function () { return accounts.reduce(function (s, a) { return s + Number(a.balance || 0); }, 0); }, [accounts]);
+  var totalAssets = useMemo(function () { return accounts.filter(function (a) { return Number(a.balance || 0) > 0; }).reduce(function (s, a) { return s + Number(a.balance); }, 0); }, [accounts]);
+  var totalDebts = useMemo(function () { return accounts.filter(function (a) { return Number(a.balance || 0) < 0; }).reduce(function (s, a) { return s + Math.abs(Number(a.balance)); }, 0); }, [accounts]);
+  var sortedAccounts = useMemo(function () { return [...accounts].sort(function (a, b) { return Math.abs(Number(b.balance)) - Math.abs(Number(a.balance)); }); }, [accounts]);
 
-  var totalAssets = useMemo(function () {
-    return accounts.filter(function (a) { return Number(a.balance || 0) > 0; }).reduce(function (s, a) { return s + Number(a.balance); }, 0);
-  }, [accounts]);
-
-  var totalDebts = useMemo(function () {
-    return accounts.filter(function (a) { return Number(a.balance || 0) < 0; }).reduce(function (s, a) { return s + Math.abs(Number(a.balance)); }, 0);
-  }, [accounts]);
-
-  var sortedAccounts = useMemo(function () {
-    return [...accounts].sort(function (a, b) { return Math.abs(Number(b.balance)) - Math.abs(Number(a.balance)); });
-  }, [accounts]);
+  var isDebt = accType === "Credit Card" || accType === "Loan";
+  var previewBal = balance ? (isDebt ? -Math.abs(Number(balance)) : Math.abs(Number(balance))) : 0;
 
   if (loading) return (
     <div style={{ height: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -186,33 +177,65 @@ export default function AccountsPage() {
 
         {/* Form */}
         {showForm ? (
-          <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, padding: "16px", marginBottom: 16 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: "0 0 12px" }}>{editId ? "Edit Account" : "New Account"}</p>
-            <input placeholder="Account name" value={name} onChange={function (e) { setName(e.target.value); }}
-              style={{ height: 40, borderRadius: 6, padding: "0 12px", fontSize: 14, fontWeight: 600, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", boxSizing: "border-box", width: "100%", marginBottom: 8, transition: "border-color 0.15s" }}
-              onFocus={function (e) { e.currentTarget.style.borderColor = "rgba(34,197,94,0.3)"; }}
-              onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; }} />
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+          <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, padding: "18px", marginBottom: 16 }}>
+            <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", margin: "0 0 14px" }}>{editId ? "Edit Account" : "New Account"}</p>
+
+            {/* Row 1: Type */}
+            <div style={{ marginBottom: 10 }}>
+              <label style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.04, display: "block", marginBottom: 4 }}>Type</label>
               <Drop value={accType} options={TYPES.map(function (t) { return t.name; })} placeholder="Account type" onChange={function (v) { setAccType(v); }} />
-              <input type="number" placeholder="Balance" value={balance} onChange={function (e) { setBalance(e.target.value); }}
-                style={{ height: 34, borderRadius: 6, padding: "0 10px", fontSize: 13, fontWeight: 600, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", boxSizing: "border-box", width: "100%", fontVariantNumeric: "tabular-nums", transition: "border-color 0.15s" }}
+            </div>
+
+            {/* Row 2: Name */}
+            <div style={{ marginBottom: 10 }}>
+              <label style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.04, display: "block", marginBottom: 4 }}>Account Name</label>
+              <input placeholder={accType === "Bank Account" ? "e.g. HDFC Savings" : accType === "Credit Card" ? "e.g. ICICI Credit Card" : accType === "Cash" ? "e.g. Wallet Cash" : accType === "UPI" ? "e.g. Google Pay" : accType === "Fixed Deposit" ? "e.g. SBI FD" : accType === "Mutual Fund" ? "e.g. Nifty 50 Fund" : accType === "Stocks" ? "e.g. Zerodha" : accType === "Loan" ? "e.g. Home Loan" : "e.g. My Account"} value={name} onChange={function (e) { setName(e.target.value); }}
+                style={{ height: 38, borderRadius: 6, padding: "0 12px", fontSize: 13, fontWeight: 500, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", boxSizing: "border-box", width: "100%", transition: "border-color 0.15s" }}
                 onFocus={function (e) { e.currentTarget.style.borderColor = "rgba(34,197,94,0.3)"; }}
                 onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; }} />
             </div>
-            {(accType === "Credit Card" || accType === "Loan") && balance ? (
-              <p style={{ fontSize: 10, color: "#EF4444", margin: "0 0 8px", fontWeight: 500 }}>This will be tracked as debt (-{fmt(Number(balance))})</p>
+
+            {/* Row 3: Balance */}
+            <div style={{ marginBottom: 6 }}>
+              <label style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.04, display: "block", marginBottom: 4 }}>{isDebt ? "Outstanding Amount" : "Current Balance"}</label>
+              <div style={{ position: "relative" }}>
+                <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "var(--muted)", fontWeight: 600, pointerEvents: "none" }}>₹</span>
+                <input type="number" placeholder="0" value={balance} onChange={function (e) { setBalance(e.target.value); }}
+                  style={{ height: 44, borderRadius: 6, padding: "0 12px 0 28px", fontSize: 18, fontWeight: 700, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", boxSizing: "border-box", width: "100%", fontVariantNumeric: "tabular-nums", transition: "border-color 0.15s" }}
+                  onFocus={function (e) { e.currentTarget.style.borderColor = isDebt ? "rgba(239,68,68,0.4)" : "rgba(34,197,94,0.4)"; }}
+                  onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; }} />
+              </div>
+              {isDebt && balance ? (
+                <p style={{ fontSize: 10, color: "#EF4444", margin: "4px 0 0 0", fontWeight: 500 }}>Tracked as debt (−₹{Number(balance).toLocaleString("en-IN")})</p>
+              ) : null}
+            </div>
+
+            {/* Preview */}
+            {name.trim() ? (
+              <div style={{ marginTop: 8, marginBottom: 10, padding: "10px 12px", borderRadius: 6, background: "var(--bg)", border: "1px dashed var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
+                <Av typeName={accType} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name.trim()}</p>
+                  <p style={{ fontSize: 10, color: "var(--muted)", margin: "1px 0 0 0" }}>{accType}</p>
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 700, color: previewBal < 0 ? "#EF4444" : "#22C55E", fontVariantNumeric: "tabular-nums" }}>
+                  {previewBal < 0 ? "-" : ""}{fmt(Math.abs(previewBal))}
+                </span>
+              </div>
             ) : null}
+
             {err ? <p style={{ fontSize: 11, color: "#EF4444", margin: "0 0 8px", fontWeight: 500 }}>{err}</p> : null}
+
             <div style={{ display: "flex", gap: 6 }}>
               <button onClick={submit} disabled={submitting}
-                style={{ flex: 1, height: 36, borderRadius: 6, border: "none", background: saved ? "#16A34A" : "#22C55E", color: "#fff", fontSize: 12, fontWeight: 600, cursor: submitting ? "wait" : "pointer", fontFamily: "inherit", opacity: submitting ? 0.7 : 1, transition: "background 0.15s" }}
+                style={{ flex: 1, height: 38, borderRadius: 6, border: "none", background: saved ? "#16A34A" : "#22C55E", color: "#fff", fontSize: 13, fontWeight: 600, cursor: submitting ? "wait" : "pointer", fontFamily: "inherit", opacity: submitting ? 0.7 : 1, transition: "background 0.15s" }}
                 onMouseEnter={function (e) { if (!submitting && !saved) e.currentTarget.style.background = "#16A34A"; }}
                 onMouseLeave={function (e) { e.currentTarget.style.background = saved ? "#16A34A" : "#22C55E"; }}>
                 {submitting ? "Saving..." : saved ? "Saved" : editId ? "Update" : "Add Account"}
               </button>
               {editId ? (
                 <button onClick={function () { if (deleteId === editId) { deleteAcc(editId); } else { setDeleteId(editId); setTimeout(function () { setDeleteId(""); }, 3000); } }}
-                  style={{ height: 36, padding: "0 14px", borderRadius: 6, border: deleteId === editId ? "1px solid #EF4444" : "1px solid var(--border)", background: deleteId === editId ? "rgba(239,68,68,0.06)" : "transparent", color: deleteId === editId ? "#EF4444" : "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "0.15s" }}>
+                  style={{ height: 38, padding: "0 14px", borderRadius: 6, border: deleteId === editId ? "1px solid #EF4444" : "1px solid var(--border)", background: deleteId === editId ? "rgba(239,68,68,0.06)" : "transparent", color: deleteId === editId ? "#EF4444" : "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "0.15s" }}>
                   {deleteId === editId ? "Confirm Delete" : "Delete"}
                 </button>
               ) : null}
@@ -328,7 +351,6 @@ export default function AccountsPage() {
               })}
             </div>
 
-            {/* Footer */}
             <div style={{ padding: "12px 12px 0", borderTop: "1px solid var(--border)", marginTop: 8 }}>
               <p style={{ fontSize: 10, color: "var(--muted)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
                 {accounts.length} account{accounts.length !== 1 ? "s" : ""}{totalDebts > 0 ? " · Net worth " + fmt(totalBalance) : ""}
