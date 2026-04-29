@@ -3,6 +3,18 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../../lib/supabase";
 
+var BANKS = [
+  "SBI", "HDFC Bank", "ICICI Bank", "Axis Bank", "Kotak Mahindra",
+  "Punjab National Bank", "Bank of Baroda", "Canara Bank", "Union Bank",
+  "IndusInd Bank", "Yes Bank", "Federal Bank", "IDBI Bank",
+  "Indian Bank", "Central Bank", "UCO Bank", "Bank of India",
+  "South Indian Bank", "Karur Vysya Bank", "Tamilnad Mercantile",
+  "Jupiter", "Fi Money", "NiyoX", "RazorpayX", "Open Money",
+  "Paytm Payments Bank", "Airtel Payments Bank", "India Post Payments Bank",
+  "Amex", "Standard Chartered", "HSBC", "Citibank", "DBS Bank",
+  "Deutsche Bank", "Barclays"
+];
+
 var TYPES = [
   { name: "Bank Account", color: "#3B82F6", letter: "B" },
   { name: "Savings Account", color: "#22C55E", letter: "SA" },
@@ -71,6 +83,49 @@ function Drop(props: { value: string; options: string[]; placeholder: string; on
   );
 }
 
+function BankInput(props: { value: string; onChange: (v: string) => void; type: string }) {
+  var [focused, setFocused] = useState(false);
+  var filtered = props.value.trim().length > 0
+    ? BANKS.filter(function (b) { return b.toLowerCase().indexOf(props.value.toLowerCase()) >= 0; }).slice(0, 6)
+    : [];
+  var showSuggestions = focused && filtered.length > 0 && filtered[0] !== props.value;
+  var ph = props.type === "Bank Account" ? "e.g. HDFC Bank"
+    : props.type === "Savings Account" ? "e.g. SBI Savings"
+    : props.type === "Credit Card" ? "e.g. ICICI Credit Card"
+    : props.type === "Cash" ? "e.g. Wallet Cash"
+    : props.type === "UPI" ? "e.g. Google Pay"
+    : props.type === "Fixed Deposit" ? "e.g. SBI FD"
+    : props.type === "Mutual Fund" ? "e.g. Groww"
+    : props.type === "Stocks" ? "e.g. Zerodha"
+    : props.type === "Loan" ? "e.g. Home Loan SBI"
+    : props.type === "Wallet" ? "e.g. Paytm Wallet"
+    : "e.g. My Account";
+  return (
+    <div style={{ position: "relative" }}>
+      <input placeholder={ph} value={props.value} onChange={function (e) { props.onChange(e.target.value); }}
+        onFocus={function () { setFocused(true); }}
+        onBlur={function () { setTimeout(function () { setFocused(false); }, 150); }}
+        style={{ height: 38, borderRadius: 6, padding: "0 12px", fontSize: 13, fontWeight: 500, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", boxSizing: "border-box", width: "100%", transition: "border-color 0.15s" }}
+        onFocus2={function (e) { e.currentTarget.style.borderColor = "rgba(34,197,94,0.3)"; }}
+        onBlur2={function (e) { e.currentTarget.style.borderColor = "var(--border)"; }} />
+      {showSuggestions ? (
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50, marginTop: 2, background: "var(--card)", border: "1px solid var(--border)", borderRadius: 6, maxHeight: 180, overflowY: "auto", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
+          {filtered.map(function (b) {
+            return (
+              <button key={b} type="button" onClick={function () { props.onChange(b); setFocused(false); }}
+                style={{ display: "block", width: "100%", padding: "8px 12px", border: "none", background: "transparent", color: "var(--text)", fontSize: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "background 0.1s" }}
+                onMouseEnter={function (e) { e.currentTarget.style.background = "rgba(34,197,94,0.06)"; }}
+                onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; }}>
+                {b}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function AccountsPage() {
   var [accounts, setAccounts] = useState<any[]>([]);
   var [loading, setLoading] = useState(true);
@@ -111,6 +166,10 @@ export default function AccountsPage() {
   var submit = async function () {
     setErr("");
     if (!name.trim()) { setErr("Give your account a name."); return; }
+    var dup = accounts.find(function (a) {
+      return a.name.toLowerCase().trim() === name.toLowerCase().trim() && a.id !== editId;
+    });
+    if (dup) { setErr("You already have an account called \"" + dup.name + "\"."); return; }
     setSubmitting(true);
     var { data: u } = await supabase.auth.getUser();
     if (!u?.user) { setSubmitting(false); return; }
@@ -129,7 +188,13 @@ export default function AccountsPage() {
     setSubmitting(false);
     if (error) {
       console.error("Save error:", error.message, error.details, error.hint);
-      setErr(error.message);
+      if (error.message.indexOf("unique") >= 0 || error.message.indexOf("duplicate") >= 0) {
+        setErr("An account with this name already exists.");
+      } else if (error.message.indexOf("check") >= 0 || error.message.indexOf("constraint") >= 0) {
+        setErr("Database constraint error. Run the SQL fix in Supabase first.");
+      } else {
+        setErr(error.message);
+      }
       return;
     }
     setSaved(true);
@@ -180,22 +245,19 @@ export default function AccountsPage() {
           <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, padding: "18px", marginBottom: 16 }}>
             <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", margin: "0 0 14px" }}>{editId ? "Edit Account" : "New Account"}</p>
 
-            {/* Row 1: Type */}
+            {/* Type */}
             <div style={{ marginBottom: 10 }}>
               <label style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.04, display: "block", marginBottom: 4 }}>Type</label>
               <Drop value={accType} options={TYPES.map(function (t) { return t.name; })} placeholder="Account type" onChange={function (v) { setAccType(v); }} />
             </div>
 
-            {/* Row 2: Name */}
+            {/* Name with bank suggestions */}
             <div style={{ marginBottom: 10 }}>
               <label style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.04, display: "block", marginBottom: 4 }}>Account Name</label>
-              <input placeholder={accType === "Bank Account" ? "e.g. HDFC Savings" : accType === "Credit Card" ? "e.g. ICICI Credit Card" : accType === "Cash" ? "e.g. Wallet Cash" : accType === "UPI" ? "e.g. Google Pay" : accType === "Fixed Deposit" ? "e.g. SBI FD" : accType === "Mutual Fund" ? "e.g. Nifty 50 Fund" : accType === "Stocks" ? "e.g. Zerodha" : accType === "Loan" ? "e.g. Home Loan" : "e.g. My Account"} value={name} onChange={function (e) { setName(e.target.value); }}
-                style={{ height: 38, borderRadius: 6, padding: "0 12px", fontSize: 13, fontWeight: 500, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", boxSizing: "border-box", width: "100%", transition: "border-color 0.15s" }}
-                onFocus={function (e) { e.currentTarget.style.borderColor = "rgba(34,197,94,0.3)"; }}
-                onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; }} />
+              <BankInput value={name} onChange={function (v) { setName(v); }} type={accType} />
             </div>
 
-            {/* Row 3: Balance */}
+            {/* Balance */}
             <div style={{ marginBottom: 6 }}>
               <label style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.04, display: "block", marginBottom: 4 }}>{isDebt ? "Outstanding Amount" : "Current Balance"}</label>
               <div style={{ position: "relative" }}>
@@ -260,50 +322,18 @@ export default function AccountsPage() {
 
         {accounts.length > 0 ? (
           <>
-            {/* Hero */}
             <div style={{ marginBottom: 20 }}>
-              <p style={{ fontSize: 32, fontWeight: 700, color: totalBalance >= 0 ? "#22C55E" : "#EF4444", margin: 0, fontVariantNumeric: "tabular-nums", lineHeight: 1.1 }}>
-                {fmt(totalBalance)}
-              </p>
+              <p style={{ fontSize: 32, fontWeight: 700, color: totalBalance >= 0 ? "#22C55E" : "#EF4444", margin: 0, fontVariantNumeric: "tabular-nums", lineHeight: 1.1 }}>{fmt(totalBalance)}</p>
               <p style={{ fontSize: 13, color: "var(--muted)", margin: "4px 0 0 0" }}>total balance</p>
               <div style={{ display: "flex", gap: 16, marginTop: 10 }}>
-                {totalAssets > 0 ? (
-                  <div>
-                    <span style={{ width: 7, height: 7, borderRadius: 4, background: "#22C55E", display: "inline-block", marginRight: 4 }} />
-                    <span style={{ fontSize: 11, color: "var(--muted)" }}>Assets </span>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "#22C55E", fontVariantNumeric: "tabular-nums" }}>{fmt(totalAssets)}</span>
-                  </div>
-                ) : null}
-                {totalDebts > 0 ? (
-                  <div>
-                    <span style={{ width: 7, height: 7, borderRadius: 4, background: "#EF4444", display: "inline-block", marginRight: 4 }} />
-                    <span style={{ fontSize: 11, color: "var(--muted)" }}>Debts </span>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "#EF4444", fontVariantNumeric: "tabular-nums" }}>{fmt(totalDebts)}</span>
-                  </div>
-                ) : null}
-                <div>
-                  <span style={{ width: 7, height: 7, borderRadius: 4, background: "#3B82F6", display: "inline-block", marginRight: 4 }} />
-                  <span style={{ fontSize: 11, color: "var(--muted)" }}>Accounts </span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "#3B82F6", fontVariantNumeric: "tabular-nums" }}>{accounts.length}</span>
-                </div>
+                {totalAssets > 0 ? (<div><span style={{ width: 7, height: 7, borderRadius: 4, background: "#22C55E", display: "inline-block", marginRight: 4 }} /><span style={{ fontSize: 11, color: "var(--muted)" }}>Assets </span><span style={{ fontSize: 12, fontWeight: 600, color: "#22C55E", fontVariantNumeric: "tabular-nums" }}>{fmt(totalAssets)}</span></div>) : null}
+                {totalDebts > 0 ? (<div><span style={{ width: 7, height: 7, borderRadius: 4, background: "#EF4444", display: "inline-block", marginRight: 4 }} /><span style={{ fontSize: 11, color: "var(--muted)" }}>Debts </span><span style={{ fontSize: 12, fontWeight: 600, color: "#EF4444", fontVariantNumeric: "tabular-nums" }}>{fmt(totalDebts)}</span></div>) : null}
+                <div><span style={{ width: 7, height: 7, borderRadius: 4, background: "#3B82F6", display: "inline-block", marginRight: 4 }} /><span style={{ fontSize: 11, color: "var(--muted)" }}>Accounts </span><span style={{ fontSize: 12, fontWeight: 600, color: "#3B82F6", fontVariantNumeric: "tabular-nums" }}>{accounts.length}</span></div>
               </div>
             </div>
 
-            {/* Balance bar */}
-            {totalAssets > 0 ? (
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ height: 4, background: "var(--border)", borderRadius: 4, overflow: "hidden", display: "flex" }}>
-                  {sortedAccounts.map(function (a) {
-                    var pct = totalAssets > 0 ? (Math.abs(Number(a.balance)) / totalAssets) * 100 : 0;
-                    if (pct < 1) return null;
-                    var t = getType(a.type);
-                    return <div key={a.id} style={{ height: "100%", width: pct + "%", background: t.color, transition: "width 0.5s" }} />;
-                  })}
-                </div>
-              </div>
-            ) : null}
+            {totalAssets > 0 ? (<div style={{ marginBottom: 16 }}><div style={{ height: 4, background: "var(--border)", borderRadius: 4, overflow: "hidden", display: "flex" }}>{sortedAccounts.map(function (a) { var pct = totalAssets > 0 ? (Math.abs(Number(a.balance)) / totalAssets) * 100 : 0; if (pct < 1) return null; var t = getType(a.type); return <div key={a.id} style={{ height: "100%", width: pct + "%", background: t.color, transition: "width 0.5s" }} />; })}</div></div>) : null}
 
-            {/* List */}
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
               {sortedAccounts.map(function (a) {
                 var t = getType(a.type);
@@ -319,42 +349,26 @@ export default function AccountsPage() {
                     <Av typeName={a.type || "Other"} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.name}</p>
-                      <p style={{ fontSize: 10, color: "var(--muted)", margin: "1px 0 0 0" }}>
-                        {a.type || "Other"}{pct > 0 ? " · " + pct + "% of total" : ""}
-                      </p>
+                      <p style={{ fontSize: 10, color: "var(--muted)", margin: "1px 0 0 0" }}>{a.type || "Other"}{pct > 0 ? " · " + pct + "% of total" : ""}</p>
                     </div>
                     {isHov && !showForm ? (
                       <div style={{ display: "flex", gap: 2, marginRight: 4, flexShrink: 0 }}>
                         {isDel ? (
                           <button onClick={function () { deleteAcc(a.id); }} style={{ padding: "4px 8px", borderRadius: 4, border: "1px solid #EF4444", background: "rgba(239,68,68,0.06)", color: "#EF4444", fontSize: 9, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>Delete?</button>
-                        ) : (
-                          <>
-                            <button onClick={function () { openEdit(a); }} title="Edit" style={{ width: 26, height: 26, borderRadius: 5, border: "none", background: "transparent", color: "var(--muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "0.1s" }}
-                              onMouseEnter={function (e) { e.currentTarget.style.background = "var(--border)"; e.currentTarget.style.color = "var(--text)"; }}
-                              onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--muted)"; }}>
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                            </button>
-                            <button onClick={function () { setDeleteId(a.id); setTimeout(function () { setDeleteId(""); }, 3000); }} title="Delete" style={{ width: 26, height: 26, borderRadius: 5, border: "none", background: "transparent", color: "var(--muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "0.1s" }}
-                              onMouseEnter={function (e) { e.currentTarget.style.background = "rgba(239,68,68,0.08)"; e.currentTarget.style.color = "#EF4444"; }}
-                              onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--muted)"; }}>
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
-                            </button>
-                          </>
-                        )}
+                        ) : (<>
+                          <button onClick={function () { openEdit(a); }} title="Edit" style={{ width: 26, height: 26, borderRadius: 5, border: "none", background: "transparent", color: "var(--muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "0.1s" }} onMouseEnter={function (e) { e.currentTarget.style.background = "var(--border)"; e.currentTarget.style.color = "var(--text)"; }} onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--muted)"; }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg></button>
+                          <button onClick={function () { setDeleteId(a.id); setTimeout(function () { setDeleteId(""); }, 3000); }} title="Delete" style={{ width: 26, height: 26, borderRadius: 5, border: "none", background: "transparent", color: "var(--muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "0.1s" }} onMouseEnter={function (e) { e.currentTarget.style.background = "rgba(239,68,68,0.08)"; e.currentTarget.style.color = "#EF4444"; }} onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--muted)"; }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg></button>
+                        </>)}
                       </div>
                     ) : null}
-                    <span style={{ fontSize: 13, fontWeight: 700, color: isNeg ? "#EF4444" : "#22C55E", fontVariantNumeric: "tabular-nums", flexShrink: 0, minWidth: 60, textAlign: "right" }}>
-                      {isNeg ? "-" : ""}{fmt(Math.abs(b))}
-                    </span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: isNeg ? "#EF4444" : "#22C55E", fontVariantNumeric: "tabular-nums", flexShrink: 0, minWidth: 60, textAlign: "right" }}>{isNeg ? "-" : ""}{fmt(Math.abs(b))}</span>
                   </div>
                 );
               })}
             </div>
 
             <div style={{ padding: "12px 12px 0", borderTop: "1px solid var(--border)", marginTop: 8 }}>
-              <p style={{ fontSize: 10, color: "var(--muted)", margin: 0, fontVariantNumeric: "tabular-nums" }}>
-                {accounts.length} account{accounts.length !== 1 ? "s" : ""}{totalDebts > 0 ? " · Net worth " + fmt(totalBalance) : ""}
-              </p>
+              <p style={{ fontSize: 10, color: "var(--muted)", margin: 0, fontVariantNumeric: "tabular-nums" }}>{accounts.length} account{accounts.length !== 1 ? "s" : ""}{totalDebts > 0 ? " · Net worth " + fmt(totalBalance) : ""}</p>
             </div>
           </>
         ) : null}
