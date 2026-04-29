@@ -4,38 +4,51 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../../lib/supabase";
 
 var BANKS = [
-  "SBI", "HDFC Bank", "ICICI Bank", "Axis Bank", "Kotak Mahindra",
-  "Punjab National Bank", "Bank of Baroda", "Canara Bank", "Union Bank",
+  "State Bank of India (SBI)", "HDFC Bank", "ICICI Bank", "Axis Bank",
+  "Kotak Mahindra Bank", "Punjab National Bank", "Bank of Baroda",
+  "Canara Bank", "Union Bank of India", "Indian Bank",
+  "Bank of India", "Central Bank of India", "UCO Bank",
+  "Indian Overseas Bank", "Punjab & Sind Bank", "Bank of Maharashtra",
   "IndusInd Bank", "Yes Bank", "Federal Bank", "IDBI Bank",
-  "Indian Bank", "Central Bank", "UCO Bank", "Bank of India",
-  "South Indian Bank", "Karur Vysya Bank", "Tamilnad Mercantile",
-  "Jupiter", "Fi Money", "NiyoX", "RazorpayX", "Open Money",
-  "Paytm Payments Bank", "Airtel Payments Bank", "India Post Payments Bank",
-  "Amex", "Standard Chartered", "HSBC", "Citibank", "DBS Bank",
-  "Deutsche Bank", "Barclays"
+  "IDFC FIRST Bank", "Bandhan Bank", "RBL Bank", "South Indian Bank",
+  "Karur Vysya Bank", "Tamilnad Mercantile Bank", "City Union Bank",
+  "Dhanlaxmi Bank", "Nainital Bank", "CSB Bank",
+  "DCB Bank", "Jammu & Kashmir Bank", "DBS Bank India",
+  "AU Small Finance Bank", "Equitas Small Finance Bank",
+  "Ujjivan Small Finance Bank", "ESAF Small Finance Bank",
+  "Capital Small Finance Bank", "Fincare Small Finance Bank",
+  "Suryoday Small Finance Bank", "Utkarsh Small Finance Bank",
+  "North East Small Finance Bank", "Paytm Payments Bank",
+  "Airtel Payments Bank", "India Post Payments Bank",
+  "Fino Payments Bank", "Jupiter", "Fi Money", "NiyoX",
+  "RazorpayX", "Open Money", "Freo", "Slice",
+  "Standard Chartered", "HSBC India", "Citibank India",
+  "Amex", "Deutsche Bank", "Barclays", "BNP Paribas",
+  "Bank of America", "JPMorgan Chase", "Société Générale",
+  "Emirates NBD", "Mashreq Bank", "Saraswat Bank",
+  "Cosmos Cooperative Bank", "Janata Sahakari Bank",
+  "Abhyudaya Cooperative Bank"
 ];
 
 var TYPES = [
-  { name: "Bank Account", color: "#3B82F6", letter: "B" },
-  { name: "Savings Account", color: "#22C55E", letter: "SA" },
-  { name: "Current Account", color: "#6366F1", letter: "CA" },
-  { name: "Credit Card", color: "#EF4444", letter: "CC" },
-  { name: "Cash", color: "#F59E0B", letter: "C" },
-  { name: "UPI", color: "#8B5CF6", letter: "UP" },
-  { name: "Wallet", color: "#EC4899", letter: "W" },
-  { name: "Fixed Deposit", color: "#14B8A6", letter: "FD" },
-  { name: "Recurring Deposit", color: "#0EA5E9", letter: "RD" },
-  { name: "Mutual Fund", color: "#A855F7", letter: "MF" },
-  { name: "Stocks", color: "#F97316", letter: "ST" },
-  { name: "PPF", color: "#10B981", letter: "PF" },
-  { name: "EPF", color: "#34D399", letter: "EP" },
-  { name: "Gold", color: "#FBBF24", letter: "GD" },
-  { name: "Real Estate", color: "#78716C", letter: "RE" },
-  { name: "Loan", color: "#EF4444", letter: "LN" },
-  { name: "Other", color: "#64748B", letter: "OT" },
+  { name: "Bank Account", color: "#3B82F6", letter: "B", isBank: true, label: "ACCOUNT NAME", ph: "e.g. HDFC Bank" },
+  { name: "Savings Account", color: "#22C55E", letter: "SA", isBank: true, label: "ACCOUNT NAME", ph: "e.g. SBI Savings" },
+  { name: "Current Account", color: "#6366F1", letter: "CA", isBank: true, label: "ACCOUNT NAME", ph: "e.g. Axis Current" },
+  { name: "Credit Card", color: "#EF4444", letter: "CC", isBank: true, label: "CARD NAME", ph: "e.g. ICICI Credit Card" },
+  { name: "Cash", color: "#F59E0B", letter: "C", isBank: false, label: "NAME", ph: "e.g. Wallet Cash" },
+  { name: "UPI", color: "#8B5CF6", letter: "UP", isBank: false, label: "NAME", ph: "e.g. Google Pay" },
+  { name: "Wallet", color: "#EC4899", letter: "W", isBank: false, label: "NAME", ph: "e.g. Paytm Wallet" },
+  { name: "Fixed Deposit", color: "#14B8A6", letter: "FD", isBank: true, label: "ACCOUNT NAME", ph: "e.g. SBI FD" },
+  { name: "Recurring Deposit", color: "#0EA5E9", letter: "RD", isBank: true, label: "ACCOUNT NAME", ph: "e.g. HDFC RD" },
+  { name: "Mutual Fund", color: "#A855F7", letter: "MF", isBank: false, label: "FUND NAME", ph: "e.g. Nifty 50 Index Fund" },
+  { name: "Stocks", color: "#F97316", letter: "ST", isBank: false, label: "PLATFORM", ph: "e.g. Zerodha" },
+  { name: "PPF", color: "#10B981", letter: "PF", isBank: false, label: "NAME", ph: "e.g. SBI PPF" },
+  { name: "EPF", color: "#34D399", letter: "EP", isBank: false, label: "NAME", ph: "e.g. Company EPF" },
+  { name: "Gold", color: "#FBBF24", letter: "GD", isBank: false, label: "NAME", ph: "e.g. Digital Gold" },
+  { name: "Real Estate", color: "#78716C", letter: "RE", isBank: false, label: "PROPERTY", ph: "e.g. Flat in Mumbai" },
+  { name: "Loan", color: "#EF4444", letter: "LN", isBank: true, label: "LOAN NAME", ph: "e.g. SBI Home Loan" },
+  { name: "Other", color: "#64748B", letter: "OT", isBank: false, label: "NAME", ph: "e.g. My Account" },
 ];
-
-var BANK_TYPES = ["Bank Account", "Savings Account", "Current Account", "Credit Card", "Fixed Deposit", "Recurring Deposit", "Loan"];
 
 function getType(n: string) { return TYPES.find(function (t) { return t.name === n; }) || TYPES[TYPES.length - 1]; }
 
@@ -87,36 +100,19 @@ function Drop(props: { value: string; options: string[]; placeholder: string; on
 
 function NameInput(props: { value: string; onChange: (v: string) => void; type: string }) {
   var [focused, setFocused] = useState(false);
-  var isBank = BANK_TYPES.indexOf(props.type) >= 0;
-  var filtered = isBank && props.value.trim().length > 0
-    ? BANKS.filter(function (b) { return b.toLowerCase().indexOf(props.value.toLowerCase()) >= 0; }).slice(0, 6)
+  var tp = getType(props.type);
+  var filtered = tp.isBank && props.value.trim().length > 0
+    ? BANKS.filter(function (b) { return b.toLowerCase().indexOf(props.value.toLowerCase()) >= 0; }).slice(0, 8)
     : [];
-  var showSuggestions = focused && filtered.length > 0 && filtered[0] !== props.value;
-  var ph = props.type === "Bank Account" ? "e.g. HDFC Bank"
-    : props.type === "Savings Account" ? "e.g. SBI Savings"
-    : props.type === "Current Account" ? "e.g. Axis Current"
-    : props.type === "Credit Card" ? "e.g. ICICI Credit Card"
-    : props.type === "Cash" ? "e.g. Wallet Cash"
-    : props.type === "UPI" ? "e.g. Google Pay"
-    : props.type === "Wallet" ? "e.g. Paytm Wallet"
-    : props.type === "Fixed Deposit" ? "e.g. SBI FD"
-    : props.type === "Recurring Deposit" ? "e.g. HDFC RD"
-    : props.type === "Mutual Fund" ? "e.g. Nifty 50 Fund"
-    : props.type === "Stocks" ? "e.g. Zerodha"
-    : props.type === "PPF" ? "e.g. SBI PPF"
-    : props.type === "EPF" ? "e.g. Company EPF"
-    : props.type === "Gold" ? "e.g. Gold Coins"
-    : props.type === "Real Estate" ? "e.g. Flat in Mumbai"
-    : props.type === "Loan" ? "e.g. SBI Home Loan"
-    : "e.g. My Account";
+  var showSuggestions = focused && filtered.length > 0 && filtered[0].toLowerCase() !== props.value.toLowerCase();
   return (
     <div style={{ position: "relative" }}>
-      <input placeholder={ph} value={props.value} onChange={function (e) { props.onChange(e.target.value); }}
+      <input placeholder={tp.ph} value={props.value} onChange={function (e) { props.onChange(e.target.value); }}
         onFocus={function (e) { setFocused(true); e.currentTarget.style.borderColor = "rgba(34,197,94,0.3)"; }}
         onBlur={function (e) { setTimeout(function () { setFocused(false); }, 150); e.currentTarget.style.borderColor = "var(--border)"; }}
         style={{ height: 38, borderRadius: 6, padding: "0 12px", fontSize: 13, fontWeight: 500, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", boxSizing: "border-box", width: "100%", transition: "border-color 0.15s" }} />
       {showSuggestions ? (
-        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50, marginTop: 2, background: "var(--card)", border: "1px solid var(--border)", borderRadius: 6, maxHeight: 180, overflowY: "auto", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50, marginTop: 2, background: "var(--card)", border: "1px solid var(--border)", borderRadius: 6, maxHeight: 200, overflowY: "auto", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
           {filtered.map(function (b) {
             return (
               <button key={b} type="button" onClick={function () { props.onChange(b); setFocused(false); }}
@@ -219,6 +215,7 @@ export default function AccountsPage() {
   var totalDebts = useMemo(function () { return accounts.filter(function (a) { return Number(a.balance || 0) < 0; }).reduce(function (s, a) { return s + Math.abs(Number(a.balance)); }, 0); }, [accounts]);
   var sortedAccounts = useMemo(function () { return [...accounts].sort(function (a, b) { return Math.abs(Number(b.balance)) - Math.abs(Number(a.balance)); }); }, [accounts]);
 
+  var curType = getType(accType);
   var isDebt = accType === "Credit Card" || accType === "Loan";
   var previewBal = balance ? (isDebt ? -Math.abs(Number(balance)) : Math.abs(Number(balance))) : 0;
 
@@ -233,7 +230,6 @@ export default function AccountsPage() {
     <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
       <div className="bw" style={{ maxWidth: 780, margin: "0 auto", padding: "28px 24px 64px" }}>
 
-        {/* Header */}
         <div className="bh" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28, flexWrap: "wrap", gap: 12 }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 }}>Accounts</h1>
@@ -247,26 +243,22 @@ export default function AccountsPage() {
           </button>
         </div>
 
-        {/* Form */}
         {showForm ? (
           <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, padding: "18px", marginBottom: 16 }}>
             <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", margin: "0 0 14px" }}>{editId ? "Edit Account" : "New Account"}</p>
 
-            {/* Type */}
             <div style={{ marginBottom: 10 }}>
-              <label style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.04, display: "block", marginBottom: 4 }}>Type</label>
+              <label style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.04, display: "block", marginBottom: 4 }}>TYPE</label>
               <Drop value={accType} options={TYPES.map(function (t) { return t.name; })} placeholder="Account type" onChange={function (v) { setAccType(v); }} />
             </div>
 
-            {/* Name */}
             <div style={{ marginBottom: 10 }}>
-              <label style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.04, display: "block", marginBottom: 4 }}>Account Name</label>
+              <label style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.04, display: "block", marginBottom: 4 }}>{curType.label}</label>
               <NameInput value={name} onChange={function (v) { setName(v); }} type={accType} />
             </div>
 
-            {/* Balance */}
             <div style={{ marginBottom: 6 }}>
-              <label style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.04, display: "block", marginBottom: 4 }}>{isDebt ? "Outstanding Amount" : "Current Balance"}</label>
+              <label style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.04, display: "block", marginBottom: 4 }}>{isDebt ? "OUTSTANDING AMOUNT" : "CURRENT BALANCE"}</label>
               <div style={{ position: "relative" }}>
                 <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "var(--muted)", fontWeight: 600, pointerEvents: "none" }}>₹</span>
                 <input type="number" placeholder="0" value={balance} onChange={function (e) { setBalance(e.target.value); }}
@@ -279,7 +271,6 @@ export default function AccountsPage() {
               ) : null}
             </div>
 
-            {/* Preview */}
             {name.trim() ? (
               <div style={{ marginTop: 8, marginBottom: 10, padding: "10px 12px", borderRadius: 6, background: "var(--bg)", border: "1px dashed var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
                 <Av typeName={accType} />
