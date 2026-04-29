@@ -35,6 +35,8 @@ var TYPES = [
   { name: "Other", color: "#64748B", letter: "OT" },
 ];
 
+var BANK_TYPES = ["Bank Account", "Savings Account", "Current Account", "Credit Card", "Fixed Deposit", "Recurring Deposit", "Loan"];
+
 function getType(n: string) { return TYPES.find(function (t) { return t.name === n; }) || TYPES[TYPES.length - 1]; }
 
 function Av(props: { typeName: string; small?: boolean }) {
@@ -83,22 +85,29 @@ function Drop(props: { value: string; options: string[]; placeholder: string; on
   );
 }
 
-function BankInput(props: { value: string; onChange: (v: string) => void; type: string }) {
+function NameInput(props: { value: string; onChange: (v: string) => void; type: string }) {
   var [focused, setFocused] = useState(false);
-  var filtered = props.value.trim().length > 0
+  var isBank = BANK_TYPES.indexOf(props.type) >= 0;
+  var filtered = isBank && props.value.trim().length > 0
     ? BANKS.filter(function (b) { return b.toLowerCase().indexOf(props.value.toLowerCase()) >= 0; }).slice(0, 6)
     : [];
   var showSuggestions = focused && filtered.length > 0 && filtered[0] !== props.value;
   var ph = props.type === "Bank Account" ? "e.g. HDFC Bank"
     : props.type === "Savings Account" ? "e.g. SBI Savings"
+    : props.type === "Current Account" ? "e.g. Axis Current"
     : props.type === "Credit Card" ? "e.g. ICICI Credit Card"
     : props.type === "Cash" ? "e.g. Wallet Cash"
     : props.type === "UPI" ? "e.g. Google Pay"
-    : props.type === "Fixed Deposit" ? "e.g. SBI FD"
-    : props.type === "Mutual Fund" ? "e.g. Groww"
-    : props.type === "Stocks" ? "e.g. Zerodha"
-    : props.type === "Loan" ? "e.g. Home Loan SBI"
     : props.type === "Wallet" ? "e.g. Paytm Wallet"
+    : props.type === "Fixed Deposit" ? "e.g. SBI FD"
+    : props.type === "Recurring Deposit" ? "e.g. HDFC RD"
+    : props.type === "Mutual Fund" ? "e.g. Nifty 50 Fund"
+    : props.type === "Stocks" ? "e.g. Zerodha"
+    : props.type === "PPF" ? "e.g. SBI PPF"
+    : props.type === "EPF" ? "e.g. Company EPF"
+    : props.type === "Gold" ? "e.g. Gold Coins"
+    : props.type === "Real Estate" ? "e.g. Flat in Mumbai"
+    : props.type === "Loan" ? "e.g. SBI Home Loan"
     : "e.g. My Account";
   return (
     <div style={{ position: "relative" }}>
@@ -249,10 +258,10 @@ export default function AccountsPage() {
               <Drop value={accType} options={TYPES.map(function (t) { return t.name; })} placeholder="Account type" onChange={function (v) { setAccType(v); }} />
             </div>
 
-            {/* Name with bank suggestions */}
+            {/* Name */}
             <div style={{ marginBottom: 10 }}>
               <label style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.04, display: "block", marginBottom: 4 }}>Account Name</label>
-              <BankInput value={name} onChange={function (v) { setName(v); }} type={accType} />
+              <NameInput value={name} onChange={function (v) { setName(v); }} type={accType} />
             </div>
 
             {/* Balance */}
