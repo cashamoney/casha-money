@@ -103,11 +103,9 @@ function BankInput(props: { value: string; onChange: (v: string) => void; type: 
   return (
     <div style={{ position: "relative" }}>
       <input placeholder={ph} value={props.value} onChange={function (e) { props.onChange(e.target.value); }}
-        onFocus={function () { setFocused(true); }}
-        onBlur={function () { setTimeout(function () { setFocused(false); }, 150); }}
-        style={{ height: 38, borderRadius: 6, padding: "0 12px", fontSize: 13, fontWeight: 500, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", boxSizing: "border-box", width: "100%", transition: "border-color 0.15s" }}
-        onFocus2={function (e) { e.currentTarget.style.borderColor = "rgba(34,197,94,0.3)"; }}
-        onBlur2={function (e) { e.currentTarget.style.borderColor = "var(--border)"; }} />
+        onFocus={function (e) { setFocused(true); e.currentTarget.style.borderColor = "rgba(34,197,94,0.3)"; }}
+        onBlur={function (e) { setTimeout(function () { setFocused(false); }, 150); e.currentTarget.style.borderColor = "var(--border)"; }}
+        style={{ height: 38, borderRadius: 6, padding: "0 12px", fontSize: 13, fontWeight: 500, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", boxSizing: "border-box", width: "100%", transition: "border-color 0.15s" }} />
       {showSuggestions ? (
         <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50, marginTop: 2, background: "var(--card)", border: "1px solid var(--border)", borderRadius: 6, maxHeight: 180, overflowY: "auto", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
           {filtered.map(function (b) {
