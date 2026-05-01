@@ -1,23 +1,48 @@
 :root {
-  --bg: #09090B;
-  --card: #111113;
-  --card-hover: #19191D;
-  --border: #1C1C20;
-  --text: #FAFAFA;
-  --muted: #71717A;
-  --faint: #3F3F46;
-  --green: #22C55E;
-  --green-dim: rgba(34, 197, 94, 0.10);
-  --green-border: rgba(34, 197, 94, 0.18);
-  --red: #EF4444;
-  --red-dim: rgba(239, 68, 68, 0.10);
-  --red-border: rgba(239, 68, 68, 0.18);
-  --blue: #3B82F6;
-  --blue-dim: rgba(59, 130, 246, 0.10);
-  --blue-border: rgba(59, 130, 246, 0.18);
-  --yellow: #EAB308;
-  --yellow-dim: rgba(234, 179, 8, 0.10);
-  --yellow-border: rgba(234, 179, 8, 0.18);
+  --bg: #07070A;
+  --surface: #0E0E14;
+  --card: #14141C;
+  --card-hover: #1A1A24;
+  --raised: #22222E;
+  --border: #1E1E2C;
+  --border-light: #2A2A3A;
+
+  --text: #EAEAEE;
+  --muted: #7A7A92;
+  --faint: #44445A;
+
+  --green: #34D399;
+  --green-soft: #6EE7B7;
+  --green-dim: rgba(52, 211, 153, 0.08);
+  --green-border: rgba(52, 211, 153, 0.16);
+  --green-glow: rgba(52, 211, 153, 0.06);
+
+  --red: #F87171;
+  --red-soft: #FCA5A5;
+  --red-dim: rgba(248, 113, 113, 0.08);
+  --red-border: rgba(248, 113, 113, 0.16);
+
+  --blue: #60A5FA;
+  --blue-soft: #93C5FD;
+  --blue-dim: rgba(96, 165, 250, 0.08);
+  --blue-border: rgba(96, 165, 250, 0.16);
+
+  --yellow: #FBBF24;
+  --yellow-soft: #FDE68A;
+  --yellow-dim: rgba(251, 191, 36, 0.08);
+  --yellow-border: rgba(251, 191, 36, 0.16);
+
+  --purple: #A78BFA;
+  --purple-soft: #C4B5FD;
+  --purple-dim: rgba(167, 139, 250, 0.08);
+  --purple-border: rgba(167, 139, 250, 0.16);
+
+  --orange: #FB923C;
+  --pink: #F472B6;
+  --teal: #2DD4BF;
+  --indigo: #818CF8;
+  --amber: #F59E0B;
+  --gray: #94A3B8;
 }
 
 * {
@@ -34,9 +59,9 @@ html {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', system-ui, sans-serif;
   font-size: 13px;
-  line-height: 1.4;
+  line-height: 1.5;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
@@ -62,13 +87,13 @@ a {
 }
 
 ::selection {
-  background: rgba(34, 197, 94, 0.20);
+  background: rgba(52, 211, 153, 0.20);
   color: var(--text);
 }
 
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -77,9 +102,29 @@ a {
 
 ::-webkit-scrollbar-thumb {
   background: var(--border);
-  border-radius: 2px;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--faint);
+}
+
+@keyframes shimmer {
+  0% { opacity: 1; }
+  50% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes barGrow {
+  from { width: 0%; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
