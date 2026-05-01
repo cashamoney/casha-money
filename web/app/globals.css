@@ -1,4 +1,48 @@
 :root {
+  --bg: #FFFFFF;
+  --surface: #F5F5F5;
+  --card: #F0F0F0;
+  --card-hover: #E8E8E8;
+  --raised: #DEDEDE;
+  --border: #E8E8E8;
+  --border-light: #F0F0F0;
+  --border-faint: #F5F5F5;
+  --text: #0A0A0A;
+  --text-secondary: #555555;
+  --muted: #888888;
+  --faint: #CCCCCC;
+  --green: #16A34A;
+  --green-soft: #22C55E;
+  --green-dim: rgba(22, 163, 74, 0.06);
+  --green-border: rgba(22, 163, 74, 0.12);
+  --green-glow: rgba(22, 163, 74, 0.03);
+  --red: #DC2626;
+  --red-soft: #EF4444;
+  --red-dim: rgba(220, 38, 38, 0.06);
+  --red-border: rgba(220, 38, 38, 0.12);
+  --blue: #2563EB;
+  --blue-soft: #3B82F6;
+  --blue-dim: rgba(37, 99, 235, 0.06);
+  --blue-border: rgba(37, 99, 235, 0.12);
+  --yellow: #CA8A04;
+  --yellow-soft: #EAB308;
+  --yellow-dim: rgba(202, 138, 4, 0.06);
+  --yellow-border: rgba(202, 138, 4, 0.12);
+  --purple: #7C3AED;
+  --purple-dim: rgba(124, 58, 237, 0.06);
+  --purple-border: rgba(124, 58, 237, 0.12);
+  --orange: #EA580C;
+  --pink: #DB2777;
+  --teal: #0D9488;
+  --indigo: #4F46E5;
+  --amber: #D97706;
+  --gray: #64748B;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.08);
+}
+
+[data-theme="dark"] {
   --bg: #0D0D0F;
   --surface: #141416;
   --card: #1A1A1D;
@@ -7,43 +51,39 @@
   --border: #222226;
   --border-light: #2C2C30;
   --border-faint: #333338;
-
   --text: #FFFFFF;
   --text-secondary: #ABABAB;
   --muted: #737373;
   --faint: #4A4A4A;
-
   --green: #4ADE80;
   --green-soft: #86EFAC;
   --green-dim: rgba(74, 222, 128, 0.07);
   --green-border: rgba(74, 222, 128, 0.14);
   --green-glow: rgba(74, 222, 128, 0.04);
-
   --red: #F87171;
   --red-soft: #FCA5A5;
   --red-dim: rgba(248, 113, 113, 0.07);
   --red-border: rgba(248, 113, 113, 0.14);
-
   --blue: #60A5FA;
   --blue-soft: #93C5FD;
   --blue-dim: rgba(96, 165, 250, 0.07);
   --blue-border: rgba(96, 165, 250, 0.14);
-
   --yellow: #FACC15;
   --yellow-soft: #FDE047;
   --yellow-dim: rgba(250, 204, 21, 0.07);
   --yellow-border: rgba(250, 204, 21, 0.14);
-
   --purple: #A78BFA;
   --purple-dim: rgba(167, 139, 250, 0.07);
   --purple-border: rgba(167, 139, 250, 0.14);
-
   --orange: #FB923C;
   --pink: #F472B6;
   --teal: #2DD4BF;
   --indigo: #818CF8;
   --amber: #F59E0B;
   --gray: #94A3B8;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.4);
 }
 
 * {
@@ -53,7 +93,6 @@
 }
 
 html {
-  background: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -66,6 +105,7 @@ body {
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
+  transition: background 200ms ease, color 200ms ease;
 }
 
 input, button, select, textarea {
@@ -88,8 +128,12 @@ a {
 }
 
 ::selection {
-  background: rgba(74, 222, 128, 0.20);
+  background: rgba(22, 163, 74, 0.15);
   color: var(--text);
+}
+
+[data-theme="dark"] ::selection {
+  background: rgba(74, 222, 128, 0.20);
 }
 
 ::-webkit-scrollbar {
