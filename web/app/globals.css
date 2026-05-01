@@ -1,42 +1,42 @@
 :root {
-  --bg: #000000;
-  --surface: #0A0A0A;
-  --card: #111111;
-  --card-hover: #1A1A1A;
-  --raised: #222222;
-  --border: #1A1A1A;
-  --border-light: #262626;
-  --border-faint: #2A2A2A;
+  --bg: #0D0D0F;
+  --surface: #141416;
+  --card: #1A1A1D;
+  --card-hover: #222225;
+  --raised: #2A2A2E;
+  --border: #222226;
+  --border-light: #2C2C30;
+  --border-faint: #333338;
 
   --text: #FFFFFF;
-  --text-secondary: #B0B0B0;
-  --muted: #6E6E6E;
-  --faint: #3A3A3A;
+  --text-secondary: #ABABAB;
+  --muted: #737373;
+  --faint: #4A4A4A;
 
   --green: #4ADE80;
   --green-soft: #86EFAC;
-  --green-dim: rgba(74, 222, 128, 0.06);
-  --green-border: rgba(74, 222, 128, 0.12);
-  --green-glow: rgba(74, 222, 128, 0.03);
+  --green-dim: rgba(74, 222, 128, 0.07);
+  --green-border: rgba(74, 222, 128, 0.14);
+  --green-glow: rgba(74, 222, 128, 0.04);
 
   --red: #F87171;
   --red-soft: #FCA5A5;
-  --red-dim: rgba(248, 113, 113, 0.06);
-  --red-border: rgba(248, 113, 113, 0.12);
+  --red-dim: rgba(248, 113, 113, 0.07);
+  --red-border: rgba(248, 113, 113, 0.14);
 
   --blue: #60A5FA;
   --blue-soft: #93C5FD;
-  --blue-dim: rgba(96, 165, 250, 0.06);
-  --blue-border: rgba(96, 165, 250, 0.12);
+  --blue-dim: rgba(96, 165, 250, 0.07);
+  --blue-border: rgba(96, 165, 250, 0.14);
 
   --yellow: #FACC15;
   --yellow-soft: #FDE047;
-  --yellow-dim: rgba(250, 204, 21, 0.06);
-  --yellow-border: rgba(250, 204, 21, 0.12);
+  --yellow-dim: rgba(250, 204, 21, 0.07);
+  --yellow-border: rgba(250, 204, 21, 0.14);
 
   --purple: #A78BFA;
-  --purple-dim: rgba(167, 139, 250, 0.06);
-  --purple-border: rgba(167, 139, 250, 0.12);
+  --purple-dim: rgba(167, 139, 250, 0.07);
+  --purple-border: rgba(167, 139, 250, 0.14);
 
   --orange: #FB923C;
   --pink: #F472B6;
@@ -102,7 +102,7 @@ a {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-light);
+  background: var(--border);
   border-radius: 4px;
 }
 
@@ -128,9 +128,4 @@ a {
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
-}
-
-@keyframes gentlePulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
 }
