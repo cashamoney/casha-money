@@ -78,13 +78,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   var initial = email ? email[0].toUpperCase() : "U";
   var isActive = function (href: string) {
-    return pathname === href || (href === "/dashboard/overview" && (pathname === "/dashboard" || pathname === "/dashboard/overview"));
+    if (href === "/dashboard/overview") {
+      return pathname === "/dashboard" || pathname === "/dashboard/overview";
+    }
+    return pathname === href;
   };
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg)" }}>
 
-      {/* ── SIDEBAR ── */}
+      {/* SIDEBAR */}
       <aside className="d-sidebar" style={{
         width: 240,
         background: "var(--bg)",
@@ -99,14 +102,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         zIndex: 30,
       }}>
 
-        {/* Logo */}
         <div style={{ padding: "0 8px", marginBottom: 36 }}>
           <p style={{ fontSize: 20, fontWeight: 800, color: "var(--text)", margin: 0, letterSpacing: -0.5 }}>
             casha<span style={{ color: "var(--green)" }}>.</span>
           </p>
         </div>
 
-        {/* Nav */}
         <nav style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
           {NAV.map(function (item) {
             var a = isActive(item.href);
@@ -135,7 +136,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
         </nav>
 
-        {/* User */}
         <div style={{ position: "relative", paddingTop: 16, borderTop: "1px solid var(--border)" }}>
           <button
             onClick={function () { setMenu(!menu); }}
@@ -186,7 +186,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
-      {/* ── MAIN ── */}
+      {/* MAIN */}
       <main className="d-main" style={{
         flex: 1,
         marginLeft: 240,
@@ -199,7 +199,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </main>
 
-      {/* ── MOBILE BOTTOM ── */}
+      {/* MOBILE BOTTOM NAV */}
       <nav className="d-bottom" style={{
         position: "fixed", bottom: 0, left: 0, right: 0,
         background: "var(--surface)",
@@ -230,7 +230,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </nav>
 
-      {/* ── RESPONSIVE ── */}
       <style>{`
         @media (max-width: 768px) {
           .d-sidebar { display: none !important; }
@@ -254,6 +253,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         @media (min-width: 1400px) {
           .d-main > div { max-width: 860px !important; }
         }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
     </div>
   );

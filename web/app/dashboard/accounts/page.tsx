@@ -1,380 +1,636 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { supabase } from "../../../lib/supabase";
+import { useState, useEffect, useRef } from "react";
 
-var BANKS = [
-  "State Bank of India (SBI)", "HDFC Bank", "ICICI Bank", "Axis Bank",
-  "Kotak Mahindra Bank", "Punjab National Bank", "Bank of Baroda",
-  "Canara Bank", "Union Bank of India", "Indian Bank",
-  "Bank of India", "Central Bank of India", "UCO Bank",
-  "Indian Overseas Bank", "Punjab & Sind Bank", "Bank of Maharashtra",
-  "IndusInd Bank", "Yes Bank", "Federal Bank", "IDBI Bank",
-  "IDFC FIRST Bank", "Bandhan Bank", "RBL Bank", "South Indian Bank",
-  "Karur Vysya Bank", "Tamilnad Mercantile Bank", "City Union Bank",
-  "Dhanlaxmi Bank", "Nainital Bank", "CSB Bank",
-  "DCB Bank", "Jammu & Kashmir Bank", "DBS Bank India",
-  "AU Small Finance Bank", "Equitas Small Finance Bank",
-  "Ujjivan Small Finance Bank", "ESAF Small Finance Bank",
-  "Capital Small Finance Bank", "Fincare Small Finance Bank",
-  "Suryoday Small Finance Bank", "Utkarsh Small Finance Bank",
-  "North East Small Finance Bank", "Paytm Payments Bank",
-  "Airtel Payments Bank", "India Post Payments Bank",
-  "Fino Payments Bank", "Jupiter", "Fi Money", "NiyoX",
-  "RazorpayX", "Open Money", "Freo", "Slice",
-  "Standard Chartered", "HSBC India", "Citibank India",
-  "Amex", "Deutsche Bank", "Barclays", "BNP Paribas",
-  "Bank of America", "JPMorgan Chase", "Société Générale",
-  "Emirates NBD", "Mashreq Bank", "Saraswat Bank",
-  "Cosmos Cooperative Bank", "Janata Sahakari Bank",
-  "Abhyudaya Cooperative Bank"
-];
+type Transaction = {
+  id: string;
+  amount: number;
+  type: "income" | "expense";
+  merchant: string;
+  category: string;
+  date: string;
+  note: string;
+  source: "manual" | "sms" | "csv";
+};
 
-var TYPES = [
-  { name: "Bank Account", color: "#3B82F6", letter: "B", isBank: true, label: "ACCOUNT NAME", ph: "e.g. HDFC Bank" },
-  { name: "Savings Account", color: "#22C55E", letter: "SA", isBank: true, label: "ACCOUNT NAME", ph: "e.g. SBI Savings" },
-  { name: "Current Account", color: "#6366F1", letter: "CA", isBank: true, label: "ACCOUNT NAME", ph: "e.g. Axis Current" },
-  { name: "Credit Card", color: "#EF4444", letter: "CC", isBank: true, label: "CARD NAME", ph: "e.g. ICICI Credit Card" },
-  { name: "Cash", color: "#F59E0B", letter: "C", isBank: false, label: "NAME", ph: "e.g. Wallet Cash" },
-  { name: "UPI", color: "#8B5CF6", letter: "UP", isBank: false, label: "NAME", ph: "e.g. Google Pay" },
-  { name: "Wallet", color: "#EC4899", letter: "W", isBank: false, label: "NAME", ph: "e.g. Paytm Wallet" },
-  { name: "Fixed Deposit", color: "#14B8A6", letter: "FD", isBank: true, label: "ACCOUNT NAME", ph: "e.g. SBI FD" },
-  { name: "Recurring Deposit", color: "#0EA5E9", letter: "RD", isBank: true, label: "ACCOUNT NAME", ph: "e.g. HDFC RD" },
-  { name: "Mutual Fund", color: "#A855F7", letter: "MF", isBank: false, label: "FUND NAME", ph: "e.g. Nifty 50 Index Fund" },
-  { name: "Stocks", color: "#F97316", letter: "ST", isBank: false, label: "PLATFORM", ph: "e.g. Zerodha" },
-  { name: "PPF", color: "#10B981", letter: "PF", isBank: false, label: "NAME", ph: "e.g. SBI PPF" },
-  { name: "EPF", color: "#34D399", letter: "EP", isBank: false, label: "NAME", ph: "e.g. Company EPF" },
-  { name: "Gold", color: "#FBBF24", letter: "GD", isBank: false, label: "NAME", ph: "e.g. Digital Gold" },
-  { name: "Real Estate", color: "#78716C", letter: "RE", isBank: false, label: "PROPERTY", ph: "e.g. Flat in Mumbai" },
-  { name: "Loan", color: "#EF4444", letter: "LN", isBank: true, label: "LOAN NAME", ph: "e.g. SBI Home Loan" },
-  { name: "Other", color: "#64748B", letter: "OT", isBank: false, label: "NAME", ph: "e.g. My Account" },
-];
+type Card = {
+  id: string;
+  last4: string;
+  masked: string;
+  expiry: string;
+  holderName: string;
+  cardType: "visa" | "mastercard" | "rupay" | "amex" | "other";
+  bank: string;
+};
 
-function getType(n: string) { return TYPES.find(function (t) { return t.name === n; }) || TYPES[TYPES.length - 1]; }
+type Profile = {
+  name: string;
+  email: string;
+};
 
-function Av(props: { typeName: string; small?: boolean }) {
-  var t = getType(props.typeName);
-  var sz = props.small ? 24 : 30;
-  return (
-    <div style={{ width: sz, height: sz, borderRadius: 7, background: t.color + "12", color: t.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: props.small ? 8 : 11, fontWeight: 700, flexShrink: 0, border: "1px solid " + t.color + "18" }}>{t.letter}</div>
-  );
+type ParsedEntry = {
+  date: string;
+  merchant: string;
+  amount: number;
+  isIncome: boolean;
+  category: string;
+  selected: boolean;
+};
+
+function detectCardType(n: string): "visa" | "mastercard" | "rupay" | "amex" | "other" {
+  var c = n.replace(/\D/g, "");
+  if (c.startsWith("4")) return "visa";
+  if (c.startsWith("5") || c.startsWith("2")) return "mastercard";
+  if (c.startsWith("6")) return "rupay";
+  if (c.startsWith("3")) return "amex";
+  return "other";
 }
 
-function fmt(n: number) { return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n || 0); }
-
-function Drop(props: { value: string; options: string[]; placeholder: string; onChange: (v: string) => void }) {
-  var [open, setOpen] = useState(false);
-  var sel = getType(props.value);
-  return (
-    <div style={{ position: "relative" }}>
-      <button type="button" onClick={function () { setOpen(!open); }}
-        style={{ height: 38, width: "100%", borderRadius: 6, padding: "0 12px", display: "flex", alignItems: "center", gap: 8, background: "var(--bg)", border: open ? "1px solid " + sel.color + "44" : "1px solid var(--border)", color: props.value ? "var(--text)" : "var(--muted)", fontSize: 13, fontFamily: "inherit", cursor: "pointer", transition: "border-color 0.15s", boxSizing: "border-box", outline: "none" }}>
-        {props.value ? <Av typeName={props.value} small /> : null}
-        <span style={{ flex: 1, textAlign: "left", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{props.value || props.placeholder}</span>
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}><path d="M6 9l6 6 6-6" /></svg>
-      </button>
-      {open ? (
-        <>
-          <div style={{ position: "fixed", inset: 0, zIndex: 40 }} onClick={function () { setOpen(false); }} />
-          <div className="droplist" style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50, marginTop: 2, background: "var(--card)", border: "1px solid var(--border)", borderRadius: 6, maxHeight: 220, overflowY: "auto", boxShadow: "0 4px 16px rgba(0,0,0,0.12)" }}>
-            {props.options.map(function (c) {
-              var tp = getType(c);
-              var isSel = c === props.value;
-              return (
-                <button key={c} type="button" onClick={function () { props.onChange(c); setOpen(false); }}
-                  style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 12px", width: "100%", border: "none", background: isSel ? tp.color + "0F" : "transparent", color: "var(--text)", fontSize: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "background 0.1s" }}
-                  onMouseEnter={function (e) { e.currentTarget.style.background = tp.color + "0F"; }}
-                  onMouseLeave={function (e) { e.currentTarget.style.background = isSel ? tp.color + "0F" : "transparent"; }}>
-                  <Av typeName={c} small />
-                  <span style={{ flex: 1 }}>{c}</span>
-                  {isSel ? <span style={{ width: 5, height: 5, borderRadius: 3, background: tp.color, flexShrink: 0 }} /> : null}
-                </button>
-              );
-            })}
-          </div>
-        </>
-      ) : null}
-    </div>
-  );
+function detectBank(n: string): string {
+  var c = n.replace(/\D/g, "");
+  if (c.length < 4) return "Unknown";
+  var b4 = c.substring(0, 4);
+  var b6 = c.substring(0, 6);
+  var map: Record<string, string> = {
+    "4213": "SBI", "4216": "SBI", "4217": "SBI", "4317": "SBI", "6037": "SBI", "6070": "SBI",
+    "4026": "HDFC", "4374": "HDFC", "4390": "HDFC", "4917": "HDFC", "5241": "HDFC", "5293": "HDFC",
+    "4477": "ICICI", "4679": "ICICI", "4913": "ICICI", "5193": "ICICI", "5234": "ICICI", "5400": "ICICI",
+    "4371": "Axis", "4379": "Axis", "4902": "Axis", "5211": "Axis", "5240": "Axis",
+    "4329": "Kotak", "4567": "Kotak", "5262": "Kotak", "5342": "Kotak",
+    "4386": "PNB", "4532": "PNB", "5312": "PNB",
+    "4236": "Bank of Baroda", "4345": "Bank of Baroda",
+    "4210": "Union Bank", "4905": "Union Bank",
+    "4381": "Canara Bank", "5303": "Canara Bank",
+    "4909": "IndusInd", "4311": "IndusInd",
+    "4242": "Yes Bank", "5267": "Yes Bank",
+    "4292": "HSBC", "4293": "HSBC",
+    "4120": "Citibank", "4550": "Citibank",
+    "4333": "Standard Chartered", "4334": "Standard Chartered",
+    "4222": "RBL Bank", "5314": "RBL Bank",
+    "4150": "Federal Bank", "5253": "Federal Bank",
+    "4001": "AU Small Finance", "4298": "AU Small Finance",
+  };
+  if (map[b6]) return map[b6];
+  if (map[b4]) return map[b4];
+  var t = detectCardType(n);
+  if (t === "visa") return "Visa Card";
+  if (t === "mastercard") return "Mastercard";
+  if (t === "rupay") return "RuPay Card";
+  if (t === "amex") return "Amex";
+  return "Bank Card";
 }
 
-function NameInput(props: { value: string; onChange: (v: string) => void; type: string }) {
-  var [focused, setFocused] = useState(false);
-  var tp = getType(props.type);
-  var filtered = tp.isBank && props.value.trim().length > 0
-    ? BANKS.filter(function (b) { return b.toLowerCase().indexOf(props.value.toLowerCase()) >= 0; }).slice(0, 8)
-    : [];
-  var showSuggestions = focused && filtered.length > 0 && filtered[0].toLowerCase() !== props.value.toLowerCase();
+function getCardGradient(t: string): [string, string] {
+  switch (t) {
+    case "visa": return ["#1A1F71", "#2D5BFF"];
+    case "mastercard": return ["#1A1A2E", "#EB001B"];
+    case "rupay": return ["#0A3D2E", "#00A86B"];
+    case "amex": return ["#2E1A47", "#7B2D8E"];
+    default: return ["#1A1A2E", "#4A4A6A"];
+  }
+}
+
+function getCardLabel(t: string): string {
+  switch (t) {
+    case "visa": return "VISA";
+    case "mastercard": return "MASTERCARD";
+    case "rupay": return "RuPay";
+    case "amex": return "AMEX";
+    default: return "CARD";
+  }
+}
+
+function maskCardNumber(n: string): string {
+  var c = n.replace(/\D/g, "");
+  if (c.length < 8) return c;
+  return c.substring(0, 4) + " \u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 " + c.substring(c.length - 4);
+}
+
+function formatCardInput(n: string): string {
+  var c = n.replace(/\D/g, "").substring(0, 16);
+  var parts: string[] = [];
+  for (var i = 0; i < c.length; i += 4) parts.push(c.substring(i, i + 4));
+  return parts.join(" ");
+}
+
+function formatExpiry(v: string): string {
+  var c = v.replace(/\D/g, "").substring(0, 4);
+  if (c.length >= 2) return c.substring(0, 2) + "/" + c.substring(2);
+  return c;
+}
+
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+}
+
+function formatCurrency(n: number) {
+  var abs = Math.abs(n);
+  var str = abs.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (n < 0 ? "-" : "") + "$" + str;
+}
+
+function getCategoryIcon(name: string): { letters: string; color: string; bg: string } {
+  var cats: Record<string, { letters: string; color: string; bg: string }> = {
+    "Food": { letters: "FD", color: "#F97316", bg: "#FFF7ED" },
+    "Transport": { letters: "TR", color: "#3B82F6", bg: "#EFF6FF" },
+    "Shopping": { letters: "SH", color: "#A855F7", bg: "#FAF5FF" },
+    "Entertainment": { letters: "EN", color: "#EC4899", bg: "#FDF2F8" },
+    "Bills": { letters: "BL", color: "#EAB308", bg: "#FEFCE8" },
+    "Rent": { letters: "RN", color: "#EF4444", bg: "#FEF2F2" },
+    "Health": { letters: "HT", color: "#14B8A6", bg: "#F0FDFA" },
+    "Education": { letters: "ED", color: "#6366F1", bg: "#EEF2FF" },
+    "Investment": { letters: "IV", color: "#06B6D4", bg: "#ECFEFF" },
+    "Salary": { letters: "SA", color: "#22C55E", bg: "#F0FDF4" },
+    "Freelance": { letters: "FR", color: "#10B981", bg: "#ECFDF5" },
+    "Returns": { letters: "RT", color: "#06B6D4", bg: "#ECFEFF" },
+    "Dividend": { letters: "DV", color: "#0EA5E9", bg: "#F0F9FF" },
+    "Cashback": { letters: "CB", color: "#F59E0B", bg: "#FFFBEB" },
+    "Refund": { letters: "RF", color: "#6366F1", bg: "#EEF2FF" },
+    "Bonus": { letters: "BN", color: "#F97316", bg: "#FFF7ED" },
+  };
+  return cats[name] || { letters: "OT", color: "#6B7280", bg: "#F9FAFB" };
+}
+
+function parseStatement(text: string): ParsedEntry[] {
+  var lines = text.trim().split("\n");
+  var results: ParsedEntry[] = [];
+  lines.forEach(function (line) {
+    if (!line.trim()) return;
+    var l = line.trim();
+    var amountMatch = l.match(/Rs\.?\s*([\d,]+\.?\d*)/i) || l.match(/INR\s*([\d,]+\.?\d*)/i) || l.match(/\$\s*([\d,]+\.?\d*)/i) || l.match(/([\d,]+\.\d{2})/) || l.match(/([\d,]+)\s*(?:DR|CR|Debit|Credit|debited|credited)/i) || l.match(/([\d,]+)/);
+    if (!amountMatch) return;
+    var amount = parseFloat(amountMatch[1].replace(/,/g, ""));
+    if (isNaN(amount) || amount === 0) return;
+    var isIncome = /CR|Credit|credited|received|deposited|refund|salary|income/i.test(l);
+    if (amountMatch[1].startsWith("-")) { isIncome = false; amount = Math.abs(amount); }
+    var dateMatch = l.match(/(\d{4}-\d{2}-\d{2})/) || l.match(/(\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})/) || l.match(/(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*(?:\s+\d{2,4})?)/i);
+    var date = dateMatch ? dateMatch[1] : new Date().toISOString().split("T")[0];
+    if (date.match(/^\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}$/)) {
+      var p = date.split(/[-\/]/);
+      if (p[2].length === 2) p[2] = "20" + p[2];
+      date = p[2] + "-" + p[1].padStart(2, "0") + "-" + p[0].padStart(2, "0");
+    }
+    var merchant = l.replace(dateMatch ? dateMatch[0] : "", "").replace(amountMatch[0], "").replace(/Rs\.?|INR|\$|DR|CR|Debit|Credit|debited|credited|spent|paid|received|deposited/gi, "").replace(/[\d\-\/]+/g, "").replace(/[^\w\s]/g, "").trim().substring(0, 24) || "Transaction";
+    var ml = merchant.toLowerCase() + " " + amountMatch[1];
+    var cat = "Other";
+    if (ml.includes("swiggy") || ml.includes("zomato") || ml.includes("food") || ml.includes("grocery") || ml.includes("restaurant") || ml.includes("coffee") || ml.includes("starbucks") || ml.includes("domino") || ml.includes("pizza") || ml.includes("burger") || ml.includes("bakery") || ml.includes("cafe") || ml.includes("doordash") || ml.includes("blinkit") || ml.includes("bigbasket")) cat = "Food";
+    else if (ml.includes("uber") || ml.includes("ola") || ml.includes("lyft") || ml.includes("fuel") || ml.includes("petrol") || ml.includes("metro") || ml.includes("cab") || ml.includes("taxi") || ml.includes("flight") || ml.includes("airline") || ml.includes("rapido")) cat = "Transport";
+    else if (ml.includes("amazon") || ml.includes("flipkart") || ml.includes("myntra") || ml.includes("walmart") || ml.includes("target") || ml.includes("shop") || ml.includes("store") || ml.includes("ebay") || ml.includes("nykaa") || ml.includes("ajio") || ml.includes("meesho")) cat = "Shopping";
+    else if (ml.includes("netflix") || ml.includes("spotify") || ml.includes("hotstar") || ml.includes("hulu") || ml.includes("movie") || ml.includes("gaming") || ml.includes("steam") || ml.includes("disney") || ml.includes("youtube") || ml.includes("twitch")) cat = "Entertainment";
+    else if (ml.includes("electricity") || ml.includes("bill") || ml.includes("water") || ml.includes("internet") || ml.includes("phone") || ml.includes("recharge") || ml.includes("jio") || ml.includes("airtel") || ml.includes("broadband")) cat = "Bills";
+    else if (ml.includes("rent") || ml.includes("housing") || ml.includes("lease")) cat = "Rent";
+    else if (ml.includes("hospital") || ml.includes("doctor") || ml.includes("medicine") || ml.includes("pharmacy") || ml.includes("health") || ml.includes("gym") || ml.includes("fitness") || ml.includes("clinic")) cat = "Health";
+    else if (ml.includes("course") || ml.includes("school") || ml.includes("college") || ml.includes("udemy") || ml.includes("coursera") || ml.includes("book") || ml.includes("university")) cat = "Education";
+    else if (ml.includes("stock") || ml.includes("invest") || ml.includes("mutual") || ml.includes("sip") || ml.includes("zerodha") || ml.includes("groww") || ml.includes("crypto")) cat = "Investment";
+    else if (ml.includes("salary") || ml.includes("freelance") || ml.includes("dividend") || ml.includes("interest") || ml.includes("cashback") || ml.includes("refund") || ml.includes("bonus") || ml.includes("gift")) cat = isIncome ? "Salary" : "Other";
+    results.push({ date: date, merchant: merchant, amount: amount, isIncome: isIncome, category: cat, selected: true });
+  });
+  return results;
+}
+
+function getMonthlyData(transactions: Transaction[]): { month: string; expense: number; income: number }[] {
+  var now = new Date();
+  var names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  var data: { month: string; expense: number; income: number }[] = [];
+  for (var i = 5; i >= 0; i--) {
+    var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    var ms = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+    var exp = transactions.filter(function (t) { return t.type === "expense" && t.date.startsWith(ms); }).reduce(function (s, t) { return s + Math.abs(t.amount); }, 0);
+    var inc = transactions.filter(function (t) { return t.type === "income" && t.date.startsWith(ms); }).reduce(function (s, t) { return s + t.amount; }, 0);
+    data.push({ month: names[d.getMonth()], expense: exp, income: inc });
+  }
+  return data;
+}
+
+export default function AccountPage() {
+  var [transactions, setTransactions] = useState<Transaction[]>([]);
+  var [cards, setCards] = useState<Card[]>([]);
+  var [profile, setProfile] = useState<Profile>({ name: "John Doe", email: "john@example.com" });
+  var [showAddCard, setShowAddCard] = useState(false);
+  var [cardForm, setCardForm] = useState({ number: "", expiry: "", holderName: "" });
+  var [statementText, setStatementText] = useState("");
+  var [parsedEntries, setParsedEntries] = useState<ParsedEntry[]>([]);
+  var [editingName, setEditingName] = useState(false);
+  var [editingEmail, setEditingEmail] = useState(false);
+  var [nameInput, setNameInput] = useState("");
+  var [emailInput, setEmailInput] = useState("");
+  var [showClearConfirm, setShowClearConfirm] = useState(false);
+  var [toast, setToast] = useState("");
+  var nameRef = useRef<HTMLInputElement>(null);
+  var emailRef = useRef<HTMLInputElement>(null);
+
+  useEffect(function () {
+    var s = localStorage.getItem("casha-transactions");
+    if (s) { try { setTransactions(JSON.parse(s)); } catch (e) {} }
+    var c = localStorage.getItem("casha-cards");
+    if (c) { try { setCards(JSON.parse(c)); } catch (e) {} }
+    var p = localStorage.getItem("casha-profile");
+    if (p) { try { setProfile(JSON.parse(p)); } catch (e) {} }
+  }, []);
+
+  useEffect(function () { localStorage.setItem("casha-transactions", JSON.stringify(transactions)); }, [transactions]);
+  useEffect(function () { localStorage.setItem("casha-cards", JSON.stringify(cards)); }, [cards]);
+  useEffect(function () { localStorage.setItem("casha-profile", JSON.stringify(profile)); }, [profile]);
+
+  useEffect(function () {
+    if (editingName && nameRef.current) nameRef.current.focus();
+  }, [editingName]);
+  useEffect(function () {
+    if (editingEmail && emailRef.current) emailRef.current.focus();
+  }, [editingEmail]);
+
+  var showToast = function (msg: string) {
+    setToast(msg);
+    setTimeout(function () { setToast(""); }, 2500);
+  };
+
+  var addCard = function () {
+    var c = cardForm.number.replace(/\D/g, "");
+    if (c.length < 13 || !cardForm.expiry || !cardForm.holderName.trim()) return;
+    var ct = detectCardType(c);
+    var newCard: Card = {
+      id: generateId(),
+      last4: c.substring(c.length - 4),
+      masked: maskCardNumber(c),
+      expiry: cardForm.expiry,
+      holderName: cardForm.holderName.trim(),
+      cardType: ct,
+      bank: detectBank(c),
+    };
+    setCards(function (prev) { return [...prev, newCard]; });
+    setCardForm({ number: "", expiry: "", holderName: "" });
+    setShowAddCard(false);
+    showToast("Card added successfully");
+  };
+
+  var removeCard = function (id: string) {
+    setCards(function (prev) { return prev.filter(function (c) { return c.id !== id; }); });
+    showToast("Card removed");
+  };
+
+  var handleParse = function () {
+    if (!statementText.trim()) return;
+    var entries = parseStatement(statementText);
+    setParsedEntries(entries);
+  };
+
+  var toggleEntry = function (idx: number) {
+    setParsedEntries(function (prev) {
+      return prev.map(function (e, i) { return i === idx ? { ...e, selected: !e.selected } : e; });
+    });
+  };
+
+  var addParsedToTransactions = function () {
+    var selected = parsedEntries.filter(function (e) { return e.selected; });
+    var newT = selected.map(function (e) {
+      return {
+        id: generateId(),
+        amount: e.isIncome ? e.amount : -e.amount,
+        type: e.isIncome ? "income" as const : "expense" as const,
+        merchant: e.merchant,
+        category: e.category,
+        date: e.date,
+        note: "",
+        source: "csv" as const,
+      };
+    });
+    setTransactions(function (prev) { return [...newT, ...prev]; });
+    setParsedEntries([]);
+    setStatementText("");
+    showToast(newT.length + " transactions added");
+  };
+
+  var saveName = function () {
+    if (nameInput.trim()) setProfile(function (p) { return { ...p, name: nameInput.trim() }; });
+    setEditingName(false);
+  };
+  var saveEmail = function () {
+    if (emailInput.trim()) setProfile(function (p) { return { ...p, email: emailInput.trim() }; });
+    setEditingEmail(false);
+  };
+
+  var exportData = function () {
+    var data = { profile: profile, cards: cards, transactions: transactions, exportedAt: new Date().toISOString() };
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "casha-export-" + new Date().toISOString().split("T")[0] + ".json";
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast("Data exported");
+  };
+
+  var clearAll = function () {
+    setTransactions([]);
+    setCards([]);
+    setShowClearConfirm(false);
+    showToast("All data cleared");
+  };
+
+  var monthlyData = getMonthlyData(transactions);
+  var maxMonth = Math.max.apply(null, monthlyData.map(function (m) { return Math.max(m.expense, m.income); }).concat([1]));
+  var totalBalance = transactions.reduce(function (s, t) { return s + (t.type === "income" ? t.amount : -Math.abs(t.amount)); }, 0);
+  var now = new Date();
+  var thisMonthStr = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
+  var thisMonthExpense = transactions.filter(function (t) { return t.type === "expense" && t.date.startsWith(thisMonthStr); }).reduce(function (s, t) { return s + Math.abs(t.amount); }, 0);
+  var avgPerTx = transactions.length > 0 ? transactions.reduce(function (s, t) { return s + Math.abs(t.amount); }, 0) / transactions.length : 0;
+  var initials = profile.name.split(" ").map(function (w) { return w[0] || ""; }).join("").toUpperCase().substring(0, 2);
+
+  var currentCardType = detectCardType(cardForm.number);
+  var currentBank = detectBank(cardForm.number);
+  var currentGradient = getCardGradient(currentCardType);
+
   return (
-    <div style={{ position: "relative" }}>
-      <input placeholder={tp.ph} value={props.value} onChange={function (e) { props.onChange(e.target.value); }}
-        onFocus={function (e) { setFocused(true); e.currentTarget.style.borderColor = "rgba(34,197,94,0.3)"; }}
-        onBlur={function (e) { setTimeout(function () { setFocused(false); }, 150); e.currentTarget.style.borderColor = "var(--border)"; }}
-        style={{ height: 38, borderRadius: 6, padding: "0 12px", fontSize: 13, fontWeight: 500, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", boxSizing: "border-box", width: "100%", transition: "border-color 0.15s" }} />
-      {showSuggestions ? (
-        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50, marginTop: 2, background: "var(--card)", border: "1px solid var(--border)", borderRadius: 6, maxHeight: 200, overflowY: "auto", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
-          {filtered.map(function (b) {
+    <div style={{ maxWidth: 960, margin: "0 auto", padding: "32px 0" }}>
+      {/* Toast */}
+      {toast && (
+        <div style={{ position: "fixed", top: 24, left: "50%", transform: "translateX(-50%)", zIndex: 100, background: "var(--green)", color: "#fff", padding: "10px 24px", borderRadius: 10, fontSize: 13, fontWeight: 600, fontFamily: "inherit", boxShadow: "0 4px 20px rgba(26,143,78,0.3)", animation: "fadeIn 200ms ease" }}>{toast}</div>
+      )}
+
+      {/* Header */}
+      <div style={{ marginBottom: 32 }}>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: "var(--text)", letterSpacing: -0.5, margin: "0 0 4px 0" }}>Account</h1>
+        <p style={{ fontSize: 14, color: "var(--muted)", margin: 0 }}>Your profile, cards & data</p>
+      </div>
+
+      {/* Profile Card */}
+      <div style={{ background: "var(--surface)", borderRadius: 16, padding: 24, border: "1px solid var(--border)", marginBottom: 20, display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+        <div style={{ width: 64, height: 64, borderRadius: 16, background: "linear-gradient(135deg, #1A8F4E, #2DD4BF)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 4px 12px rgba(26,143,78,0.2)" }}>
+          <span style={{ fontSize: 22, fontWeight: 800, color: "#fff", letterSpacing: 0.5 }}>{initials}</span>
+        </div>
+        <div style={{ flex: 1, minWidth: 160 }}>
+          {editingName ? (
+            <input ref={nameRef} value={nameInput} onChange={function (e) { setNameInput(e.target.value); }} onBlur={saveName} onKeyDown={function (e) { if (e.key === "Enter") saveName(); }}
+              style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", background: "transparent", border: "none", borderBottom: "2px solid var(--green)", outline: "none", fontFamily: "inherit", width: "100%", padding: "0 0 2px 0", marginBottom: 4 }} />
+          ) : (
+            <p onClick={function () { setNameInput(profile.name); setEditingName(true); }} style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: "0 0 4px 0", cursor: "pointer", transition: "color 150ms ease" }}
+              onMouseEnter={function (e) { e.currentTarget.style.color = "var(--green)"; }}
+              onMouseLeave={function (e) { e.currentTarget.style.color = "var(--text)"; }}>{profile.name} <span style={{ fontSize: 11, fontWeight: 500, color: "var(--muted)", verticalAlign: "middle" }}>edit</span></p>
+          )}
+          {editingEmail ? (
+            <input ref={emailRef} value={emailInput} onChange={function (e) { setEmailInput(e.target.value); }} onBlur={saveEmail} onKeyDown={function (e) { if (e.key === "Enter") saveEmail(); }}
+              style={{ fontSize: 13, color: "var(--muted)", background: "transparent", border: "none", borderBottom: "2px solid var(--green)", outline: "none", fontFamily: "inherit", width: "100%", padding: "0 0 2px 0" }} />
+          ) : (
+            <p onClick={function () { setEmailInput(profile.email); setEditingEmail(true); }} style={{ fontSize: 13, color: "var(--muted)", margin: 0, cursor: "pointer", transition: "color 150ms ease" }}
+              onMouseEnter={function (e) { e.currentTarget.style.color = "var(--green)"; }}
+              onMouseLeave={function (e) { e.currentTarget.style.color = "var(--muted)"; }}>{profile.email}</p>
+          )}
+          <p style={{ fontSize: 11, color: "var(--muted)", margin: "4px 0 0 0" }}>Member since Jan 2025</p>
+        </div>
+        <div style={{ textAlign: "right", flexShrink: 0 }}>
+          <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.06, margin: "0 0 4px 0" }}>Balance</p>
+          <p style={{ fontSize: 24, fontWeight: 700, color: totalBalance >= 0 ? "var(--green)" : "var(--red)", margin: 0, fontVariantNumeric: "tabular-nums" }}>{formatCurrency(totalBalance)}</p>
+        </div>
+      </div>
+
+      {/* Quick Stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 20 }}>
+        {[
+          { label: "Transactions", value: String(transactions.length), color: "var(--text)" },
+          { label: "This month", value: formatCurrency(thisMonthExpense), color: "var(--red)" },
+          { label: "Avg / tx", value: formatCurrency(avgPerTx), color: "var(--text)" },
+          { label: "Cards", value: String(cards.length), color: "var(--text)" },
+        ].map(function (s) {
+          return (
+            <div key={s.label} style={{ background: "var(--surface)", borderRadius: 12, padding: "14px 16px", border: "1px solid var(--border)" }}>
+              <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.06, margin: "0 0 4px 0" }}>{s.label}</p>
+              <p style={{ fontSize: 18, fontWeight: 700, color: s.color, margin: 0, fontVariantNumeric: "tabular-nums" }}>{s.value}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Monthly Chart */}
+      <div style={{ background: "var(--surface)", borderRadius: 14, padding: "20px 22px 16px", border: "1px solid var(--border)", marginBottom: 20 }}>
+        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", margin: "0 0 16px 0" }}>Last 6 months</p>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 100 }}>
+          {monthlyData.map(function (m) {
+            var expH = maxMonth > 0 ? (m.expense / maxMonth) * 100 : 0;
+            var incH = maxMonth > 0 ? (m.income / maxMonth) * 100 : 0;
             return (
-              <button key={b} type="button" onClick={function () { props.onChange(b); setFocused(false); }}
-                style={{ display: "block", width: "100%", padding: "8px 12px", border: "none", background: "transparent", color: "var(--text)", fontSize: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "background 0.1s" }}
-                onMouseEnter={function (e) { e.currentTarget.style.background = "rgba(34,197,94,0.06)"; }}
-                onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; }}>
-                {b}
-              </button>
+              <div key={m.month} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                <div style={{ width: "100%", display: "flex", gap: 2, alignItems: "flex-end", height: 80 }}>
+                  <div style={{ flex: 1, height: Math.max(expH, 4) + "%", background: "var(--red)", borderRadius: 3, transition: "height 400ms cubic-bezier(0.16,1,0.3,1)", opacity: 0.8 }} />
+                  <div style={{ flex: 1, height: Math.max(incH, 4) + "%", background: "var(--green)", borderRadius: 3, transition: "height 400ms cubic-bezier(0.16,1,0.3,1)", opacity: 0.8 }} />
+                </div>
+                <span style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)" }}>{m.month}</span>
+              </div>
             );
           })}
         </div>
-      ) : null}
-    </div>
-  );
-}
+        <div style={{ display: "flex", gap: 16, marginTop: 10, justifyContent: "center" }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: "var(--muted)" }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--red)" }} />Expense</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: "var(--muted)" }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--green)" }} />Income</span>
+        </div>
+      </div>
 
-export default function AccountsPage() {
-  var [accounts, setAccounts] = useState<any[]>([]);
-  var [loading, setLoading] = useState(true);
-  var [showForm, setShowForm] = useState(false);
-  var [editId, setEditId] = useState("");
-  var [name, setName] = useState("");
-  var [accType, setAccType] = useState("Bank Account");
-  var [balance, setBalance] = useState("");
-  var [submitting, setSubmitting] = useState(false);
-  var [saved, setSaved] = useState(false);
-  var [err, setErr] = useState("");
-  var [hoveredId, setHoveredId] = useState("");
-  var [deleteId, setDeleteId] = useState("");
-
-  useEffect(function () { load(); }, []);
-
-  var load = async function () {
-    var { data: u } = await supabase.auth.getUser();
-    if (!u?.user) return;
-    var { data, error } = await supabase.from("accounts").select("id, name, type, balance, created_at").eq("user_id", u.user.id).order("created_at", { ascending: true });
-    if (error) { console.error("Load error:", error.message); }
-    setAccounts(data || []);
-    setLoading(false);
-  };
-
-  var openAdd = function () {
-    setEditId(""); setName(""); setAccType("Bank Account"); setBalance(""); setErr(""); setDeleteId(""); setShowForm(true);
-  };
-
-  var openEdit = function (a: any) {
-    setEditId(a.id); setName(a.name || ""); setAccType(a.type || "Bank Account"); setBalance(String(Math.abs(Number(a.balance) || 0))); setErr(""); setDeleteId(""); setShowForm(true);
-  };
-
-  var closeForm = function () {
-    setShowForm(false); setEditId(""); setName(""); setAccType("Bank Account"); setBalance(""); setErr(""); setDeleteId("");
-  };
-
-  var submit = async function () {
-    setErr("");
-    if (!name.trim()) { setErr("Give your account a name."); return; }
-    var dup = accounts.find(function (a) {
-      return a.name.toLowerCase().trim() === name.toLowerCase().trim() && a.id !== editId;
-    });
-    if (dup) { setErr("You already have an account called \"" + dup.name + "\"."); return; }
-    setSubmitting(true);
-    var { data: u } = await supabase.auth.getUser();
-    if (!u?.user) { setSubmitting(false); return; }
-    var isDebt = accType === "Credit Card" || accType === "Loan";
-    var b = balance ? (isDebt ? -Math.abs(Number(balance)) : Math.abs(Number(balance))) : 0;
-    var payload: any = { name: name.trim(), type: accType, balance: b };
-    var error;
-    if (editId) {
-      var r = await supabase.from("accounts").update(payload).eq("id", editId);
-      error = r.error;
-    } else {
-      payload.user_id = u.user.id;
-      var r = await supabase.from("accounts").insert(payload);
-      error = r.error;
-    }
-    setSubmitting(false);
-    if (error) {
-      console.error("Save error:", error.message, error.details, error.hint);
-      if (error.message.indexOf("unique") >= 0 || error.message.indexOf("duplicate") >= 0) {
-        setErr("An account with this name already exists.");
-      } else if (error.message.indexOf("check") >= 0 || error.message.indexOf("constraint") >= 0) {
-        setErr("Database constraint error. Run the SQL fix in Supabase first.");
-      } else {
-        setErr(error.message);
-      }
-      return;
-    }
-    setSaved(true);
-    setTimeout(function () { setSaved(false); closeForm(); }, 1200);
-    load();
-  };
-
-  var deleteAcc = async function (id: string) {
-    await supabase.from("accounts").delete().eq("id", id);
-    setDeleteId(""); closeForm(); load();
-  };
-
-  var totalBalance = useMemo(function () { return accounts.reduce(function (s, a) { return s + Number(a.balance || 0); }, 0); }, [accounts]);
-  var totalAssets = useMemo(function () { return accounts.filter(function (a) { return Number(a.balance || 0) > 0; }).reduce(function (s, a) { return s + Number(a.balance); }, 0); }, [accounts]);
-  var totalDebts = useMemo(function () { return accounts.filter(function (a) { return Number(a.balance || 0) < 0; }).reduce(function (s, a) { return s + Math.abs(Number(a.balance)); }, 0); }, [accounts]);
-  var sortedAccounts = useMemo(function () { return [...accounts].sort(function (a, b) { return Math.abs(Number(b.balance)) - Math.abs(Number(a.balance)); }); }, [accounts]);
-
-  var curType = getType(accType);
-  var isDebt = accType === "Credit Card" || accType === "Loan";
-  var previewBal = balance ? (isDebt ? -Math.abs(Number(balance)) : Math.abs(Number(balance))) : 0;
-
-  if (loading) return (
-    <div style={{ height: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ width: 20, height: 20, border: "2px solid var(--border)", borderTopColor: "#22C55E", borderRadius: "50%", animation: "sp 0.6s linear infinite" }} />
-      <style>{"@keyframes sp{to{transform:rotate(360deg)}}"}</style>
-    </div>
-  );
-
-  return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
-      <div className="bw" style={{ maxWidth: 780, margin: "0 auto", padding: "28px 24px 64px" }}>
-
-        <div className="bh" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28, flexWrap: "wrap", gap: 12 }}>
-          <div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 }}>Accounts</h1>
-            <p style={{ fontSize: 13, color: "var(--muted)", margin: "2px 0 0 0" }}>Manage your financial accounts</p>
-          </div>
-          <button onClick={showForm ? closeForm : openAdd}
-            style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: showForm ? "var(--border)" : "#22C55E", color: showForm ? "var(--text)" : "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "background 0.15s", display: "flex", alignItems: "center", gap: 5 }}
-            onMouseEnter={function (e) { if (!showForm) e.currentTarget.style.background = "#16A34A"; }}
-            onMouseLeave={function (e) { if (!showForm) e.currentTarget.style.background = "#22C55E"; }}>
-            {showForm ? "Cancel" : <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg> Add</>}
+      {/* Bank Cards */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: 0 }}>Bank Cards</p>
+          <button onClick={function () { setShowAddCard(true); setCardForm({ number: "", expiry: "", holderName: "" }); }} style={{ height: 34, padding: "0 14px", borderRadius: 8, background: "var(--green)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4, transition: "all 200ms ease", boxShadow: "0 2px 8px rgba(26,143,78,0.2)" }}
+            onMouseEnter={function (e) { e.currentTarget.style.transform = "translateY(-1px)"; }}
+            onMouseLeave={function (e) { e.currentTarget.style.transform = "translateY(0)"; }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>Add Card
           </button>
         </div>
-
-        {showForm ? (
-          <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, padding: "18px", marginBottom: 16 }}>
-            <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", margin: "0 0 14px" }}>{editId ? "Edit Account" : "New Account"}</p>
-
-            <div style={{ marginBottom: 10 }}>
-              <label style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.04, display: "block", marginBottom: 4 }}>TYPE</label>
-              <Drop value={accType} options={TYPES.map(function (t) { return t.name; })} placeholder="Account type" onChange={function (v) { setAccType(v); }} />
-            </div>
-
-            <div style={{ marginBottom: 10 }}>
-              <label style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.04, display: "block", marginBottom: 4 }}>{curType.label}</label>
-              <NameInput value={name} onChange={function (v) { setName(v); }} type={accType} />
-            </div>
-
-            <div style={{ marginBottom: 6 }}>
-              <label style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.04, display: "block", marginBottom: 4 }}>{isDebt ? "OUTSTANDING AMOUNT" : "CURRENT BALANCE"}</label>
-              <div style={{ position: "relative" }}>
-                <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "var(--muted)", fontWeight: 600, pointerEvents: "none" }}>₹</span>
-                <input type="number" placeholder="0" value={balance} onChange={function (e) { setBalance(e.target.value); }}
-                  style={{ height: 44, borderRadius: 6, padding: "0 12px 0 28px", fontSize: 18, fontWeight: 700, outline: "none", fontFamily: "inherit", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", boxSizing: "border-box", width: "100%", fontVariantNumeric: "tabular-nums", transition: "border-color 0.15s" }}
-                  onFocus={function (e) { e.currentTarget.style.borderColor = isDebt ? "rgba(239,68,68,0.4)" : "rgba(34,197,94,0.4)"; }}
-                  onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; }} />
-              </div>
-              {isDebt && balance ? (
-                <p style={{ fontSize: 10, color: "#EF4444", margin: "4px 0 0 0", fontWeight: 500 }}>Tracked as debt (−₹{Number(balance).toLocaleString("en-IN")})</p>
-              ) : null}
-            </div>
-
-            {name.trim() ? (
-              <div style={{ marginTop: 8, marginBottom: 10, padding: "10px 12px", borderRadius: 6, background: "var(--bg)", border: "1px dashed var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
-                <Av typeName={accType} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name.trim()}</p>
-                  <p style={{ fontSize: 10, color: "var(--muted)", margin: "1px 0 0 0" }}>{accType}</p>
-                </div>
-                <span style={{ fontSize: 13, fontWeight: 700, color: previewBal < 0 ? "#EF4444" : "#22C55E", fontVariantNumeric: "tabular-nums" }}>
-                  {previewBal < 0 ? "-" : ""}{fmt(Math.abs(previewBal))}
-                </span>
-              </div>
-            ) : null}
-
-            {err ? <p style={{ fontSize: 11, color: "#EF4444", margin: "0 0 8px", fontWeight: 500 }}>{err}</p> : null}
-
-            <div style={{ display: "flex", gap: 6 }}>
-              <button onClick={submit} disabled={submitting}
-                style={{ flex: 1, height: 38, borderRadius: 6, border: "none", background: saved ? "#16A34A" : "#22C55E", color: "#fff", fontSize: 13, fontWeight: 600, cursor: submitting ? "wait" : "pointer", fontFamily: "inherit", opacity: submitting ? 0.7 : 1, transition: "background 0.15s" }}
-                onMouseEnter={function (e) { if (!submitting && !saved) e.currentTarget.style.background = "#16A34A"; }}
-                onMouseLeave={function (e) { e.currentTarget.style.background = saved ? "#16A34A" : "#22C55E"; }}>
-                {submitting ? "Saving..." : saved ? "Saved" : editId ? "Update" : "Add Account"}
-              </button>
-              {editId ? (
-                <button onClick={function () { if (deleteId === editId) { deleteAcc(editId); } else { setDeleteId(editId); setTimeout(function () { setDeleteId(""); }, 3000); } }}
-                  style={{ height: 38, padding: "0 14px", borderRadius: 6, border: deleteId === editId ? "1px solid #EF4444" : "1px solid var(--border)", background: deleteId === editId ? "rgba(239,68,68,0.06)" : "transparent", color: deleteId === editId ? "#EF4444" : "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "0.15s" }}>
-                  {deleteId === editId ? "Confirm Delete" : "Delete"}
-                </button>
-              ) : null}
-            </div>
+        {cards.length === 0 ? (
+          <div style={{ background: "var(--surface)", borderRadius: 14, padding: "40px 20px", border: "1px solid var(--border)", textAlign: "center" }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ margin: "0 auto 8px auto", display: "block" }}><rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", margin: 0 }}>No cards added yet</p>
           </div>
-        ) : null}
-
-        {accounts.length === 0 && !showForm ? (
-          <div style={{ textAlign: "center", padding: "48px 24px 32px" }}>
-            <div style={{ width: 52, height: 52, borderRadius: 12, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.15)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="M2 10h20" /></svg>
-            </div>
-            <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>No accounts yet</h2>
-            <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 20px", maxWidth: 280, marginLeft: "auto", marginRight: "auto", lineHeight: 1.5 }}>Add your bank accounts, wallets, and investments to see your total balance.</p>
-            <button onClick={openAdd} style={{ padding: "10px 24px", borderRadius: 8, border: "none", background: "#22C55E", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
-              onMouseEnter={function (e) { e.currentTarget.style.background = "#16A34A"; }}
-              onMouseLeave={function (e) { e.currentTarget.style.background = "#22C55E"; }}>
-              Add Your First Account
-            </button>
-          </div>
-        ) : null}
-
-        {accounts.length > 0 ? (
-          <>
-            <div style={{ marginBottom: 20 }}>
-              <p style={{ fontSize: 32, fontWeight: 700, color: totalBalance >= 0 ? "#22C55E" : "#EF4444", margin: 0, fontVariantNumeric: "tabular-nums", lineHeight: 1.1 }}>{fmt(totalBalance)}</p>
-              <p style={{ fontSize: 13, color: "var(--muted)", margin: "4px 0 0 0" }}>total balance</p>
-              <div style={{ display: "flex", gap: 16, marginTop: 10 }}>
-                {totalAssets > 0 ? (<div><span style={{ width: 7, height: 7, borderRadius: 4, background: "#22C55E", display: "inline-block", marginRight: 4 }} /><span style={{ fontSize: 11, color: "var(--muted)" }}>Assets </span><span style={{ fontSize: 12, fontWeight: 600, color: "#22C55E", fontVariantNumeric: "tabular-nums" }}>{fmt(totalAssets)}</span></div>) : null}
-                {totalDebts > 0 ? (<div><span style={{ width: 7, height: 7, borderRadius: 4, background: "#EF4444", display: "inline-block", marginRight: 4 }} /><span style={{ fontSize: 11, color: "var(--muted)" }}>Debts </span><span style={{ fontSize: 12, fontWeight: 600, color: "#EF4444", fontVariantNumeric: "tabular-nums" }}>{fmt(totalDebts)}</span></div>) : null}
-                <div><span style={{ width: 7, height: 7, borderRadius: 4, background: "#3B82F6", display: "inline-block", marginRight: 4 }} /><span style={{ fontSize: 11, color: "var(--muted)" }}>Accounts </span><span style={{ fontSize: 12, fontWeight: 600, color: "#3B82F6", fontVariantNumeric: "tabular-nums" }}>{accounts.length}</span></div>
-              </div>
-            </div>
-
-            {totalAssets > 0 ? (<div style={{ marginBottom: 16 }}><div style={{ height: 4, background: "var(--border)", borderRadius: 4, overflow: "hidden", display: "flex" }}>{sortedAccounts.map(function (a) { var pct = totalAssets > 0 ? (Math.abs(Number(a.balance)) / totalAssets) * 100 : 0; if (pct < 1) return null; var t = getType(a.type); return <div key={a.id} style={{ height: "100%", width: pct + "%", background: t.color, transition: "width 0.5s" }} />; })}</div></div>) : null}
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              {sortedAccounts.map(function (a) {
-                var t = getType(a.type);
-                var b = Number(a.balance || 0);
-                var isNeg = b < 0;
-                var isHov = hoveredId === a.id;
-                var isDel = deleteId === a.id;
-                var pct = totalAssets > 0 && b > 0 ? Math.round((b / totalAssets) * 100) : 0;
-                return (
-                  <div key={a.id} style={{ padding: "10px 12px", borderRadius: 6, display: "flex", alignItems: "center", gap: 10, transition: "background 0.1s", cursor: "default" }}
-                    onMouseEnter={function () { setHoveredId(a.id); }}
-                    onMouseLeave={function () { setHoveredId(""); if (isDel) setDeleteId(""); }}>
-                    <Av typeName={a.type || "Other"} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.name}</p>
-                      <p style={{ fontSize: 10, color: "var(--muted)", margin: "1px 0 0 0" }}>{a.type || "Other"}{pct > 0 ? " · " + pct + "% of total" : ""}</p>
-                    </div>
-                    {isHov && !showForm ? (
-                      <div style={{ display: "flex", gap: 2, marginRight: 4, flexShrink: 0 }}>
-                        {isDel ? (
-                          <button onClick={function () { deleteAcc(a.id); }} style={{ padding: "4px 8px", borderRadius: 4, border: "1px solid #EF4444", background: "rgba(239,68,68,0.06)", color: "#EF4444", fontSize: 9, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>Delete?</button>
-                        ) : (<>
-                          <button onClick={function () { openEdit(a); }} title="Edit" style={{ width: 26, height: 26, borderRadius: 5, border: "none", background: "transparent", color: "var(--muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "0.1s" }} onMouseEnter={function (e) { e.currentTarget.style.background = "var(--border)"; e.currentTarget.style.color = "var(--text)"; }} onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--muted)"; }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg></button>
-                          <button onClick={function () { setDeleteId(a.id); setTimeout(function () { setDeleteId(""); }, 3000); }} title="Delete" style={{ width: 26, height: 26, borderRadius: 5, border: "none", background: "transparent", color: "var(--muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "0.1s" }} onMouseEnter={function (e) { e.currentTarget.style.background = "rgba(239,68,68,0.08)"; e.currentTarget.style.color = "#EF4444"; }} onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--muted)"; }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg></button>
-                        </>)}
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
+            {cards.map(function (card) {
+              var g = getCardGradient(card.cardType);
+              return (
+                <div key={card.id} style={{ position: "relative", borderRadius: 14, padding: 20, background: "linear-gradient(135deg, " + g[0] + ", " + g[1] + ")", color: "#fff", minHeight: 160, display: "flex", flexDirection: "column", justifyContent: "space-between", boxShadow: "0 4px 16px rgba(0,0,0,0.15)", transition: "transform 200ms ease", cursor: "default" }}
+                  onMouseEnter={function (e) { e.currentTarget.style.transform = "translateY(-2px)"; }}
+                  onMouseLeave={function (e) { e.currentTarget.style.transform = "translateY(0)"; }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <div>
+                      <div style={{ width: 32, height: 24, borderRadius: 4, background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.3)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 4 }}>
+                        <div style={{ width: 16, height: 10, borderRadius: 2, background: "rgba(255,200,100,0.8)" }} />
                       </div>
-                    ) : null}
-                    <span style={{ fontSize: 13, fontWeight: 700, color: isNeg ? "#EF4444" : "#22C55E", fontVariantNumeric: "tabular-nums", flexShrink: 0, minWidth: 60, textAlign: "right" }}>{isNeg ? "-" : ""}{fmt(Math.abs(b))}</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, opacity: 0.7 }}>{card.bank}</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, opacity: 0.9 }}>{getCardLabel(card.cardType)}</span>
+                      <button onClick={function () { removeCard(card.id); }} style={{ width: 22, height: 22, borderRadius: 5, background: "rgba(255,255,255,0.15)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 150ms ease" }}
+                        onMouseEnter={function (e) { e.currentTarget.style.background = "rgba(255,0,0,0.4)"; }}
+                        onMouseLeave={function (e) { e.currentTarget.style.background = "rgba(255,255,255,0.15)"; }}>
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 16, fontWeight: 700, letterSpacing: 2, margin: "0 0 12px 0", fontVariantNumeric: "tabular-nums" }}>{card.masked}</p>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                      <div>
+                        <span style={{ fontSize: 8, fontWeight: 600, opacity: 0.5, textTransform: "uppercase" }}>VALID THRU</span>
+                        <p style={{ fontSize: 12, fontWeight: 700, margin: 0 }}>{card.expiry}</p>
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 700, opacity: 0.8 }}>{card.holderName}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Statement Parser */}
+      <div style={{ background: "var(--surface)", borderRadius: 14, padding: 22, border: "1px solid var(--border)", marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>
+          <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: 0 }}>Card Statement Parser</p>
+        </div>
+        <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 14px 0" }}>Paste your bank statement or card transaction list. Amounts, merchants & categories are auto-detected.</p>
+        <textarea value={statementText} onChange={function (e) { setStatementText(e.target.value); setParsedEntries([]); }} placeholder={"15/01/2025 SWIGGY 250.00\n16/01/2025 NETFLIX 15.99\n17/01/2025 SALARY 50000.00 CR\n18/01/2025 AMAZON 1,499.00\n19/01/2025 UBER 185.50\n20/01/2025 CASHBACK 200.00 CR"}
+          style={{ width: "100%", height: 120, borderRadius: 10, padding: "12px", fontSize: 12, fontFamily: "monospace", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", outline: "none", resize: "none", lineHeight: 1.6, marginBottom: 12, transition: "all 200ms ease" }}
+          onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
+          onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
+        <button onClick={handleParse} disabled={!statementText.trim()} style={{ height: 38, padding: "0 20px", borderRadius: 8, background: statementText.trim() ? "var(--green)" : "var(--card)", border: "none", color: statementText.trim() ? "#fff" : "var(--faint)", fontSize: 13, fontWeight: 600, cursor: statementText.trim() ? "pointer" : "not-allowed", fontFamily: "inherit", transition: "all 200ms ease", boxShadow: statementText.trim() ? "0 2px 8px rgba(26,143,78,0.2)" : "none" }}
+          onMouseEnter={function (e) { if (statementText.trim()) { e.currentTarget.style.transform = "translateY(-1px)"; } }}
+          onMouseLeave={function (e) { e.currentTarget.style.transform = "translateY(0)"; }}>Parse Statement</button>
+
+        {parsedEntries.length > 0 && (
+          <div style={{ marginTop: 16, animation: "fadeIn 200ms ease" }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", margin: "0 0 10px 0" }}>Detected {parsedEntries.length} transactions</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 12 }}>
+              {parsedEntries.map(function (entry, idx) {
+                var cat = getCategoryIcon(entry.category);
+                return (
+                  <div key={idx} onClick={function () { toggleEntry(idx); }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 8, background: entry.selected ? "var(--green-dim)" : "var(--bg)", border: "1px solid " + (entry.selected ? "var(--green-border)" : "var(--border)"), cursor: "pointer", transition: "all 150ms ease", opacity: entry.selected ? 1 : 0.5 }}>
+                    <div style={{ width: 18, height: 18, borderRadius: 4, border: entry.selected ? "none" : "2px solid var(--border)", background: entry.selected ? "var(--green)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 150ms ease" }}>
+                      {entry.selected && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
+                    </div>
+                    <span style={{ width: 24, height: 18, borderRadius: 4, background: cat.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 7, fontWeight: 800, color: cat.color, flexShrink: 0 }}>{cat.letters}</span>
+                    <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.merchant}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: entry.isIncome ? "var(--green)" : "var(--red)", fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{entry.isIncome ? "+" : "-"}{formatCurrency(entry.amount)}</span>
+                    <span style={{ fontSize: 10, color: "var(--muted)", flexShrink: 0 }}>{entry.date}</span>
                   </div>
                 );
               })}
             </div>
-
-            <div style={{ padding: "12px 12px 0", borderTop: "1px solid var(--border)", marginTop: 8 }}>
-              <p style={{ fontSize: 10, color: "var(--muted)", margin: 0, fontVariantNumeric: "tabular-nums" }}>{accounts.length} account{accounts.length !== 1 ? "s" : ""}{totalDebts > 0 ? " · Net worth " + fmt(totalBalance) : ""}</p>
-            </div>
-          </>
-        ) : null}
+            <button onClick={addParsedToTransactions} disabled={parsedEntries.filter(function (e) { return e.selected; }).length === 0} style={{ height: 38, padding: "0 20px", borderRadius: 8, background: "var(--green)", border: "none", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 200ms ease", boxShadow: "0 2px 8px rgba(26,143,78,0.2)" }}
+              onMouseEnter={function (e) { e.currentTarget.style.transform = "translateY(-1px)"; }}
+              onMouseLeave={function (e) { e.currentTarget.style.transform = "translateY(0)"; }}>
+              Add {parsedEntries.filter(function (e) { return e.selected; }).length} to Transactions
+            </button>
+          </div>
+        )}
       </div>
 
-      <style>{"@keyframes sp{to{transform:rotate(360deg)}}"}</style>
-      <style>{"@media(max-width:640px){.bh{flex-direction:column!important;align-items:flex-start!important}}"}</style>
-      <style>{".droplist::-webkit-scrollbar{width:4px}.droplist::-webkit-scrollbar-track{background:transparent}.droplist::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}"}</style>
+      {/* Settings */}
+      <div style={{ background: "var(--surface)", borderRadius: 14, padding: 22, border: "1px solid var(--border)", marginBottom: 20 }}>
+        <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 14px 0" }}>Settings</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--border)" }}>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>Export Data</p>
+              <p style={{ fontSize: 11, color: "var(--muted)", margin: "2px 0 0 0" }}>Download all your data as JSON</p>
+            </div>
+            <button onClick={exportData} style={{ height: 34, padding: "0 16px", borderRadius: 8, background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }}
+              onMouseEnter={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.color = "var(--green)"; }}
+              onMouseLeave={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text)"; }}>Export</button>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0" }}>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>Clear All Data</p>
+              <p style={{ fontSize: 11, color: "var(--muted)", margin: "2px 0 0 0" }}>Remove all transactions and cards</p>
+            </div>
+            {showClearConfirm ? (
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={function () { setShowClearConfirm(false); }} style={{ height: 34, padding: "0 12px", borderRadius: 8, background: "var(--bg)", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+                <button onClick={clearAll} style={{ height: 34, padding: "0 12px", borderRadius: 8, background: "var(--red)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Delete</button>
+              </div>
+            ) : (
+              <button onClick={function () { setShowClearConfirm(true); }} style={{ height: 34, padding: "0 16px", borderRadius: 8, background: "var(--bg)", border: "1px solid var(--border)", color: "var(--red)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }}
+                onMouseEnter={function (e) { e.currentTarget.style.borderColor = "var(--red-border)"; }}
+                onMouseLeave={function (e) { e.currentTarget.style.borderColor = "var(--border)"; }}>Clear</button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Add Card Modal */}
+      {showAddCard && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowAddCard(false); }}>
+          <div style={{ background: "var(--bg)", borderRadius: 20, padding: 24, width: "100%", maxWidth: 420, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: "0 0 14px 0" }}>Add Card</h2>
+
+            {/* Live Card Preview */}
+            <div style={{ borderRadius: 12, padding: 18, background: "linear-gradient(135deg, " + currentGradient[0] + ", " + currentGradient[1] + ")", color: "#fff", minHeight: 120, display: "flex", flexDirection: "column", justifyContent: "space-between", marginBottom: 16, boxShadow: "0 4px 16px rgba(0,0,0,0.15)", transition: "background 300ms ease" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div style={{ width: 28, height: 20, borderRadius: 3, background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div style={{ width: 14, height: 8, borderRadius: 2, background: "rgba(255,200,100,0.8)" }} />
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, opacity: 0.9 }}>{getCardLabel(currentCardType)}</span>
+                  <span style={{ fontSize: 9, fontWeight: 600, opacity: 0.6 }}>{currentBank}</span>
+                </div>
+              </div>
+              <div>
+                <p style={{ fontSize: 15, fontWeight: 700, letterSpacing: 2, margin: "0 0 10px 0", fontVariantNumeric: "tabular-nums" }}>{cardForm.number ? maskCardNumber(cardForm.number) : "\u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022"}</p>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                  <div>
+                    <span style={{ fontSize: 7, fontWeight: 600, opacity: 0.5, textTransform: "uppercase" }}>VALID THRU</span>
+                    <p style={{ fontSize: 11, fontWeight: 700, margin: 0 }}>{cardForm.expiry || "MM/YY"}</p>
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: 700, opacity: 0.8 }}>{cardForm.holderName || "YOUR NAME"}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Card Type Badge */}
+            <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+              {(["visa", "mastercard", "rupay", "amex"] as const).map(function (t) {
+                var isActive = currentCardType === t;
+                return (
+                  <div key={t} style={{ padding: "3px 8px", borderRadius: 5, background: isActive ? "var(--green-dim)" : "var(--surface)", border: "1px solid " + (isActive ? "var(--green-border)" : "var(--border)"), transition: "all 150ms ease" }}>
+                    <span style={{ fontSize: 9, fontWeight: isActive ? 800 : 600, color: isActive ? "var(--green)" : "var(--muted)" }}>{getCardLabel(t)}</span>
+                  </div>
+                );
+              })}
+            </div>
+            {cardForm.number.replace(/\D/g, "").length >= 4 && (
+              <div style={{ marginBottom: 10, padding: "6px 10px", borderRadius: 6, background: "var(--green-dim)", border: "1px solid var(--green-border)", animation: "fadeIn 150ms ease" }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "var(--green)" }}>{currentBank} detected</span>
+              </div>
+            )}
+
+            <input type="text" placeholder="Card Number" value={cardForm.number} onChange={function (e) { var f = formatCardInput(e.target.value); setCardForm(function (cf) { return { ...cf, number: f }; }); }}
+              style={{ width: "100%", height: 44, padding: "0 14px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 16, fontWeight: 700, outline: "none", fontFamily: "inherit", marginBottom: 8, fontVariantNumeric: "tabular-nums", letterSpacing: 1, transition: "all 200ms ease" }}
+              onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
+              onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+              <input type="text" placeholder="MM/YY" value={cardForm.expiry} onChange={function (e) { setCardForm(function (cf) { return { ...cf, expiry: formatExpiry(e.target.value) }; }); }}
+                style={{ width: "100%", height: 40, padding: "0 14px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, fontWeight: 600, outline: "none", fontFamily: "inherit", fontVariantNumeric: "tabular-nums", transition: "all 200ms ease" }}
+                onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
+                onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
+              <input type="text" placeholder="Cardholder Name" value={cardForm.holderName} onChange={function (e) { setCardForm(function (cf) { return { ...cf, holderName: e.target.value }; }); }}
+                style={{ width: "100%", height: 40, padding: "0 14px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, outline: "none", fontFamily: "inherit", transition: "all 200ms ease" }}
+                onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
+                onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={function () { setShowAddCard(false); }} style={{ flex: 1, height: 42, borderRadius: 10, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }}
+                onMouseEnter={function (e) { e.currentTarget.style.background = "var(--surface)"; }}
+                onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; }}>Cancel</button>
+              <button onClick={addCard} disabled={cardForm.number.replace(/\D/g, "").length < 13} style={{ flex: 1, height: 42, borderRadius: 10, background: cardForm.number.replace(/\D/g, "").length >= 13 ? "var(--green)" : "var(--card)", border: "none", color: cardForm.number.replace(/\D/g, "").length >= 13 ? "#fff" : "var(--faint)", fontSize: 13, fontWeight: 600, cursor: cardForm.number.replace(/\D/g, "").length >= 13 ? "pointer" : "not-allowed", fontFamily: "inherit", transition: "all 200ms ease", boxShadow: cardForm.number.replace(/\D/g, "").length >= 13 ? "0 2px 8px rgba(26,143,78,0.2)" : "none" }}
+                onMouseEnter={function (e) { if (cardForm.number.replace(/\D/g, "").length >= 13) { e.currentTarget.style.transform = "translateY(-1px)"; } }}
+                onMouseLeave={function (e) { e.currentTarget.style.transform = "translateY(0)"; }}>Add Card</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+      `}</style>
     </div>
   );
 }
