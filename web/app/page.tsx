@@ -107,9 +107,7 @@ function BudgetDemo() {
     <div>
       <div style={{ maxWidth: 320, marginBottom: 28 }}>
         <p style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.06 }}>Your monthly income</p>
-        <div style={{ display: "flex", alignItems: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", boxShadow: "var(--shadow-sm)", transition: "border-color 200ms ease, box-shadow 200ms ease" }}
-          onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
-          onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "var(--shadow-sm)"; }}>
+        <div style={{ display: "flex", alignItems: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", boxShadow: "var(--shadow-sm)", transition: "border-color 200ms ease, box-shadow 200ms ease" }}>
           <span style={{ padding: "0 0 0 16px", fontSize: 16, fontWeight: 600, color: "var(--muted)" }}>₹</span>
           <input type="text" value={income} onChange={function (e) { setIncome(e.target.value); }} placeholder="75,000"
             style={{ height: 48, padding: "0 16px 0 8px", fontSize: 18, fontWeight: 600, background: "transparent", border: "none", color: "var(--text)", outline: "none", fontFamily: "inherit", width: "100%" }} />
@@ -163,9 +161,6 @@ export default function Home() {
           casha<span style={{ color: "var(--green)" }}>.</span>
         </Link>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }} className="lp-nav-right">
-          <a href="#features" style={{ fontSize: 13, fontWeight: 500, color: "var(--muted)", textDecoration: "none", padding: "6px 12px", borderRadius: 8, transition: "color 150ms ease", display: "none" }}
-            onMouseEnter={function (e) { e.currentTarget.style.color = "var(--text)"; }}
-            onMouseLeave={function (e) { e.currentTarget.style.color = "var(--muted)"; }}>Features</a>
           <ThemeToggle />
           <Link href="/auth" style={{ fontSize: 13, fontWeight: 500, color: "var(--muted)", textDecoration: "none", padding: "6px 12px", borderRadius: 8, transition: "color 150ms ease" }}
             onMouseEnter={function (e) { e.currentTarget.style.color = "var(--text)"; }}
@@ -187,9 +182,7 @@ export default function Home() {
         <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
           <div style={{ display: "flex", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
             <input type="email" placeholder="Enter your email" value={email} onChange={function (e) { setEmail(e.target.value); }}
-              style={{ height: 48, padding: "0 16px", fontSize: 14, fontWeight: 500, background: "transparent", border: "none", color: "var(--text)", outline: "none", fontFamily: "inherit", width: 240 }}
-              onFocus={function (e) { e.currentTarget.parentElement.style.borderColor = "var(--green-border)"; e.currentTarget.parentElement.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
-              onBlur={function (e) { e.currentTarget.parentElement.style.borderColor = "var(--border)"; e.currentTarget.parentElement.style.boxShadow = "var(--shadow-sm)"; }} />
+              style={{ height: 48, padding: "0 16px", fontSize: 14, fontWeight: 500, background: "transparent", border: "none", color: "var(--text)", outline: "none", fontFamily: "inherit", width: 240 }} />
             <button style={{ height: 48, padding: "0 22px", background: "var(--green)", color: "#FFF", fontSize: 14, fontWeight: 600, border: "none", cursor: "pointer", fontFamily: "inherit", transition: "background 150ms ease", whiteSpace: "nowrap" }}
               onMouseEnter={function (e) { e.currentTarget.style.background = "var(--green-soft)"; }}
               onMouseLeave={function (e) { e.currentTarget.style.background = "var(--green)"; }}>Get started</button>
