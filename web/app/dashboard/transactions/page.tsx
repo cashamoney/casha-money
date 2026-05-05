@@ -80,11 +80,11 @@ function detectCategory(text: string): { category: string; isIncome: boolean } {
   }
   var cat = "Other";
   if (l.includes("swiggy") || l.includes("zomato") || l.includes("food") || l.includes("doordash") || l.includes("restaurant") || l.includes("pizza") || l.includes("burger") || l.includes("coffee") || l.includes("starbucks") || l.includes("dominos") || l.includes("mcdonald") || l.includes("kfc") || l.includes("subway") || l.includes("bakery") || l.includes("cafe") || l.includes("tea") || l.includes("lunch") || l.includes("dinner") || l.includes("breakfast") || l.includes("grocery") || l.includes("grofers") || l.includes("bigbasket") || l.includes("blinkit")) cat = "Food";
-  else if (l.includes("uber") || l.includes("ola") || l.includes("fuel") || l.includes("petrol") || l.includes("lyft") || l.includes("gas") || l.includes("metro") || l.includes("train") || l.includes("cab") || l.includes("taxi") || l.includes("airline") || l.includes("flight") || l.includes("airport") || l.includes("diesel") || l.includes("rapido")) cat = "Transport";
+  else if (l.includes("uber") || l.includes("ola") || l.includes("fuel") || l.includes("petrol") || l.includes("lyft") || l.includes("gas") || l.includes("metro") || l.includes("train") || l.includes("cab") || l.includes("taxi") || l.includes("airline") || l.includes("flight") || l.includes("diesel") || l.includes("rapido")) cat = "Transport";
   else if (l.includes("netflix") || l.includes("hotstar") || l.includes("spotify") || l.includes("hulu") || l.includes("movie") || l.includes("gaming") || l.includes("steam") || l.includes("playstation") || l.includes("xbox") || l.includes("disney") || l.includes("youtube") || l.includes("prime video") || l.includes("twitch")) cat = "Entertainment";
   else if (l.includes("amazon") || l.includes("flipkart") || l.includes("myntra") || l.includes("target") || l.includes("walmart") || l.includes("shop") || l.includes("store") || l.includes("mall") || l.includes("ebay") || l.includes("etsy") || l.includes("ajio") || l.includes("nykaa") || l.includes("meesho")) cat = "Shopping";
   else if (l.includes("rent") || l.includes("housing") || l.includes("lease")) cat = "Rent";
-  else if (l.includes("electricity") || l.includes("bill") || l.includes("water") || l.includes("utility") || l.includes("internet") || l.includes("phone") || l.includes("recharge") || l.includes("jio") || l.includes("airtel") || l.includes("vodafone") || l.includes("broadband") || l.includes("wifi") || l.includes("gas bill")) cat = "Bills";
+  else if (l.includes("electricity") || l.includes("bill") || l.includes("water") || l.includes("utility") || l.includes("internet") || l.includes("phone") || l.includes("recharge") || l.includes("jio") || l.includes("airtel") || l.includes("vodafone") || l.includes("broadband") || l.includes("wifi")) cat = "Bills";
   else if (l.includes("hospital") || l.includes("doctor") || l.includes("medicine") || l.includes("pharmacy") || l.includes("health") || l.includes("gym") || l.includes("fitness") || l.includes("dental") || l.includes("eye") || l.includes("clinic") || l.includes("medplus") || l.includes("apollo") || l.includes("1mg")) cat = "Health";
   else if (l.includes("course") || l.includes("school") || l.includes("college") || l.includes("tuition") || l.includes("book") || l.includes("udemy") || l.includes("coursera") || l.includes("skillshare") || l.includes("university") || l.includes("academy") || l.includes("byju") || l.includes("unacademy")) cat = "Education";
   else if (l.includes("stock") || l.includes("mutual fund") || l.includes("sip") || l.includes("invest") || l.includes("zerodha") || l.includes("groww") || l.includes("upstox") || l.includes("coinbase") || l.includes("crypto") || l.includes("bitcoin")) cat = "Investment";
@@ -117,6 +117,8 @@ function CategoryIcon(props: { name: string; size?: number }) {
 
 function CalendarDropdown(props: { value: string; onChange: (val: string) => void }) {
   var [open, setOpen] = useState(false);
+  var [showMonthPick, setShowMonthPick] = useState(false);
+  var [showYearPick, setShowYearPick] = useState(false);
   var ref = useRef<HTMLDivElement>(null);
   var d = new Date(props.value);
   var [viewYear, setViewYear] = useState(d.getFullYear());
@@ -124,9 +126,9 @@ function CalendarDropdown(props: { value: string; onChange: (val: string) => voi
   var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
   useEffect(function () {
-    if (!open) return;
+    if (!open) { setShowMonthPick(false); setShowYearPick(false); return; }
     var handler = function (e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); }
+      if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); setShowMonthPick(false); setShowYearPick(false); }
     };
     document.addEventListener("mousedown", handler);
     return function () { document.removeEventListener("mousedown", handler); };
@@ -150,63 +152,93 @@ function CalendarDropdown(props: { value: string; onChange: (val: string) => voi
     setOpen(false);
   };
 
-  var prevMonth = function () {
-    if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); }
-    else { setViewMonth(viewMonth - 1); }
-  };
-  var nextMonth = function () {
-    if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); }
-    else { setViewMonth(viewMonth + 1); }
-  };
-
   var selected = props.value;
   var today = new Date().toISOString().split("T")[0];
+  var currentYear = new Date().getFullYear();
+  var years: number[] = [];
+  for (var y = currentYear - 5; y <= currentYear + 5; y++) years.push(y);
 
   return (
     <div ref={ref} style={{ position: "relative" }}>
-      <button onClick={function () { setOpen(function (p) { return !p; }); }}
+      <button onClick={function () { setOpen(function (p) { return !p; }); setShowMonthPick(false); setShowYearPick(false); }}
         style={{ width: "100%", height: 44, padding: "0 14px", borderRadius: 10, background: "var(--surface)", border: "1px solid " + (open ? "var(--green-border)" : "var(--border)"), color: "var(--text)", fontSize: 14, fontWeight: 500, outline: "none", fontFamily: "inherit", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "all 200ms ease", boxShadow: open ? "0 0 0 3px var(--green-dim)" : "none" }}>
         <span>{selected}</span>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
       </button>
       {open && (
-        <div style={{ position: "absolute", top: 50, left: 0, right: 0, zIndex: 40, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 14, padding: 14, boxShadow: "var(--shadow-lg)", animation: "fadeIn 150ms cubic-bezier(0.16, 1, 0.3, 1)" }}>
+        <div style={{ position: "absolute", bottom: 50, left: 0, right: 0, zIndex: 40, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 14, padding: 12, boxShadow: "var(--shadow-lg)", animation: "fadeIn 150ms cubic-bezier(0.16, 1, 0.3, 1)" }}>
+          {/* Month Year Header */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <button onClick={prevMonth} style={{ width: 26, height: 26, borderRadius: 6, background: "transparent", border: "1px solid var(--border)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text)", transition: "all 150ms ease" }}
+            <button onClick={function () { if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); } else { setViewMonth(viewMonth - 1); } }} style={{ width: 26, height: 26, borderRadius: 6, background: "transparent", border: "1px solid var(--border)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text)", transition: "all 150ms ease" }}
               onMouseEnter={function (e) { e.currentTarget.style.background = "var(--surface)"; }}
               onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; }}>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
             </button>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>{months[viewMonth]} {viewYear}</span>
-            <button onClick={nextMonth} style={{ width: 26, height: 26, borderRadius: 6, background: "transparent", border: "1px solid var(--border)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text)", transition: "all 150ms ease" }}
+            <div style={{ display: "flex", gap: 4 }}>
+              <button onClick={function () { setShowMonthPick(function (p) { return !p; }); setShowYearPick(false); }} style={{ padding: "2px 8px", borderRadius: 6, border: "none", background: showMonthPick ? "var(--green-dim)" : "transparent", color: showMonthPick ? "var(--green)" : "var(--text)", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }}>{months[viewMonth]}</button>
+              <button onClick={function () { setShowYearPick(function (p) { return !p; }); setShowMonthPick(false); }} style={{ padding: "2px 8px", borderRadius: 6, border: "none", background: showYearPick ? "var(--green-dim)" : "transparent", color: showYearPick ? "var(--green)" : "var(--text)", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }}>{viewYear}</button>
+            </div>
+            <button onClick={function () { if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); } else { setViewMonth(viewMonth + 1); } }} style={{ width: 26, height: 26, borderRadius: 6, background: "transparent", border: "1px solid var(--border)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text)", transition: "all 150ms ease" }}
               onMouseEnter={function (e) { e.currentTarget.style.background = "var(--surface)"; }}
               onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; }}>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
             </button>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1, marginBottom: 1 }}>
-            {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map(function (d) {
-              return <span key={d} style={{ fontSize: 9, fontWeight: 700, color: "var(--muted)", textAlign: "center", padding: "3px 0" }}>{d}</span>;
-            })}
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1 }}>
-            {days.map(function (day, idx) {
-              if (day === null) return <div key={"e" + idx} style={{ height: 28 }} />;
-              var m = String(viewMonth + 1).padStart(2, "0");
-              var dd = String(day).padStart(2, "0");
-              var dateStr = viewYear + "-" + m + "-" + dd;
-              var isSel = dateStr === selected;
-              var isToday = dateStr === today;
-              return (
-                <button key={day} onClick={function () { selectDay(day); }}
-                  style={{ height: 28, borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: isSel ? 700 : 500, color: isSel ? "#fff" : "var(--text)", background: isSel ? "var(--green)" : isToday ? "var(--green-dim)" : "transparent", transition: "all 120ms ease", display: "flex", alignItems: "center", justifyContent: "center" }}
-                  onMouseEnter={function (e) { if (!isSel) { e.currentTarget.style.background = "var(--surface)"; } }}
-                  onMouseLeave={function (e) { if (!isSel) { e.currentTarget.style.background = isToday ? "var(--green-dim)" : "transparent"; } }}>
-                  {day}
-                </button>
-              );
-            })}
-          </div>
+
+          {/* Month Picker */}
+          {showMonthPick && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 3, marginBottom: 8, animation: "fadeIn 120ms ease" }}>
+              {months.map(function (m, idx) {
+                var isSel = idx === viewMonth;
+                return (
+                  <button key={m} onClick={function () { setViewMonth(idx); setShowMonthPick(false); }} style={{ padding: "6px 0", borderRadius: 6, border: "none", background: isSel ? "var(--green)" : "transparent", color: isSel ? "#fff" : "var(--text)", fontSize: 11, fontWeight: isSel ? 700 : 500, cursor: "pointer", fontFamily: "inherit", transition: "all 120ms ease" }}
+                    onMouseEnter={function (e) { if (!isSel) { e.currentTarget.style.background = "var(--surface)"; } }}
+                    onMouseLeave={function (e) { if (!isSel) { e.currentTarget.style.background = "transparent"; } }}>{m}</button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Year Picker */}
+          {showYearPick && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 3, marginBottom: 8, maxHeight: 160, overflowY: "auto", animation: "fadeIn 120ms ease" }}>
+              {years.map(function (yr) {
+                var isSel = yr === viewYear;
+                return (
+                  <button key={yr} onClick={function () { setViewYear(yr); setShowYearPick(false); }} style={{ padding: "6px 0", borderRadius: 6, border: "none", background: isSel ? "var(--green)" : "transparent", color: isSel ? "#fff" : "var(--text)", fontSize: 11, fontWeight: isSel ? 700 : 500, cursor: "pointer", fontFamily: "inherit", transition: "all 120ms ease" }}
+                    onMouseEnter={function (e) { if (!isSel) { e.currentTarget.style.background = "var(--surface)"; } }}
+                    onMouseLeave={function (e) { if (!isSel) { e.currentTarget.style.background = "transparent"; } }}>{yr}</button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Days */}
+          {!showMonthPick && !showYearPick && (
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1, marginBottom: 1 }}>
+                {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map(function (d) {
+                  return <span key={d} style={{ fontSize: 9, fontWeight: 700, color: "var(--muted)", textAlign: "center", padding: "3px 0" }}>{d}</span>;
+                })}
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1 }}>
+                {days.map(function (day, idx) {
+                  if (day === null) return <div key={"e" + idx} style={{ height: 28 }} />;
+                  var m = String(viewMonth + 1).padStart(2, "0");
+                  var dd = String(day).padStart(2, "0");
+                  var dateStr = viewYear + "-" + m + "-" + dd;
+                  var isSel = dateStr === selected;
+                  var isToday = dateStr === today;
+                  return (
+                    <button key={day} onClick={function () { selectDay(day); }}
+                      style={{ height: 28, borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: isSel ? 700 : 500, color: isSel ? "#fff" : "var(--text)", background: isSel ? "var(--green)" : isToday ? "var(--green-dim)" : "transparent", transition: "all 120ms ease", display: "flex", alignItems: "center", justifyContent: "center" }}
+                      onMouseEnter={function (e) { if (!isSel) { e.currentTarget.style.background = "var(--surface)"; } }}
+                      onMouseLeave={function (e) { if (!isSel) { e.currentTarget.style.background = isToday ? "var(--green-dim)" : "transparent"; } }}>{day}</button>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -262,6 +294,18 @@ function Dropdown(props: {
   );
 }
 
+function getDateRange(filter: string): { start: string; end: string } | null {
+  var now = new Date();
+  var today = now.toISOString().split("T")[0];
+  if (filter === "today") return { start: today, end: today };
+  if (filter === "yesterday") { var y = new Date(now); y.setDate(y.getDate() - 1); var ys = y.toISOString().split("T")[0]; return { start: ys, end: ys }; }
+  if (filter === "this_week") { var start = new Date(now); start.setDate(start.getDate() - start.getDay()); return { start: start.toISOString().split("T")[0], end: today }; }
+  if (filter === "this_month") { return { start: now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-01", end: today }; }
+  if (filter === "last_month") { var lm = new Date(now.getFullYear(), now.getMonth() - 1, 1); var lme = new Date(now.getFullYear(), now.getMonth(), 0); return { start: lm.toISOString().split("T")[0], end: lme.toISOString().split("T")[0] }; }
+  if (filter === "this_year") { return { start: now.getFullYear() + "-01-01", end: today }; }
+  return null;
+}
+
 export default function TransactionsPage() {
   var [transactions, setTransactions] = useState<Transaction[]>([]);
   var [showAdd, setShowAdd] = useState(false);
@@ -271,6 +315,7 @@ export default function TransactionsPage() {
   var [search, setSearch] = useState("");
   var [filterCat, setFilterCat] = useState("All");
   var [filterType, setFilterType] = useState("all");
+  var [filterDate, setFilterDate] = useState("all");
   var [addForm, setAddForm] = useState({ amount: "", merchant: "", category: "Food", type: "expense" as "income" | "expense", date: new Date().toISOString().split("T")[0], note: "" });
   var [smsText, setSmsText] = useState("");
   var [csvText, setCsvText] = useState("");
@@ -298,6 +343,13 @@ export default function TransactionsPage() {
     setShowAdd(true);
   };
 
+  var handleAmountChange = function (val: string) {
+    var cleaned = val.replace(/[^0-9.]/g, "");
+    var parts = cleaned.split(".");
+    if (parts.length > 2) cleaned = parts[0] + "." + parts.slice(1).join("");
+    setAddForm(function (f) { return { ...f, amount: cleaned }; });
+  };
+
   var saveForm = function () {
     var amt = parseFloat(addForm.amount);
     if (!amt || !addForm.merchant.trim()) return;
@@ -318,7 +370,7 @@ export default function TransactionsPage() {
 
   var addSms = function () {
     var parsed = smartParse(smsText);
-    if (!parsed) { setSmsError("Could not detect an amount. Try pasting: Rs.2,500 debited from A/c XX1234. Info: Swiggy"); return; }
+    if (!parsed) { setSmsError("Could not detect an amount. Try: Rs.2,500 debited from A/c XX1234. Info: Swiggy"); return; }
     setSmsError("");
     var t: Transaction = { id: generateId(), amount: parsed.isIncome ? parsed.amount : -parsed.amount, type: parsed.isIncome ? "income" : "expense", merchant: parsed.merchant, category: parsed.category, date: parsed.date, note: "", source: "sms" };
     setTransactions(function (prev) { return [t, ...prev]; });
@@ -349,11 +401,14 @@ export default function TransactionsPage() {
 
   var deleteTx = function (id: string) { setTransactions(function (prev) { return prev.filter(function (t) { return t.id !== id; }); }); };
 
+  var dateRange = getDateRange(filterDate);
+
   var filtered = transactions.filter(function (t) {
     if (search && !t.merchant.toLowerCase().includes(search.toLowerCase()) && !t.category.toLowerCase().includes(search.toLowerCase())) return false;
     if (filterCat !== "All" && t.category !== filterCat) return false;
     if (filterType === "income" && t.type !== "income") return false;
     if (filterType === "expense" && t.type !== "expense") return false;
+    if (dateRange) { if (t.date < dateRange.start || t.date > dateRange.end) return false; }
     return true;
   });
 
@@ -364,6 +419,16 @@ export default function TransactionsPage() {
     { value: "all", label: "All types", letters: "AT", color: "#6B7280" },
     { value: "income", label: "Income", letters: "IN", color: "#22C55E" },
     { value: "expense", label: "Expense", letters: "EX", color: "#EF4444" },
+  ];
+
+  var dateOptions = [
+    { value: "all", label: "All dates", letters: "AD", color: "#6B7280" },
+    { value: "today", label: "Today", letters: "TD", color: "#3B82F6" },
+    { value: "yesterday", label: "Yesterday", letters: "YD", color: "#8B5CF6" },
+    { value: "this_week", label: "This week", letters: "TW", color: "#06B6D4" },
+    { value: "this_month", label: "This month", letters: "TM", color: "#F97316" },
+    { value: "last_month", label: "Last month", letters: "LM", color: "#EC4899" },
+    { value: "this_year", label: "This year", letters: "TY", color: "#22C55E" },
   ];
 
   var allCatNames = Array.from(new Set(transactions.map(function (t) { return t.category; })));
@@ -421,15 +486,16 @@ export default function TransactionsPage() {
 
       {/* Search & Filters */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-        <div style={{ flex: 1, minWidth: 200, position: "relative" }}>
+        <div style={{ flex: 1, minWidth: 180, position: "relative" }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 12, top: 13 }}><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
           <input type="text" placeholder="Search transactions..." value={search} onChange={function (e) { setSearch(e.target.value); }}
             style={{ width: "100%", height: 40, padding: "0 12px 0 36px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, outline: "none", fontFamily: "inherit", transition: "all 200ms ease" }}
             onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
             onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
         </div>
-        <Dropdown value={filterType} onChange={setFilterType} options={typeOptions} width={140} />
-        <Dropdown value={filterCat} onChange={setFilterCat} options={catOptions} width={160} />
+        <Dropdown value={filterType} onChange={setFilterType} options={typeOptions} width={130} />
+        <Dropdown value={filterCat} onChange={setFilterCat} options={catOptions} width={150} />
+        <Dropdown value={filterDate} onChange={setFilterDate} options={dateOptions} width={130} />
       </div>
 
       {/* Transaction List */}
@@ -461,8 +527,8 @@ export default function TransactionsPage() {
                     {t.source !== "manual" && <span style={{ fontSize: 9, fontWeight: 700, color: "var(--muted)", background: "var(--surface)", padding: "2px 6px", borderRadius: 4, textTransform: "uppercase" }}>{t.source}</span>}
                   </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginRight: 4 }}>
                     {t.type === "income" ? (
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" /></svg>
                     ) : (
@@ -470,15 +536,15 @@ export default function TransactionsPage() {
                     )}
                     <span style={{ fontSize: 15, fontWeight: 700, color: t.type === "income" ? "var(--green)" : "var(--red)", fontVariantNumeric: "tabular-nums" }}>{formatCurrency(Math.abs(t.amount))}</span>
                   </div>
-                  <button onClick={function () { openEdit(t); }} style={{ width: 30, height: 30, borderRadius: 8, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--faint)", transition: "all 150ms ease" }}
+                  <button onClick={function () { openEdit(t); }} style={{ width: 28, height: 28, borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--faint)", transition: "all 150ms ease" }}
                     onMouseEnter={function (e) { e.currentTarget.style.background = "var(--green-dim)"; e.currentTarget.style.color = "var(--green)"; e.currentTarget.style.transform = "scale(1.1)"; }}
                     onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--faint)"; e.currentTarget.style.transform = "scale(1)"; }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                   </button>
-                  <button onClick={function () { deleteTx(t.id); }} style={{ width: 30, height: 30, borderRadius: 8, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--faint)", transition: "all 150ms ease" }}
+                  <button onClick={function () { deleteTx(t.id); }} style={{ width: 28, height: 28, borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--faint)", transition: "all 150ms ease" }}
                     onMouseEnter={function (e) { e.currentTarget.style.background = "var(--red-dim)"; e.currentTarget.style.color = "var(--red)"; e.currentTarget.style.transform = "scale(1.1)"; }}
                     onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--faint)"; e.currentTarget.style.transform = "scale(1)"; }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
                   </button>
                 </div>
               </div>
@@ -508,8 +574,8 @@ export default function TransactionsPage() {
               })}
             </div>
 
-            <input type="text" placeholder="Amount" value={addForm.amount} onChange={function (e) { setAddForm(function (f) { return { ...f, amount: e.target.value }; }); }}
-              style={{ width: "100%", height: 44, padding: "0 14px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 16, fontWeight: 600, outline: "none", fontFamily: "inherit", marginBottom: 8, fontVariantNumeric: "tabular-nums", transition: "all 200ms ease" }}
+            <input type="text" inputMode="decimal" placeholder="0.00" value={addForm.amount} onChange={function (e) { handleAmountChange(e.target.value); }}
+              style={{ width: "100%", height: 48, padding: "0 14px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 22, fontWeight: 700, outline: "none", fontFamily: "inherit", marginBottom: 8, fontVariantNumeric: "tabular-nums", transition: "all 200ms ease", letterSpacing: -0.5 }}
               onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
               onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
 
