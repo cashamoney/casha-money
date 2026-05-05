@@ -28,31 +28,126 @@ function ThemeToggle() {
   );
 }
 
+function SmsDemo() {
+  var [sms, setSms] = useState("");
+  var [parsed, setParsed] = useState<{ amount: string; merchant: string; category: string; date: string } | null>(null);
+
+  useEffect(function () {
+    if (!sms.trim()) { setParsed(null); return; }
+    var amountMatch = sms.match(/Rs\.?([\d,]+\.?\d*)/i) || sms.match(/INR\s*([\d,]+\.?\d*)/i) || sms.match(/([\d,]+\.?\d*)\s*(?:debited|credited|spent|paid)/i);
+    var amount = amountMatch ? "₹" + amountMatch[1].replace(/,/g, "") : "—";
+    var merchantMatch = sms.match(/(?:to|at|info[:\s]*|to\s+)([A-Za-z\s]+)/i);
+    var merchant = merchantMatch ? merchantMatch[1].trim().substring(0, 20) : "—";
+    var cat = "Other";
+    var lower = sms.toLowerCase();
+    if (lower.includes("swiggy") || lower.includes("zomato") || lower.includes("food") || lower.includes("restaurant")) cat = "Food";
+    else if (lower.includes("uber") || lower.includes("ola") || lower.includes("fuel") || lower.includes("petrol")) cat = "Transport";
+    else if (lower.includes("netflix") || lower.includes("hotstar") || lower.includes("spotify")) cat = "Entertainment";
+    else if (lower.includes("amazon") || lower.includes("flipkart") || lower.includes("myntra")) cat = "Shopping";
+    else if (lower.includes("rent") || lower.includes("housing")) cat = "Rent";
+    else if (lower.includes("electricity") || lower.includes("bill") || lower.includes("water")) cat = "Bills";
+    var dateMatch = sms.match(/(\d{1,2}[\-\/]\d{1,2}[\-\/]\d{2,4})/) || sms.match(/(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*)/i);
+    var date = dateMatch ? dateMatch[1] : "Today";
+    setParsed({ amount: amount, merchant: merchant, category: cat, date: date });
+  }, [sms]);
+
+  var placeholder = "Rs.2,500.00 debited from A/c XX1234 on 19-04-26. Info: Swiggy.";
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, alignItems: "start" }} className="lp-sms-grid">
+      <div>
+        <p style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.06 }}>Paste bank SMS</p>
+        <textarea value={sms} onChange={function (e) { setSms(e.target.value); }} placeholder={placeholder}
+          style={{ width: "100%", height: 120, borderRadius: 12, padding: "14px 16px", fontSize: 13, fontFamily: "inherit", background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", outline: "none", resize: "none", lineHeight: 1.6, transition: "border-color 200ms ease, box-shadow 200ms ease", boxShadow: "var(--shadow-sm)" }}
+          onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
+          onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "var(--shadow-sm)"; }} />
+      </div>
+      <div>
+        <p style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.06 }}>Parsed</p>
+        <div style={{ background: "var(--surface)", borderRadius: 12, padding: "18px 20px", boxShadow: "var(--shadow-sm)", minHeight: 120 }}>
+          {parsed ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, animation: "fadeIn 200ms ease" }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 500 }}>Amount</span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>{parsed.amount}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 500 }}>Merchant</span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{parsed.merchant}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 500 }}>Category</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--green)" }}>{parsed.category}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 500 }}>Date</span>
+                <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-secondary)" }}>{parsed.date}</span>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 84 }}>
+              <p style={{ fontSize: 13, color: "var(--faint)", fontStyle: "italic" }}>Paste a message to see it parsed</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BudgetDemo() {
+  var [income, setIncome] = useState("");
+  var num = parseFloat(income.replace(/[^0-9.]/g, "")) || 0;
+
+  var needs = Math.round(num * 0.5);
+  var wants = Math.round(num * 0.3);
+  var savings = Math.round(num * 0.2);
+
+  return (
+    <div>
+      <div style={{ maxWidth: 320, marginBottom: 28 }}>
+        <p style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.06 }}>Your monthly income</p>
+        <div style={{ display: "flex", alignItems: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", boxShadow: "var(--shadow-sm)", transition: "border-color 200ms ease, box-shadow 200ms ease" }}
+          onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
+          onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "var(--shadow-sm)"; }}>
+          <span style={{ padding: "0 0 0 16px", fontSize: 16, fontWeight: 600, color: "var(--muted)" }}>₹</span>
+          <input type="text" value={income} onChange={function (e) { setIncome(e.target.value); }} placeholder="75,000"
+            style={{ height: 48, padding: "0 16px 0 8px", fontSize: 18, fontWeight: 600, background: "transparent", border: "none", color: "var(--text)", outline: "none", fontFamily: "inherit", width: "100%" }} />
+        </div>
+      </div>
+
+      {num > 0 ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, animation: "fadeIn 300ms ease" }}>
+          {[
+            { label: "Needs", pct: "50%", amount: needs, color: "var(--blue)", items: "Rent, groceries, EMI, utilities" },
+            { label: "Wants", pct: "30%", amount: wants, color: "var(--purple)", items: "Dining, shopping, entertainment" },
+            { label: "Savings", pct: "20%", amount: savings, color: "var(--green)", items: "Emergency fund, SIP, PPF" },
+          ].map(function (r) {
+            return (
+              <div key={r.label} style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <div style={{ width: 48, height: 48, borderRadius: 12, background: r.color + "0D", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: r.color, fontVariantNumeric: "tabular-nums" }}>{r.pct}</span>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 2 }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{r.label}</span>
+                    <span style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>₹{r.amount.toLocaleString("en-IN")}</span>
+                  </div>
+                  <span style={{ fontSize: 11, color: "var(--muted)" }}>{r.items}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p style={{ fontSize: 13, color: "var(--faint)", fontStyle: "italic" }}>Enter an amount to see your budget</p>
+      )}
+    </div>
+  );
+}
+
 export default function Home() {
   var [email, setEmail] = useState("");
-  var [hoveredFeat, setHoveredFeat] = useState(-1);
-  var [hoveredStep, setHoveredStep] = useState(-1);
-
-  var features = [
-    { icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M2 12h20" /></svg>, title: "Track everything", desc: "Every rupee. Every account. One view." },
-    { icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>, title: "Budget in seconds", desc: "AI builds your 50/30/20 budget. One click." },
-    { icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>, title: "Health score", desc: "0–1000. Know exactly where you stand." },
-    { icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /></svg>, title: "SMS parser", desc: "Paste bank SMS. Transaction done." },
-    { icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" /></svg>, title: "Tax genius", desc: "Old vs New regime. Real savings." },
-    { icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>, title: "AI advisor", desc: "Your personal CFO. Always on." },
-  ];
-
-  var steps = [
-    { n: "01", title: "Sign up", desc: "Your email. 30 seconds. Done." },
-    { n: "02", title: "Add transactions", desc: "Paste SMS or type. All Indian banks." },
-    { n: "03", title: "See everything", desc: "Score, budget, tax — calculated." },
-  ];
-
-  var stats = [
-    { value: "618+", label: "Early members" },
-    { value: "₹2,400", label: "Avg. monthly waste found" },
-    { value: "₹42,000", label: "Avg. tax saved/year" },
-  ];
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
@@ -62,175 +157,144 @@ export default function Home() {
         position: "fixed", top: 0, left: 0, right: 0, zIndex: 40,
         background: "var(--bg)", borderBottom: "1px solid var(--border)",
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 40px", height: 56,
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
-          <Link href="/" style={{ fontSize: 18, fontWeight: 800, color: "var(--text)", textDecoration: "none", letterSpacing: -0.5 }}>
-            casha<span style={{ color: "var(--green)" }}>.</span>
-          </Link>
-          <div style={{ display: "flex", gap: 24 }} className="lp-nav-links">
-            <a href="#features" style={{ fontSize: 13, fontWeight: 500, color: "var(--muted)", textDecoration: "none", transition: "color 150ms ease" }}
-              onMouseEnter={function (e) { e.currentTarget.style.color = "var(--text)"; }}
-              onMouseLeave={function (e) { e.currentTarget.style.color = "var(--muted)"; }}>Features</a>
-            <a href="#how" style={{ fontSize: 13, fontWeight: 500, color: "var(--muted)", textDecoration: "none", transition: "color 150ms ease" }}
-              onMouseEnter={function (e) { e.currentTarget.style.color = "var(--text)"; }}
-              onMouseLeave={function (e) { e.currentTarget.style.color = "var(--muted)"; }}>How it works</a>
-            <a href="#pricing" style={{ fontSize: 13, fontWeight: 500, color: "var(--muted)", textDecoration: "none", transition: "color 150ms ease" }}
-              onMouseEnter={function (e) { e.currentTarget.style.color = "var(--text)"; }}
-              onMouseLeave={function (e) { e.currentTarget.style.color = "var(--muted)"; }}>Pricing</a>
-          </div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        padding: "0 48px", height: 56, transition: "background 300ms ease",
+      }} className="lp-nav">
+        <Link href="/" style={{ fontSize: 18, fontWeight: 800, color: "var(--text)", textDecoration: "none", letterSpacing: -0.5 }}>
+          casha<span style={{ color: "var(--green)" }}>.</span>
+        </Link>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }} className="lp-nav-right">
+          <a href="#features" style={{ fontSize: 13, fontWeight: 500, color: "var(--muted)", textDecoration: "none", padding: "6px 12px", borderRadius: 8, transition: "color 150ms ease", display: "none" }}
+            onMouseEnter={function (e) { e.currentTarget.style.color = "var(--text)"; }}
+            onMouseLeave={function (e) { e.currentTarget.style.color = "var(--muted)"; }}>Features</a>
           <ThemeToggle />
-          <Link href="/auth" style={{ fontSize: 13, fontWeight: 500, color: "var(--muted)", textDecoration: "none", transition: "color 150ms ease", padding: "6px 12px", borderRadius: 8 }}
+          <Link href="/auth" style={{ fontSize: 13, fontWeight: 500, color: "var(--muted)", textDecoration: "none", padding: "6px 12px", borderRadius: 8, transition: "color 150ms ease" }}
             onMouseEnter={function (e) { e.currentTarget.style.color = "var(--text)"; }}
             onMouseLeave={function (e) { e.currentTarget.style.color = "var(--muted)"; }}>Sign in</Link>
-          <Link href="/auth" style={{ fontSize: 13, fontWeight: 600, color: "#FFFFFF", background: "var(--green)", textDecoration: "none", padding: "8px 18px", borderRadius: 10, transition: "background 150ms ease" }}
+          <Link href="/auth" style={{ fontSize: 13, fontWeight: 600, color: "#FFF", background: "var(--green)", textDecoration: "none", padding: "8px 18px", borderRadius: 10, transition: "all 150ms ease" }}
             onMouseEnter={function (e) { e.currentTarget.style.background = "var(--green-soft)"; }}
             onMouseLeave={function (e) { e.currentTarget.style.background = "var(--green)"; }}>Get started</Link>
         </div>
       </nav>
 
       {/* ── HERO ── */}
-      <section style={{ paddingTop: 140, paddingBottom: 100, padding: "140px 40px 100px", maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ maxWidth: 720 }}>
-          <p style={{ fontSize: 13, fontWeight: 600, color: "var(--green)", marginBottom: 20, letterSpacing: 0.04 }}>Your money, clear.</p>
-          <h1 style={{ fontSize: 56, fontWeight: 700, color: "var(--text)", lineHeight: 1.08, letterSpacing: -1.5, margin: "0 0 24px 0" }}>
-            Know where<br />every rupee<br />goes.
-          </h1>
-          <p style={{ fontSize: 18, color: "var(--text-secondary)", lineHeight: 1.6, margin: "0 0 36px 0", maxWidth: 480 }}>
-            Track, budget, and understand your finances. Built for India. Free forever.
-          </p>
-          <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-            <div style={{ display: "flex", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
-              <input type="email" placeholder="Enter your email" value={email} onChange={function (e) { setEmail(e.target.value); }}
-                style={{ height: 48, padding: "0 16px", fontSize: 14, fontWeight: 500, background: "transparent", border: "none", color: "var(--text)", outline: "none", fontFamily: "inherit", width: 260 }}
-                onFocus={function (e) { e.currentTarget.parentElement.style.borderColor = "var(--green-border)"; }}
-                onBlur={function (e) { e.currentTarget.parentElement.style.borderColor = "var(--border)"; }} />
-              <button style={{ height: 48, padding: "0 20px", background: "var(--green)", color: "#FFFFFF", fontSize: 14, fontWeight: 600, border: "none", cursor: "pointer", fontFamily: "inherit", transition: "background 150ms ease", whiteSpace: "nowrap" }}
-                onMouseEnter={function (e) { e.currentTarget.style.background = "var(--green-soft)"; }}
-                onMouseLeave={function (e) { e.currentTarget.style.background = "var(--green)"; }}>Get started</button>
+      <section style={{ paddingTop: 160, paddingBottom: 120, padding: "160px 48px 120px", maxWidth: 1100, margin: "0 auto" }} className="lp-hero">
+        <h1 style={{ fontSize: 64, fontWeight: 700, color: "var(--text)", lineHeight: 1.05, letterSpacing: -2, margin: "0 0 24px 0", maxWidth: 680, fontFamily: "Georgia, 'Times New Roman', serif" }}>
+          Your money<br />has a story.
+        </h1>
+        <p style={{ fontSize: 18, color: "var(--text-secondary)", lineHeight: 1.6, margin: "0 0 40px 0", maxWidth: 420 }}>
+          Let it be a good one. Track, budget, and understand — built for India, free forever.
+        </p>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
+            <input type="email" placeholder="Enter your email" value={email} onChange={function (e) { setEmail(e.target.value); }}
+              style={{ height: 48, padding: "0 16px", fontSize: 14, fontWeight: 500, background: "transparent", border: "none", color: "var(--text)", outline: "none", fontFamily: "inherit", width: 240 }}
+              onFocus={function (e) { e.currentTarget.parentElement.style.borderColor = "var(--green-border)"; e.currentTarget.parentElement.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
+              onBlur={function (e) { e.currentTarget.parentElement.style.borderColor = "var(--border)"; e.currentTarget.parentElement.style.boxShadow = "var(--shadow-sm)"; }} />
+            <button style={{ height: 48, padding: "0 22px", background: "var(--green)", color: "#FFF", fontSize: 14, fontWeight: 600, border: "none", cursor: "pointer", fontFamily: "inherit", transition: "background 150ms ease", whiteSpace: "nowrap" }}
+              onMouseEnter={function (e) { e.currentTarget.style.background = "var(--green-soft)"; }}
+              onMouseLeave={function (e) { e.currentTarget.style.background = "var(--green)"; }}>Get started</button>
+          </div>
+        </div>
+        <p style={{ fontSize: 12, color: "var(--faint)", margin: "12px 0 0 0" }}>Free forever · No credit card · All Indian banks</p>
+      </section>
+
+      {/* ── PRODUCT PREVIEW ── */}
+      <section style={{ padding: "0 48px 120px", maxWidth: 1100, margin: "0 auto" }} className="lp-preview">
+        <div style={{
+          background: "var(--surface)", borderRadius: 20, padding: "40px 36px 36px",
+          boxShadow: "var(--shadow-lg)", maxWidth: 560,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24 }}>
+            <div style={{ width: 8, height: 8, borderRadius: 4, background: "var(--green)", boxShadow: "0 0 8px var(--green-glow)" }} />
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--green)" }}>Calm</span>
+            <span style={{ fontSize: 11, color: "var(--faint)", marginLeft: 8 }}>Money Temperature</span>
+          </div>
+          <p style={{ fontSize: 40, fontWeight: 800, color: "var(--text)", letterSpacing: -1.5, lineHeight: 1, marginBottom: 16, fontVariantNumeric: "tabular-nums" }}>₹4,82,300</p>
+          <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 24 }}>Net worth · 4 accounts</p>
+          <div style={{ display: "flex", gap: 20, marginBottom: 24 }}>
+            <div>
+              <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.06, marginBottom: 2 }}>Income</p>
+              <p style={{ fontSize: 18, fontWeight: 700, color: "var(--green)", fontVariantNumeric: "tabular-nums" }}>₹75,000</p>
             </div>
-            <span style={{ fontSize: 12, color: "var(--faint)" }}>Free forever · No credit card</span>
+            <div>
+              <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.06, marginBottom: 2 }}>Expense</p>
+              <p style={{ fontSize: 18, fontWeight: 700, color: "var(--red)", fontVariantNumeric: "tabular-nums" }}>₹42,300</p>
+            </div>
+            <div>
+              <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.06, marginBottom: 2 }}>Saved</p>
+              <p style={{ fontSize: 18, fontWeight: 700, color: "var(--green)", fontVariantNumeric: "tabular-nums" }}>₹32,700</p>
+            </div>
           </div>
+          <div style={{ height: 6, background: "var(--card)", borderRadius: 6, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: "56%", background: "var(--green)", borderRadius: 6 }} />
+          </div>
+          <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 6 }}>56% budget used · ₹33,200 left</p>
         </div>
       </section>
 
-      {/* ── STATS ── */}
-      <section style={{ padding: "0 40px 80px", maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1, background: "var(--border)", borderRadius: 16, overflow: "hidden" }} className="lp-stats3">
-          {stats.map(function (s) {
+      {/* ── WHY ── */}
+      <section id="features" style={{ padding: "100px 48px", maxWidth: 1100, margin: "0 auto" }} className="lp-why">
+        <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--green)", marginBottom: 48, textTransform: "uppercase", letterSpacing: 0.1 }}>Why casha.</h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: 48 }}>
+          {[
+            { n: "01", title: "Every rupee, tracked.", desc: "Paste a bank SMS. Transaction created. Works with every Indian bank — SBI, HDFC, ICICI, Axis, Kotak, UPI, GPay, PhonePe. No manual entry needed." },
+            { n: "02", title: "AI that knows your money.", desc: "Not generic advice. Your personal CFO that sees your actual transactions and tells you exactly what to do. Move ₹33,750 to your loan. Debt-free 14 months early." },
+            { n: "03", title: "Built for India.", desc: "Old vs New tax regime compared live. 80C, 80D, HRA, NPS tracked. SMS parser for all Indian banks. ₹42,000 average tax saved per year." },
+          ].map(function (s) {
             return (
-              <div key={s.label} style={{ background: "var(--surface)", padding: "32px 28px", textAlign: "center" }}>
-                <p style={{ fontSize: 32, fontWeight: 700, color: "var(--text)", margin: "0 0 4px 0", letterSpacing: -0.5, fontVariantNumeric: "tabular-nums" }}>{s.value}</p>
-                <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>{s.label}</p>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ── FEATURES ── */}
-      <section id="features" style={{ padding: "80px 40px", maxWidth: 1200, margin: "0 auto" }}>
-        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--green)", marginBottom: 12, letterSpacing: 0.04 }}>Features</p>
-        <h2 style={{ fontSize: 36, fontWeight: 700, color: "var(--text)", letterSpacing: -0.8, margin: "0 0 48px 0" }}>Everything your money needs.</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }} className="lp-feat3">
-          {features.map(function (f, i) {
-            var isHov = hoveredFeat === i;
-            return (
-              <div key={f.title}
-                onMouseEnter={function () { setHoveredFeat(i); }}
-                onMouseLeave={function () { setHoveredFeat(-1); }}
-                style={{
-                  padding: "28px 24px", borderRadius: 14,
-                  background: isHov ? "var(--surface)" : "transparent",
-                  border: "1px solid " + (isHov ? "var(--border-light)" : "var(--border)"),
-                  transition: "all 250ms ease",
-                  cursor: "default",
-                }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: "var(--green-dim)", border: "1px solid var(--green-border)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--green)", marginBottom: 16 }}>
-                  {f.icon}
+              <div key={s.n} style={{ display: "flex", gap: 32, alignItems: "start" }} className="lp-why-item">
+                <span style={{ fontSize: 40, fontWeight: 800, color: "var(--border-light)", letterSpacing: -1, lineHeight: 1, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{s.n}</span>
+                <div>
+                  <h3 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", margin: "0 0 8px 0", letterSpacing: -0.3, fontFamily: "Georgia, 'Times New Roman', serif" }}>{s.title}</h3>
+                  <p style={{ fontSize: 15, color: "var(--text-secondary)", lineHeight: 1.65, margin: 0, maxWidth: 520 }}>{s.desc}</p>
                 </div>
-                <h3 style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", margin: "0 0 6px 0" }}>{f.title}</h3>
-                <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5, margin: 0 }}>{f.desc}</p>
               </div>
             );
           })}
         </div>
       </section>
 
-      {/* ── HOW IT WORKS ── */}
-      <section id="how" style={{ padding: "80px 40px", maxWidth: 1200, margin: "0 auto" }}>
-        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--green)", marginBottom: 12, letterSpacing: 0.04 }}>How it works</p>
-        <h2 style={{ fontSize: 36, fontWeight: 700, color: "var(--text)", letterSpacing: -0.8, margin: "0 0 48px 0" }}>Two minutes. That's it.</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 32 }} className="lp-steps3">
-          {steps.map(function (s, i) {
-            var isHov = hoveredStep === i;
-            return (
-              <div key={s.n}
-                onMouseEnter={function () { setHoveredStep(i); }}
-                onMouseLeave={function () { setHoveredStep(-1); }}
-                style={{ transition: "all 250ms ease", transform: isHov ? "translateY(-2px)" : "translateY(0)" }}>
-                <span style={{ fontSize: 48, fontWeight: 800, color: isHov ? "var(--green)" : "var(--border-light)", letterSpacing: -1, transition: "color 250ms ease", fontVariantNumeric: "tabular-nums" }}>{s.n}</span>
-                <h3 style={{ fontSize: 17, fontWeight: 600, color: "var(--text)", margin: "12px 0 6px" }}>{s.title}</h3>
-                <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5, margin: 0 }}>{s.desc}</p>
-              </div>
-            );
-          })}
-        </div>
+      {/* ── SMS DEMO ── */}
+      <section style={{ padding: "100px 48px", maxWidth: 1100, margin: "0 auto" }} className="lp-sms">
+        <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--green)", marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.1 }}>Try it</h2>
+        <h3 style={{ fontSize: 28, fontWeight: 700, color: "var(--text)", marginBottom: 8, letterSpacing: -0.5, fontFamily: "Georgia, 'Times New Roman', serif" }}>Paste a bank SMS.</h3>
+        <p style={{ fontSize: 15, color: "var(--text-secondary)", marginBottom: 32, lineHeight: 1.6 }}>Watch the magic. Works with every Indian bank.</p>
+        <SmsDemo />
       </section>
 
-      {/* ── 50/30/20 ── */}
-      <section style={{ padding: "80px 40px", maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 20, padding: "48px 40px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48, alignItems: "center" }} className="lp-rule2">
-          <div>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--green)", marginBottom: 12, letterSpacing: 0.04 }}>Built-in framework</p>
-            <h2 style={{ fontSize: 32, fontWeight: 700, color: "var(--text)", letterSpacing: -0.8, margin: "0 0 12px 0" }}>The 50/30/20 rule.</h2>
-            <p style={{ fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.6, margin: "0 0 24px 0" }}>A proven system adapted for India. Your income splits into needs, wants, and savings — automatically.</p>
-            <Link href="/auth" style={{ fontSize: 14, fontWeight: 600, color: "var(--green)", textDecoration: "none" }}>Try it free →</Link>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {[
-              { pct: "50%", label: "Needs", desc: "Rent, groceries, EMI, utilities", color: "var(--blue)" },
-              { pct: "30%", label: "Wants", desc: "Dining, shopping, entertainment", color: "var(--purple)" },
-              { pct: "20%", label: "Savings", desc: "Emergency fund, SIP, PPF", color: "var(--green)" },
-            ].map(function (r) {
-              return (
-                <div key={r.label} style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 20px", borderRadius: 12, background: "var(--card)", border: "1px solid var(--border)" }}>
-                  <span style={{ fontSize: 22, fontWeight: 800, color: r.color, fontVariantNumeric: "tabular-nums", width: 56, letterSpacing: -0.5 }}>{r.pct}</span>
-                  <div>
-                    <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", margin: 0 }}>{r.label}</p>
-                    <p style={{ fontSize: 12, color: "var(--muted)", margin: "2px 0 0 0" }}>{r.desc}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+      {/* ── BUDGET DEMO ── */}
+      <section style={{ padding: "100px 48px", maxWidth: 1100, margin: "0 auto" }} className="lp-budget">
+        <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--green)", marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.1 }}>50/30/20</h2>
+        <h3 style={{ fontSize: 28, fontWeight: 700, color: "var(--text)", marginBottom: 8, letterSpacing: -0.5, fontFamily: "Georgia, 'Times New Roman', serif" }}>Your budget, in one number.</h3>
+        <p style={{ fontSize: 15, color: "var(--text-secondary)", marginBottom: 32, lineHeight: 1.6 }}>Enter your income. See the proven framework adapted for India.</p>
+        <BudgetDemo />
       </section>
 
       {/* ── PRICING ── */}
-      <section id="pricing" style={{ padding: "80px 40px", maxWidth: 1200, margin: "0 auto" }}>
-        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--green)", marginBottom: 12, letterSpacing: 0.04 }}>Pricing</p>
-        <h2 style={{ fontSize: 36, fontWeight: 700, color: "var(--text)", letterSpacing: -0.8, margin: "0 0 48px 0" }}>Simple. Honest.</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, maxWidth: 860 }} className="lp-price3">
+      <section id="pricing" style={{ padding: "100px 48px", maxWidth: 1100, margin: "0 auto" }} className="lp-pricing">
+        <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--green)", marginBottom: 48, textTransform: "uppercase", letterSpacing: 0.1 }}>Pricing</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, maxWidth: 680 }} className="lp-price2">
           {[
-            { name: "Free", price: "₹0", period: "forever", cta: "Get started", highlight: false, features: ["Health score", "Unlimited transactions", "SMS parser", "Budget AI", "Tax optimizer", "AI advisor — 10/day"] },
-            { name: "Plus", price: "₹149", period: "/month", cta: "Start free trial", highlight: true, features: ["Everything in Free", "Unlimited AI advisor", "Investment tracker", "Retirement planner", "WhatsApp alerts", "Tax reports PDF"] },
-            { name: "Business", price: "₹499", period: "/month", cta: "Contact us", highlight: false, features: ["Everything in Plus", "GST invoices", "Cash flow forecasting", "P&L statements", "Team access (5)", "Tally sync"] },
+            {
+              name: "Free", price: "₹0", period: "forever", cta: "Get started", highlight: false,
+              features: ["Health score", "Unlimited transactions", "SMS parser — all banks", "Budget AI", "Tax optimizer", "AI advisor — 10/day"],
+            },
+            {
+              name: "Plus", price: "₹149", period: "/month", cta: "Start free trial", highlight: true,
+              features: ["Everything in Free", "Unlimited AI advisor", "Investment tracker", "Retirement planner", "WhatsApp alerts", "Tax reports PDF"],
+            },
           ].map(function (p) {
             return (
               <div key={p.name} style={{
-                padding: "28px 24px", borderRadius: 16,
+                padding: "32px 28px", borderRadius: 16,
                 background: p.highlight ? "var(--surface)" : "transparent",
                 border: "1px solid " + (p.highlight ? "var(--green-border)" : "var(--border)"),
-                display: "flex", flexDirection: "column",
                 boxShadow: p.highlight ? "var(--shadow-md)" : "none",
               }}>
-                {p.highlight ? <span style={{ fontSize: 10, fontWeight: 700, color: "var(--green)", textTransform: "uppercase", letterSpacing: 0.08, marginBottom: 12 }}>Most popular</span> : <div style={{ marginBottom: 12, height: 14 }} />}
-                <h3 style={{ fontSize: 17, fontWeight: 600, color: "var(--text)", margin: "0 0 4px" }}>{p.name}</h3>
-                <p style={{ margin: "0 0 20px" }}><span style={{ fontSize: 28, fontWeight: 800, color: "var(--text)", letterSpacing: -0.5 }}>{p.price}</span><span style={{ fontSize: 13, color: "var(--muted)", marginLeft: 4 }}>{p.period}</span></p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1, marginBottom: 20 }}>
+                {p.highlight && <span style={{ fontSize: 10, fontWeight: 700, color: "var(--green)", textTransform: "uppercase", letterSpacing: 0.08, marginBottom: 12, display: "block" }}>Popular</span>}
+                <h3 style={{ fontSize: 18, fontWeight: 600, color: "var(--text)", margin: "0 0 4px" }}>{p.name}</h3>
+                <p style={{ margin: "0 0 24px" }}><span style={{ fontSize: 30, fontWeight: 800, color: "var(--text)", letterSpacing: -0.5, fontVariantNumeric: "tabular-nums" }}>{p.price}</span><span style={{ fontSize: 13, color: "var(--muted)", marginLeft: 4 }}>{p.period}</span></p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
                   {p.features.map(function (f) {
                     return (
                       <div key={f} style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -241,12 +305,11 @@ export default function Home() {
                   })}
                 </div>
                 <Link href="/auth" style={{
-                  display: "block", textAlign: "center", padding: "10px 0", borderRadius: 10,
+                  display: "block", textAlign: "center", padding: "11px 0", borderRadius: 10,
                   background: p.highlight ? "var(--green)" : "transparent",
-                  color: p.highlight ? "#FFFFFF" : "var(--text)",
+                  color: p.highlight ? "#FFF" : "var(--text)",
                   border: p.highlight ? "none" : "1px solid var(--border)",
-                  fontSize: 13, fontWeight: 600, textDecoration: "none",
-                  transition: "all 150ms ease",
+                  fontSize: 13, fontWeight: 600, textDecoration: "none", transition: "all 150ms ease",
                 }}
                   onMouseEnter={function (e) { if (p.highlight) { e.currentTarget.style.background = "var(--green-soft)"; } else { e.currentTarget.style.background = "var(--surface)"; } }}
                   onMouseLeave={function (e) { if (p.highlight) { e.currentTarget.style.background = "var(--green)"; } else { e.currentTarget.style.background = "transparent"; } }}>{p.cta}</Link>
@@ -256,64 +319,40 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── SECURITY ── */}
-      <section style={{ padding: "80px 40px", maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", maxWidth: 500, margin: "0 auto" }}>
-          <p style={{ fontSize: 13, fontWeight: 600, color: "var(--green)", marginBottom: 12, letterSpacing: 0.04 }}>Security</p>
-          <h2 style={{ fontSize: 32, fontWeight: 700, color: "var(--text)", letterSpacing: -0.8, margin: "0 0 12px 0" }}>Bank-level. Zero compromises.</h2>
-          <p style={{ fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.6, margin: "0 0 32px 0" }}>AES-256 encrypted. Read-only. No data selling. DPDPA compliant. Delete anytime.</p>
-        </div>
-        <div style={{ display: "flex", justifyContent: "center", gap: 32, flexWrap: "wrap" }}>
-          {["AES-256 Encrypted", "Read-only access", "No data selling", "DPDPA Compliant", "Delete anytime"].map(function (s) {
-            return (
-              <div key={s} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 20, background: "var(--surface)", border: "1px solid var(--border)" }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>{s}</span>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
       {/* ── CTA ── */}
-      <section style={{ padding: "80px 40px 100px", maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ textAlign: "center" }}>
-          <h2 style={{ fontSize: 40, fontWeight: 700, color: "var(--text)", letterSpacing: -0.8, margin: "0 0 12px 0" }}>Start today.</h2>
-          <p style={{ fontSize: 16, color: "var(--text-secondary)", margin: "0 0 32px 0" }}>Free forever. Works with all Indian banks. Your data stays yours.</p>
-          <Link href="/auth" style={{ display: "inline-block", padding: "14px 36px", borderRadius: 12, background: "var(--green)", color: "#FFFFFF", fontSize: 15, fontWeight: 700, textDecoration: "none", transition: "all 200ms ease", boxShadow: "var(--shadow-md)" }}
-            onMouseEnter={function (e) { e.currentTarget.style.background = "var(--green-soft)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-            onMouseLeave={function (e) { e.currentTarget.style.background = "var(--green)"; e.currentTarget.style.transform = "translateY(0)"; }}>
-            Get started free
-          </Link>
-        </div>
+      <section style={{ padding: "120px 48px", maxWidth: 1100, margin: "0 auto", textAlign: "center" }} className="lp-cta">
+        <h2 style={{ fontSize: 44, fontWeight: 700, color: "var(--text)", letterSpacing: -1.5, margin: "0 0 12px 0", fontFamily: "Georgia, 'Times New Roman', serif" }}>Start today.</h2>
+        <p style={{ fontSize: 16, color: "var(--text-secondary)", margin: "0 0 32px 0" }}>Free forever. Your data stays yours.</p>
+        <Link href="/auth" style={{ display: "inline-block", padding: "14px 40px", borderRadius: 12, background: "var(--green)", color: "#FFF", fontSize: 15, fontWeight: 700, textDecoration: "none", transition: "all 200ms ease", boxShadow: "var(--shadow-md)" }}
+          onMouseEnter={function (e) { e.currentTarget.style.background = "var(--green-soft)"; e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "var(--shadow-lg)"; }}
+          onMouseLeave={function (e) { e.currentTarget.style.background = "var(--green)"; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "var(--shadow-md)"; }}>
+          Get started free
+        </Link>
       </section>
 
       {/* ── FOOTER ── */}
-      <footer style={{ borderTop: "1px solid var(--border)", padding: "28px 40px", maxWidth: 1200, margin: "0 auto" }}>
+      <footer style={{ borderTop: "1px solid var(--border)", padding: "28px 48px", maxWidth: 1100, margin: "0 auto" }} className="lp-footer">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", flexWrap: "wrap", gap: 24 }}>
           <div>
-            <p style={{ fontSize: 18, fontWeight: 800, color: "var(--text)", margin: "0 0 6px 0", letterSpacing: -0.5 }}>
-              casha<span style={{ color: "var(--green)" }}>.</span>
-            </p>
-            <p style={{ fontSize: 11, color: "var(--faint)", margin: 0, maxWidth: 260, lineHeight: 1.5 }}>Financial education platform only. Not a SEBI-registered advisor. All AI recommendations are educational. Consult a qualified CA before financial decisions.</p>
+            <p style={{ fontSize: 18, fontWeight: 800, color: "var(--text)", margin: "0 0 6px 0", letterSpacing: -0.5 }}>casha<span style={{ color: "var(--green)" }}>.</span></p>
+            <p style={{ fontSize: 11, color: "var(--faint)", margin: 0, maxWidth: 280, lineHeight: 1.5 }}>Financial education platform. Not a SEBI-registered advisor. Consult a qualified CA before financial decisions.</p>
           </div>
-          <div style={{ display: "flex", gap: 40, flexWrap: "wrap" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.08 }}>Product</span>
-              <a href="#features" style={{ fontSize: 12, color: "var(--muted)", textDecoration: "none" }}>Features</a>
-              <a href="#pricing" style={{ fontSize: 12, color: "var(--muted)", textDecoration: "none" }}>Pricing</a>
-              <a href="#how" style={{ fontSize: 12, color: "var(--muted)", textDecoration: "none" }}>How it works</a>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.08 }}>Legal</span>
-              <Link href="/legal/privacy" style={{ fontSize: 12, color: "var(--muted)", textDecoration: "none" }}>Privacy Policy</Link>
-              <Link href="/legal/terms" style={{ fontSize: 12, color: "var(--muted)", textDecoration: "none" }}>Terms of Service</Link>
-              <Link href="/legal/cookies" style={{ fontSize: 12, color: "var(--muted)", textDecoration: "none" }}>Cookie Policy</Link>
+          <div style={{ display: "flex", gap: 32 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <Link href="/legal/privacy" style={{ fontSize: 12, color: "var(--muted)", textDecoration: "none", transition: "color 150ms ease" }}
+                onMouseEnter={function (e) { e.currentTarget.style.color = "var(--text-secondary)"; }}
+                onMouseLeave={function (e) { e.currentTarget.style.color = "var(--muted)"; }}>Privacy</Link>
+              <Link href="/legal/terms" style={{ fontSize: 12, color: "var(--muted)", textDecoration: "none", transition: "color 150ms ease" }}
+                onMouseEnter={function (e) { e.currentTarget.style.color = "var(--text-secondary)"; }}
+                onMouseLeave={function (e) { e.currentTarget.style.color = "var(--muted)"; }}>Terms</Link>
+              <Link href="/legal/cookies" style={{ fontSize: 12, color: "var(--muted)", textDecoration: "none", transition: "color 150ms ease" }}
+                onMouseEnter={function (e) { e.currentTarget.style.color = "var(--text-secondary)"; }}
+                onMouseLeave={function (e) { e.currentTarget.style.color = "var(--muted)"; }}>Cookies</Link>
             </div>
           </div>
         </div>
-        <div style={{ marginTop: 24, paddingTop: 16, borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-          <span style={{ fontSize: 11, color: "var(--faint)" }}>© 2025 Casha Money Technologies Private Limited. All rights reserved.</span>
+        <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+          <span style={{ fontSize: 11, color: "var(--faint)" }}>© 2025 Casha Money Technologies Pvt. Ltd.</span>
           <span style={{ fontSize: 11, color: "var(--faint)" }}>Made in India</span>
         </div>
       </footer>
@@ -321,22 +360,22 @@ export default function Home() {
       {/* ── RESPONSIVE ── */}
       <style>{`
         @media (max-width: 768px) {
-          .lp-nav-links { display: none !important; }
-          section { padding-left: 20px !important; padding-right: 20px !important; }
-          .lp-stats3 { grid-template-columns: 1fr !important; }
-          .lp-feat3 { grid-template-columns: 1fr !important; }
-          .lp-steps3 { grid-template-columns: 1fr !important; }
-          .lp-rule2 { grid-template-columns: 1fr !important; padding: 28px 20px !important; }
-          .lp-price3 { grid-template-columns: 1fr !important; }
-          h1 { font-size: 36px !important; }
-          h2 { font-size: 28px !important; }
-          nav { padding: 0 20px !important; }
-          footer { padding: 28px 20px !important; }
+          .lp-nav { padding: 0 20px !important; }
+          .lp-hero { padding: 130px 20px 80px !important; }
+          .lp-hero h1 { font-size: 40px !important; letter-spacing: -1.2 !important; }
+          .lp-preview { padding: 0 20px 80px !important; }
+          .lp-preview > div { padding: 28px 24px !important; }
+          .lp-why, .lp-sms, .lp-budget, .lp-pricing, .lp-cta { padding: 80px 20px !important; }
+          .lp-why-item { flex-direction: column !important; gap: 12px !important; }
+          .lp-why-item span { font-size: 28px !important; }
+          .lp-sms-grid { grid-template-columns: 1fr !important; }
+          .lp-price2 { grid-template-columns: 1fr !important; }
+          .lp-cta h2 { font-size: 32px !important; }
+          .lp-footer { padding: 24px 20px !important; }
         }
         @media (min-width: 769px) and (max-width: 1024px) {
-          .lp-feat3 { grid-template-columns: 1fr 1fr !important; }
-          .lp-price3 { grid-template-columns: 1fr 1fr !important; }
-          h1 { font-size: 44px !important; }
+          .lp-hero h1 { font-size: 52px !important; }
+          .lp-sms-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </div>
