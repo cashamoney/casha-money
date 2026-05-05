@@ -44,7 +44,7 @@ function formatCurrency(n: number) {
 }
 
 var ACCOUNT_PRESETS: { type: "bank" | "upi" | "cash" | "card"; label: string; color: string; icon: string; placeholders: Record<string, string> }[] = [
-  { type: "bank", label: "Bank Account", color: "#3B82F6", icon: "BK", placeholders: { bankName: "Bank name", accountNumber: "Account number (last 4)", ifsc: "IFSC code", holderName: "Account holder name" } },
+  { type: "bank", label: "Bank", color: "#3B82F6", icon: "BK", placeholders: { bankName: "Bank name", accountNumber: "Account number (last 4)", ifsc: "IFSC code", holderName: "Account holder name" } },
   { type: "upi", label: "UPI", color: "#8B5CF6", icon: "UP", placeholders: { platform: "GPay / PhonePe / Paytm / other", upiId: "yourname@upi", holderName: "Name on UPI" } },
   { type: "cash", label: "Cash", color: "#22C55E", icon: "CA", placeholders: { holderName: "Wallet name (e.g. My Wallet)" } },
   { type: "card", label: "Card", color: "#F97316", icon: "CD", placeholders: { cardNumber: "Card number", expiry: "MM/YY", holderName: "Cardholder name", bankName: "Bank name" } },
@@ -293,13 +293,12 @@ export default function AccountsPage() {
   var monthlyData = getMonthlyData(transactions);
   var maxMonth = Math.max.apply(null, monthlyData.map(function (m) { return Math.max(m.expense, m.income); }).concat([1]));
   var initials = profile.name.split(" ").map(function (w) { return w[0] || ""; }).join("").toUpperCase().substring(0, 2);
-  var preset = ACCOUNT_PRESETS.find(function (p) { return p.type === selectedType; });
+  var currentPreset = ACCOUNT_PRESETS.find(function (p) { return p.type === selectedType; });
 
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "32px 0" }}>
       {toast && <div style={{ position: "fixed", top: 24, left: "50%", transform: "translateX(-50%)", zIndex: 100, background: "var(--green)", color: "#fff", padding: "10px 24px", borderRadius: 10, fontSize: 13, fontWeight: 600, fontFamily: "inherit", boxShadow: "0 4px 20px rgba(26,143,78,0.3)", animation: "fadeIn 200ms ease" }}>{toast}</div>}
 
-      {/* Header */}
       <div style={{ marginBottom: 32 }}>
         <h1 style={{ fontSize: 28, fontWeight: 700, color: "var(--text)", letterSpacing: -0.5, margin: "0 0 4px 0" }}>Accounts</h1>
         <p style={{ fontSize: 14, color: "var(--muted)", margin: 0 }}>Your money, your way</p>
@@ -595,14 +594,15 @@ export default function AccountsPage() {
                 );
               })}
             </div>
-            {preset && Object.keys(preset.placeholders).map(function (key) {
+            {currentPreset ? Object.keys(currentPreset.placeholders).map(function (key) {
+              var ph = currentPreset.placeholders[key];
               return (
-                <input key={key} type="text" placeholder={preset.placeholders[key]} value={formFields[key] || ""} onChange={function (e) { setFormFields(function (f) { var n = { ...f }; n[key] = key === "cardNumber" ? formatCardInput(e.target.value) : key === "expiry" ? formatExpiry(e.target.value) : e.target.value; return n; }); }}
+                <input key={key} type="text" placeholder={ph} value={formFields[key] || ""} onChange={function (e) { setFormFields(function (f) { var n = { ...f }; n[key] = key === "cardNumber" ? formatCardInput(e.target.value) : key === "expiry" ? formatExpiry(e.target.value) : e.target.value; return n; }); }}
                   style={{ width: "100%", height: 40, padding: "0 14px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, outline: "none", fontFamily: "inherit", marginBottom: 8, transition: "all 200ms ease", fontVariantNumeric: key === "cardNumber" || key === "accountNumber" ? "tabular-nums" : "normal" }}
                   onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
                   onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
               );
-            })}
+            }) : null}
             <input type="text" inputMode="decimal" placeholder="Initial balance (0.00)" value={initialBalance} onChange={function (e) { setInitialBalance(e.target.value.replace(/[^0-9.]/g, "")); }}
               style={{ width: "100%", height: 44, padding: "0 14px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 18, fontWeight: 700, outline: "none", fontFamily: "inherit", marginBottom: 14, fontVariantNumeric: "tabular-nums", transition: "all 200ms ease" }}
               onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
