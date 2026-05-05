@@ -88,15 +88,15 @@ function formatExpiry(v: string): string {
   return c;
 }
 
-function getMonthlyData(transactions: Transaction[]): { month: string; expense: number; income: number }[] {
+function getMonthlyData(txs: Transaction[]): { month: string; expense: number; income: number }[] {
   var now = new Date();
   var names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   var data: { month: string; expense: number; income: number }[] = [];
   for (var i = 5; i >= 0; i--) {
     var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     var ms = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
-    var exp = transactions.filter(function (t) { return t.type === "expense" && t.date.startsWith(ms); }).reduce(function (s, t) { return s + Math.abs(t.amount); }, 0);
-    var inc = transactions.filter(function (t) { return t.type === "income" && t.date.startsWith(ms); }).reduce(function (s, t) { return s + t.amount; }, 0);
+    var exp = txs.filter(function (t) { return t.type === "expense" && t.date.startsWith(ms); }).reduce(function (s, t) { return s + Math.abs(t.amount); }, 0);
+    var inc = txs.filter(function (t) { return t.type === "income" && t.date.startsWith(ms); }).reduce(function (s, t) { return s + t.amount; }, 0);
     data.push({ month: names[d.getMonth()], expense: exp, income: inc });
   }
   return data;
@@ -205,6 +205,21 @@ export default function AccountsPage() {
   var cashTotal = accounts.filter(function (a) { return a.type === "cash"; }).reduce(function (s, a) { return s + a.balance; }, 0);
   var cardTotal = accounts.filter(function (a) { return a.type === "card"; }).reduce(function (s, a) { return s + a.balance; }, 0);
 
+  var currentPlaceholders: Record<string, string> = {};
+  for (var pi = 0; pi < ACCOUNT_PRESETS.length; pi++) {
+    if (ACCOUNT_PRESETS[pi].type === selectedType) {
+      currentPlaceholders = ACCOUNT_PRESETS[pi].placeholders;
+      break;
+    }
+  }
+  var currentColor = "#3B82F6";
+  for (var ci = 0; ci < ACCOUNT_PRESETS.length; ci++) {
+    if (ACCOUNT_PRESETS[ci].type === selectedType) {
+      currentColor = ACCOUNT_PRESETS[ci].color;
+      break;
+    }
+  }
+
   var addAccount = function () {
     var preset = ACCOUNT_PRESETS.find(function (p) { return p.type === selectedType; });
     if (!preset) return;
@@ -293,7 +308,8 @@ export default function AccountsPage() {
   var monthlyData = getMonthlyData(transactions);
   var maxMonth = Math.max.apply(null, monthlyData.map(function (m) { return Math.max(m.expense, m.income); }).concat([1]));
   var initials = profile.name.split(" ").map(function (w) { return w[0] || ""; }).join("").toUpperCase().substring(0, 2);
-  var currentPreset = ACCOUNT_PRESETS.find(function (p) { return p.type === selectedType; });
+
+  var placeholderKeys = Object.keys(currentPlaceholders);
 
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "32px 0" }}>
@@ -594,15 +610,15 @@ export default function AccountsPage() {
                 );
               })}
             </div>
-            {currentPreset ? Object.keys(currentPreset.placeholders).map(function (key) {
-              var ph = currentPreset.placeholders[key];
+            {placeholderKeys.map(function (key) {
+              var ph = currentPlaceholders[key];
               return (
                 <input key={key} type="text" placeholder={ph} value={formFields[key] || ""} onChange={function (e) { setFormFields(function (f) { var n = { ...f }; n[key] = key === "cardNumber" ? formatCardInput(e.target.value) : key === "expiry" ? formatExpiry(e.target.value) : e.target.value; return n; }); }}
                   style={{ width: "100%", height: 40, padding: "0 14px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, outline: "none", fontFamily: "inherit", marginBottom: 8, transition: "all 200ms ease", fontVariantNumeric: key === "cardNumber" || key === "accountNumber" ? "tabular-nums" : "normal" }}
                   onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
                   onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
               );
-            }) : null}
+            })}
             <input type="text" inputMode="decimal" placeholder="Initial balance (0.00)" value={initialBalance} onChange={function (e) { setInitialBalance(e.target.value.replace(/[^0-9.]/g, "")); }}
               style={{ width: "100%", height: 44, padding: "0 14px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 18, fontWeight: 700, outline: "none", fontFamily: "inherit", marginBottom: 14, fontVariantNumeric: "tabular-nums", transition: "all 200ms ease" }}
               onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
