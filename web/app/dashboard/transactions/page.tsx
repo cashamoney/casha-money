@@ -30,15 +30,15 @@ var EXPENSE_CATS = [
 var INCOME_CATS = [
   { name: "Salary", color: "#22C55E", bg: "#F0FDF4", letters: "SA" },
   { name: "Freelance", color: "#10B981", bg: "#ECFDF5", letters: "FR" },
-  { name: "Investment Returns", color: "#06B6D4", bg: "#ECFEFF", letters: "IR" },
+  { name: "Returns", color: "#06B6D4", bg: "#ECFEFF", letters: "RT" },
   { name: "Dividend", color: "#0EA5E9", bg: "#F0F9FF", letters: "DV" },
   { name: "Interest", color: "#8B5CF6", bg: "#F5F3FF", letters: "NT" },
   { name: "Cashback", color: "#F59E0B", bg: "#FFFBEB", letters: "CB" },
   { name: "Refund", color: "#6366F1", bg: "#EEF2FF", letters: "RF" },
   { name: "Gift", color: "#EC4899", bg: "#FDF2F8", letters: "GF" },
-  { name: "Rental Income", color: "#14B8A6", bg: "#F0FDFA", letters: "RI" },
+  { name: "Rental", color: "#14B8A6", bg: "#F0FDFA", letters: "RL" },
   { name: "Bonus", color: "#F97316", bg: "#FFF7ED", letters: "BN" },
-  { name: "Other Income", color: "#6B7280", bg: "#F9FAFB", letters: "OI" },
+  { name: "Other", color: "#6B7280", bg: "#F9FAFB", letters: "OT" },
 ];
 
 var ALL_CATS = EXPENSE_CATS.concat(INCOME_CATS);
@@ -73,9 +73,9 @@ function detectCategory(text: string): { category: string; isIncome: boolean } {
     else if (l.includes("refund")) cat = "Refund";
     else if (l.includes("gift")) cat = "Gift";
     else if (l.includes("bonus")) cat = "Bonus";
-    else if (l.includes("rental")) cat = "Rental Income";
-    else if (l.includes("invest")) cat = "Investment Returns";
-    else if (!l.includes("salary")) cat = "Other Income";
+    else if (l.includes("rental")) cat = "Rental";
+    else if (l.includes("invest") || l.includes("return")) cat = "Returns";
+    else if (!l.includes("salary")) cat = "Other";
     return { category: cat, isIncome: true };
   }
   var cat = "Other";
@@ -119,6 +119,8 @@ function CalendarDropdown(props: { value: string; onChange: (val: string) => voi
   var [open, setOpen] = useState(false);
   var [showMonthPick, setShowMonthPick] = useState(false);
   var [showYearPick, setShowYearPick] = useState(false);
+  var [customMode, setCustomMode] = useState(false);
+  var [customVal, setCustomVal] = useState(props.value);
   var ref = useRef<HTMLDivElement>(null);
   var d = new Date(props.value);
   var [viewYear, setViewYear] = useState(d.getFullYear());
@@ -126,9 +128,9 @@ function CalendarDropdown(props: { value: string; onChange: (val: string) => voi
   var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
   useEffect(function () {
-    if (!open) { setShowMonthPick(false); setShowYearPick(false); return; }
+    if (!open) { setShowMonthPick(false); setShowYearPick(false); setCustomMode(false); return; }
     var handler = function (e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); setShowMonthPick(false); setShowYearPick(false); }
+      if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); }
     };
     document.addEventListener("mousedown", handler);
     return function () { document.removeEventListener("mousedown", handler); };
@@ -137,6 +139,7 @@ function CalendarDropdown(props: { value: string; onChange: (val: string) => voi
   useEffect(function () {
     setViewYear(d.getFullYear());
     setViewMonth(d.getMonth());
+    setCustomVal(props.value);
   }, [props.value, open]);
 
   var daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
@@ -158,85 +161,111 @@ function CalendarDropdown(props: { value: string; onChange: (val: string) => voi
   var years: number[] = [];
   for (var y = currentYear - 5; y <= currentYear + 5; y++) years.push(y);
 
+  var applyCustom = function () {
+    if (customVal.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      props.onChange(customVal);
+      setOpen(false);
+    }
+  };
+
   return (
     <div ref={ref} style={{ position: "relative" }}>
-      <button onClick={function () { setOpen(function (p) { return !p; }); setShowMonthPick(false); setShowYearPick(false); }}
+      <button onClick={function () { setOpen(function (p) { return !p; }); }}
         style={{ width: "100%", height: 44, padding: "0 14px", borderRadius: 10, background: "var(--surface)", border: "1px solid " + (open ? "var(--green-border)" : "var(--border)"), color: "var(--text)", fontSize: 14, fontWeight: 500, outline: "none", fontFamily: "inherit", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "all 200ms ease", boxShadow: open ? "0 0 0 3px var(--green-dim)" : "none" }}>
         <span>{selected}</span>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
       </button>
       {open && (
         <div style={{ position: "absolute", bottom: 50, left: 0, right: 0, zIndex: 40, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 14, padding: 12, boxShadow: "var(--shadow-lg)", animation: "fadeIn 150ms cubic-bezier(0.16, 1, 0.3, 1)" }}>
-          {/* Month Year Header */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <button onClick={function () { if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); } else { setViewMonth(viewMonth - 1); } }} style={{ width: 26, height: 26, borderRadius: 6, background: "transparent", border: "1px solid var(--border)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text)", transition: "all 150ms ease" }}
-              onMouseEnter={function (e) { e.currentTarget.style.background = "var(--surface)"; }}
-              onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
-            </button>
-            <div style={{ display: "flex", gap: 4 }}>
-              <button onClick={function () { setShowMonthPick(function (p) { return !p; }); setShowYearPick(false); }} style={{ padding: "2px 8px", borderRadius: 6, border: "none", background: showMonthPick ? "var(--green-dim)" : "transparent", color: showMonthPick ? "var(--green)" : "var(--text)", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }}>{months[viewMonth]}</button>
-              <button onClick={function () { setShowYearPick(function (p) { return !p; }); setShowMonthPick(false); }} style={{ padding: "2px 8px", borderRadius: 6, border: "none", background: showYearPick ? "var(--green-dim)" : "transparent", color: showYearPick ? "var(--green)" : "var(--text)", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }}>{viewYear}</button>
-            </div>
-            <button onClick={function () { if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); } else { setViewMonth(viewMonth + 1); } }} style={{ width: 26, height: 26, borderRadius: 6, background: "transparent", border: "1px solid var(--border)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text)", transition: "all 150ms ease" }}
-              onMouseEnter={function (e) { e.currentTarget.style.background = "var(--surface)"; }}
-              onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
-            </button>
+          {/* Toggle: Calendar / Custom */}
+          <div style={{ display: "flex", gap: 0, marginBottom: 8, background: "var(--surface)", borderRadius: 8, padding: 2, border: "1px solid var(--border)" }}>
+            <button onClick={function () { setCustomMode(false); setShowMonthPick(false); setShowYearPick(false); }} style={{ flex: 1, padding: "5px 0", borderRadius: 6, border: "none", background: !customMode ? "var(--bg)" : "transparent", color: !customMode ? "var(--text)" : "var(--muted)", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease", boxShadow: !customMode ? "0 1px 2px rgba(0,0,0,0.06)" : "none" }}>Calendar</button>
+            <button onClick={function () { setCustomMode(true); setShowMonthPick(false); setShowYearPick(false); }} style={{ flex: 1, padding: "5px 0", borderRadius: 6, border: "none", background: customMode ? "var(--bg)" : "transparent", color: customMode ? "var(--text)" : "var(--muted)", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease", boxShadow: customMode ? "0 1px 2px rgba(0,0,0,0.06)" : "none" }}>Custom</button>
           </div>
 
-          {/* Month Picker */}
-          {showMonthPick && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 3, marginBottom: 8, animation: "fadeIn 120ms ease" }}>
-              {months.map(function (m, idx) {
-                var isSel = idx === viewMonth;
-                return (
-                  <button key={m} onClick={function () { setViewMonth(idx); setShowMonthPick(false); }} style={{ padding: "6px 0", borderRadius: 6, border: "none", background: isSel ? "var(--green)" : "transparent", color: isSel ? "#fff" : "var(--text)", fontSize: 11, fontWeight: isSel ? 700 : 500, cursor: "pointer", fontFamily: "inherit", transition: "all 120ms ease" }}
-                    onMouseEnter={function (e) { if (!isSel) { e.currentTarget.style.background = "var(--surface)"; } }}
-                    onMouseLeave={function (e) { if (!isSel) { e.currentTarget.style.background = "transparent"; } }}>{m}</button>
-                );
-              })}
+          {/* Custom date input */}
+          {customMode ? (
+            <div>
+              <input type="text" placeholder="YYYY-MM-DD" value={customVal} onChange={function (e) { setCustomVal(e.target.value); }}
+                onKeyDown={function (e) { if (e.key === "Enter") applyCustom(); }}
+                style={{ width: "100%", height: 36, padding: "0 10px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, fontWeight: 500, outline: "none", fontFamily: "inherit", fontVariantNumeric: "tabular-nums", transition: "all 200ms ease" }}
+                onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--green-dim)"; }}
+                onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
+              <button onClick={applyCustom} style={{ width: "100%", height: 32, marginTop: 6, borderRadius: 8, background: "var(--green)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }}
+                onMouseEnter={function (e) { e.currentTarget.style.background = "var(--green-soft)"; }}
+                onMouseLeave={function (e) { e.currentTarget.style.background = "var(--green)"; }}>Apply</button>
             </div>
-          )}
-
-          {/* Year Picker */}
-          {showYearPick && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 3, marginBottom: 8, maxHeight: 160, overflowY: "auto", animation: "fadeIn 120ms ease" }}>
-              {years.map(function (yr) {
-                var isSel = yr === viewYear;
-                return (
-                  <button key={yr} onClick={function () { setViewYear(yr); setShowYearPick(false); }} style={{ padding: "6px 0", borderRadius: 6, border: "none", background: isSel ? "var(--green)" : "transparent", color: isSel ? "#fff" : "var(--text)", fontSize: 11, fontWeight: isSel ? 700 : 500, cursor: "pointer", fontFamily: "inherit", transition: "all 120ms ease" }}
-                    onMouseEnter={function (e) { if (!isSel) { e.currentTarget.style.background = "var(--surface)"; } }}
-                    onMouseLeave={function (e) { if (!isSel) { e.currentTarget.style.background = "transparent"; } }}>{yr}</button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Days */}
-          {!showMonthPick && !showYearPick && (
+          ) : (
             <>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1, marginBottom: 1 }}>
-                {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map(function (d) {
-                  return <span key={d} style={{ fontSize: 9, fontWeight: 700, color: "var(--muted)", textAlign: "center", padding: "3px 0" }}>{d}</span>;
-                })}
+              {/* Nav: < Month Year > */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <button onClick={function () { if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); } else { setViewMonth(viewMonth - 1); } }} style={{ width: 24, height: 24, borderRadius: 5, background: "transparent", border: "1px solid var(--border)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text)", transition: "all 150ms ease" }}
+                  onMouseEnter={function (e) { e.currentTarget.style.background = "var(--surface)"; }}
+                  onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; }}>
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+                </button>
+                <button onClick={function () { setShowMonthPick(function (p) { return !p; }); setShowYearPick(false); }} style={{ padding: "2px 6px", borderRadius: 5, border: "none", background: showMonthPick ? "var(--green-dim)" : "transparent", color: showMonthPick ? "var(--green)" : "var(--text)", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease", whiteSpace: "nowrap" }}>{months[viewMonth]} {viewYear}</button>
+                <button onClick={function () { if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); } else { setViewMonth(viewMonth + 1); } }} style={{ width: 24, height: 24, borderRadius: 5, background: "transparent", border: "1px solid var(--border)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text)", transition: "all 150ms ease" }}
+                  onMouseEnter={function (e) { e.currentTarget.style.background = "var(--surface)"; }}
+                  onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; }}>
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                </button>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1 }}>
-                {days.map(function (day, idx) {
-                  if (day === null) return <div key={"e" + idx} style={{ height: 28 }} />;
-                  var m = String(viewMonth + 1).padStart(2, "0");
-                  var dd = String(day).padStart(2, "0");
-                  var dateStr = viewYear + "-" + m + "-" + dd;
-                  var isSel = dateStr === selected;
-                  var isToday = dateStr === today;
-                  return (
-                    <button key={day} onClick={function () { selectDay(day); }}
-                      style={{ height: 28, borderRadius: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: isSel ? 700 : 500, color: isSel ? "#fff" : "var(--text)", background: isSel ? "var(--green)" : isToday ? "var(--green-dim)" : "transparent", transition: "all 120ms ease", display: "flex", alignItems: "center", justifyContent: "center" }}
-                      onMouseEnter={function (e) { if (!isSel) { e.currentTarget.style.background = "var(--surface)"; } }}
-                      onMouseLeave={function (e) { if (!isSel) { e.currentTarget.style.background = isToday ? "var(--green-dim)" : "transparent"; } }}>{day}</button>
-                  );
-                })}
-              </div>
+
+              {/* Month Picker */}
+              {showMonthPick && (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2, marginBottom: 6, animation: "fadeIn 120ms ease" }}>
+                  {months.map(function (m, idx) {
+                    var isSel = idx === viewMonth;
+                    return (
+                      <button key={m} onClick={function () { setViewMonth(idx); setShowMonthPick(false); }} style={{ padding: "5px 0", borderRadius: 5, border: "none", background: isSel ? "var(--green)" : "transparent", color: isSel ? "#fff" : "var(--text)", fontSize: 10, fontWeight: isSel ? 700 : 500, cursor: "pointer", fontFamily: "inherit", transition: "all 120ms ease" }}
+                        onMouseEnter={function (e) { if (!isSel) { e.currentTarget.style.background = "var(--surface)"; } }}
+                        onMouseLeave={function (e) { if (!isSel) { e.currentTarget.style.background = "transparent"; } }}>{m}</button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Year Picker */}
+              {showYearPick && (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2, marginBottom: 6, maxHeight: 120, overflowY: "auto", animation: "fadeIn 120ms ease" }}>
+                  {years.map(function (yr) {
+                    var isSel = yr === viewYear;
+                    return (
+                      <button key={yr} onClick={function () { setViewYear(yr); setShowYearPick(false); }} style={{ padding: "5px 0", borderRadius: 5, border: "none", background: isSel ? "var(--green)" : "transparent", color: isSel ? "#fff" : "var(--text)", fontSize: 10, fontWeight: isSel ? 700 : 500, cursor: "pointer", fontFamily: "inherit", transition: "all 120ms ease" }}
+                        onMouseEnter={function (e) { if (!isSel) { e.currentTarget.style.background = "var(--surface)"; } }}
+                        onMouseLeave={function (e) { if (!isSel) { e.currentTarget.style.background = "transparent"; } }}>{yr}</button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Days */}
+              {!showMonthPick && !showYearPick && (
+                <>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1, marginBottom: 1 }}>
+                    {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map(function (d) {
+                      return <span key={d} style={{ fontSize: 9, fontWeight: 700, color: "var(--muted)", textAlign: "center", padding: "2px 0" }}>{d}</span>;
+                    })}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1 }}>
+                    {days.map(function (day, idx) {
+                      if (day === null) return <div key={"e" + idx} style={{ height: 26 }} />;
+                      var m = String(viewMonth + 1).padStart(2, "0");
+                      var dd = String(day).padStart(2, "0");
+                      var dateStr = viewYear + "-" + m + "-" + dd;
+                      var isSel = dateStr === selected;
+                      var isToday = dateStr === today;
+                      return (
+                        <button key={day} onClick={function () { selectDay(day); }}
+                          style={{ height: 26, borderRadius: 5, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 10, fontWeight: isSel ? 700 : 500, color: isSel ? "#fff" : "var(--text)", background: isSel ? "var(--green)" : isToday ? "var(--green-dim)" : "transparent", transition: "all 120ms ease", display: "flex", alignItems: "center", justifyContent: "center" }}
+                          onMouseEnter={function (e) { if (!isSel) { e.currentTarget.style.background = "var(--surface)"; } }}
+                          onMouseLeave={function (e) { if (!isSel) { e.currentTarget.style.background = isToday ? "var(--green-dim)" : "transparent"; } }}>{day}</button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>
@@ -493,9 +522,9 @@ export default function TransactionsPage() {
             onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
             onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
         </div>
-        <Dropdown value={filterType} onChange={setFilterType} options={typeOptions} width={130} />
-        <Dropdown value={filterCat} onChange={setFilterCat} options={catOptions} width={150} />
-        <Dropdown value={filterDate} onChange={setFilterDate} options={dateOptions} width={130} />
+        <Dropdown value={filterType} onChange={setFilterType} options={typeOptions} width={125} />
+        <Dropdown value={filterCat} onChange={setFilterCat} options={catOptions} width={145} />
+        <Dropdown value={filterDate} onChange={setFilterDate} options={dateOptions} width={125} />
       </div>
 
       {/* Transaction List */}
@@ -527,8 +556,8 @@ export default function TransactionsPage() {
                     {t.source !== "manual" && <span style={{ fontSize: 9, fontWeight: 700, color: "var(--muted)", background: "var(--surface)", padding: "2px 6px", borderRadius: 4, textTransform: "uppercase" }}>{t.source}</span>}
                   </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginRight: 4 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginRight: 2 }}>
                     {t.type === "income" ? (
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" /></svg>
                     ) : (
@@ -536,13 +565,13 @@ export default function TransactionsPage() {
                     )}
                     <span style={{ fontSize: 15, fontWeight: 700, color: t.type === "income" ? "var(--green)" : "var(--red)", fontVariantNumeric: "tabular-nums" }}>{formatCurrency(Math.abs(t.amount))}</span>
                   </div>
-                  <button onClick={function () { openEdit(t); }} style={{ width: 28, height: 28, borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--faint)", transition: "all 150ms ease" }}
-                    onMouseEnter={function (e) { e.currentTarget.style.background = "var(--green-dim)"; e.currentTarget.style.color = "var(--green)"; e.currentTarget.style.transform = "scale(1.1)"; }}
+                  <button onClick={function () { openEdit(t); }} style={{ width: 26, height: 26, borderRadius: 5, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--faint)", transition: "all 150ms ease" }}
+                    onMouseEnter={function (e) { e.currentTarget.style.background = "var(--green-dim)"; e.currentTarget.style.color = "var(--green)"; e.currentTarget.style.transform = "scale(1.15)"; }}
                     onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--faint)"; e.currentTarget.style.transform = "scale(1)"; }}>
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                   </button>
-                  <button onClick={function () { deleteTx(t.id); }} style={{ width: 28, height: 28, borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--faint)", transition: "all 150ms ease" }}
-                    onMouseEnter={function (e) { e.currentTarget.style.background = "var(--red-dim)"; e.currentTarget.style.color = "var(--red)"; e.currentTarget.style.transform = "scale(1.1)"; }}
+                  <button onClick={function () { deleteTx(t.id); }} style={{ width: 26, height: 26, borderRadius: 5, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--faint)", transition: "all 150ms ease" }}
+                    onMouseEnter={function (e) { e.currentTarget.style.background = "var(--red-dim)"; e.currentTarget.style.color = "var(--red)"; e.currentTarget.style.transform = "scale(1.15)"; }}
                     onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--faint)"; e.currentTarget.style.transform = "scale(1)"; }}>
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
                   </button>
@@ -556,10 +585,10 @@ export default function TransactionsPage() {
       {/* ── ADD / EDIT MODAL ── */}
       {showAdd && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { resetForm(); setShowAdd(false); }}>
-          <div style={{ background: "var(--bg)", borderRadius: 20, padding: 28, width: "100%", maxWidth: 420, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16, 1, 0.3, 1)" }} onClick={function (e) { e.stopPropagation(); }}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", margin: "0 0 18px 0" }}>{editId ? "Edit Transaction" : "Add Transaction"}</h2>
+          <div style={{ background: "var(--bg)", borderRadius: 20, padding: 24, width: "100%", maxWidth: 400, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16, 1, 0.3, 1)" }} onClick={function (e) { e.stopPropagation(); }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: "0 0 14px 0" }}>{editId ? "Edit Transaction" : "Add Transaction"}</h2>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0, marginBottom: 14, background: "var(--surface)", borderRadius: 10, padding: 3, border: "1px solid var(--border)" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0, marginBottom: 12, background: "var(--surface)", borderRadius: 8, padding: 3, border: "1px solid var(--border)" }}>
               {(["expense", "income"] as const).map(function (tp) {
                 var isActive = addForm.type === tp;
                 return (
@@ -567,7 +596,7 @@ export default function TransactionsPage() {
                     var newCats = getCatsForType(tp);
                     var valid = newCats.some(function (c) { return c.name === addForm.category; });
                     setAddForm(function (f) { return { ...f, type: tp, category: valid ? f.category : newCats[0].name }; });
-                  }} style={{ padding: "9px 0", borderRadius: 8, border: "none", background: isActive ? "var(--bg)" : "transparent", color: isActive ? "var(--text)" : "var(--muted)", fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: "pointer", fontFamily: "inherit", transition: "all 200ms ease", boxShadow: isActive ? "0 1px 3px rgba(0,0,0,0.08)" : "none" }}>
+                  }} style={{ padding: "8px 0", borderRadius: 6, border: "none", background: isActive ? "var(--bg)" : "transparent", color: isActive ? "var(--text)" : "var(--muted)", fontSize: 12, fontWeight: isActive ? 700 : 500, cursor: "pointer", fontFamily: "inherit", transition: "all 200ms ease", boxShadow: isActive ? "0 1px 3px rgba(0,0,0,0.08)" : "none" }}>
                     {tp === "income" ? "Income" : "Expense"}
                   </button>
                 );
@@ -575,44 +604,44 @@ export default function TransactionsPage() {
             </div>
 
             <input type="text" inputMode="decimal" placeholder="0.00" value={addForm.amount} onChange={function (e) { handleAmountChange(e.target.value); }}
-              style={{ width: "100%", height: 48, padding: "0 14px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 22, fontWeight: 700, outline: "none", fontFamily: "inherit", marginBottom: 8, fontVariantNumeric: "tabular-nums", transition: "all 200ms ease", letterSpacing: -0.5 }}
+              style={{ width: "100%", height: 44, padding: "0 14px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 20, fontWeight: 700, outline: "none", fontFamily: "inherit", marginBottom: 8, fontVariantNumeric: "tabular-nums", transition: "all 200ms ease", letterSpacing: -0.5 }}
               onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
               onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
 
             <input type="text" placeholder="Merchant / Description" value={addForm.merchant} onChange={function (e) { setAddForm(function (f) { return { ...f, merchant: e.target.value }; }); }}
-              style={{ width: "100%", height: 44, padding: "0 14px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 14, outline: "none", fontFamily: "inherit", marginBottom: 12, transition: "all 200ms ease" }}
+              style={{ width: "100%", height: 40, padding: "0 14px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, outline: "none", fontFamily: "inherit", marginBottom: 10, transition: "all 200ms ease" }}
               onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
               onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
 
-            <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.06 }}>Category</p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 12 }}>
+            <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.06 }}>Category</p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 10 }}>
               {currentCats.map(function (c) {
                 var isActive = addForm.category === c.name;
                 return (
                   <button key={c.name} onClick={function () { setAddForm(function (f) { return { ...f, category: c.name }; }); }}
-                    style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid " + (isActive ? c.color + "40" : "var(--border)"), background: isActive ? c.bg : "transparent", cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease", display: "flex", alignItems: "center", gap: 4, transform: isActive ? "scale(1.04)" : "scale(1)" }}>
-                    <span style={{ width: 16, height: 16, borderRadius: 4, background: isActive ? c.color + "20" : "var(--surface)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 7, fontWeight: 800, color: c.color }}>{c.letters}</span>
-                    <span style={{ fontSize: 11, fontWeight: isActive ? 700 : 500, color: isActive ? c.color : "var(--muted)" }}>{c.name}</span>
+                    style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid " + (isActive ? c.color + "40" : "var(--border)"), background: isActive ? c.bg : "transparent", cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease", display: "flex", alignItems: "center", gap: 3, transform: isActive ? "scale(1.04)" : "scale(1)" }}>
+                    <span style={{ width: 14, height: 14, borderRadius: 3, background: isActive ? c.color + "20" : "var(--surface)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 6, fontWeight: 800, color: c.color }}>{c.letters}</span>
+                    <span style={{ fontSize: 10, fontWeight: isActive ? 700 : 500, color: isActive ? c.color : "var(--muted)" }}>{c.name}</span>
                   </button>
                 );
               })}
             </div>
 
-            <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.06 }}>Date</p>
-            <div style={{ marginBottom: 10 }}>
+            <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.06 }}>Date</p>
+            <div style={{ marginBottom: 8 }}>
               <CalendarDropdown value={addForm.date} onChange={function (val) { setAddForm(function (f) { return { ...f, date: val }; }); }} />
             </div>
 
             <input type="text" placeholder="Note (optional)" value={addForm.note} onChange={function (e) { setAddForm(function (f) { return { ...f, note: e.target.value }; }); }}
-              style={{ width: "100%", height: 44, padding: "0 14px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 14, outline: "none", fontFamily: "inherit", marginBottom: 18, transition: "all 200ms ease" }}
+              style={{ width: "100%", height: 40, padding: "0 14px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, outline: "none", fontFamily: "inherit", marginBottom: 14, transition: "all 200ms ease" }}
               onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
               onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
 
             <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={function () { resetForm(); setShowAdd(false); }} style={{ flex: 1, height: 44, borderRadius: 10, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }}
+              <button onClick={function () { resetForm(); setShowAdd(false); }} style={{ flex: 1, height: 42, borderRadius: 10, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }}
                 onMouseEnter={function (e) { e.currentTarget.style.background = "var(--surface)"; }}
                 onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; }}>Cancel</button>
-              <button onClick={saveForm} style={{ flex: 1, height: 44, borderRadius: 10, background: "var(--green)", border: "none", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 200ms ease", boxShadow: "0 2px 8px rgba(26, 143, 78, 0.2)" }}
+              <button onClick={saveForm} style={{ flex: 1, height: 42, borderRadius: 10, background: "var(--green)", border: "none", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 200ms ease", boxShadow: "0 2px 8px rgba(26, 143, 78, 0.2)" }}
                 onMouseEnter={function (e) { e.currentTarget.style.background = "var(--green-soft)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
                 onMouseLeave={function (e) { e.currentTarget.style.background = "var(--green)"; e.currentTarget.style.transform = "translateY(0)"; }}>{editId ? "Save" : "Add"}</button>
             </div>
@@ -623,22 +652,22 @@ export default function TransactionsPage() {
       {/* ── SMS MODAL ── */}
       {showSms && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowSms(false); }}>
-          <div style={{ background: "var(--bg)", borderRadius: 20, padding: 28, width: "100%", maxWidth: 480, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16, 1, 0.3, 1)" }} onClick={function (e) { e.stopPropagation(); }}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", margin: "0 0 6px 0" }}>Paste Bank SMS</h2>
-            <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 16px 0" }}>Works with any bank, any country. Just paste any message with an amount.</p>
+          <div style={{ background: "var(--bg)", borderRadius: 20, padding: 24, width: "100%", maxWidth: 480, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16, 1, 0.3, 1)" }} onClick={function (e) { e.stopPropagation(); }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: "0 0 6px 0" }}>Paste Bank SMS</h2>
+            <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 14px 0" }}>Works with any bank, any country. Just paste any message with an amount.</p>
             <textarea value={smsText} onChange={function (e) { setSmsText(e.target.value); setSmsError(""); }} placeholder={"Rs.2,500 debited from A/c XX1234. Info: Swiggy\n\n$45.00 spent at Starbucks\n\nINR 50000 credited - Salary"}
-              style={{ width: "100%", height: 120, borderRadius: 12, padding: "14px", fontSize: 13, fontFamily: "inherit", background: "var(--surface)", border: "1px solid " + (smsError ? "var(--red-border)" : "var(--border)"), color: "var(--text)", outline: "none", resize: "none", lineHeight: 1.6, marginBottom: smsError ? 10 : 12, transition: "all 200ms ease" }}
+              style={{ width: "100%", height: 110, borderRadius: 12, padding: "12px", fontSize: 12, fontFamily: "inherit", background: "var(--surface)", border: "1px solid " + (smsError ? "var(--red-border)" : "var(--border)"), color: "var(--text)", outline: "none", resize: "none", lineHeight: 1.6, marginBottom: smsError ? 8 : 10, transition: "all 200ms ease" }}
               onFocus={function (e) { if (!smsError) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; } }}
               onBlur={function (e) { e.currentTarget.style.borderColor = smsError ? "var(--red-border)" : "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
             {smsError && (
-              <div style={{ background: "var(--red-dim)", border: "1px solid var(--red-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 12, animation: "fadeIn 200ms ease" }}>
-                <p style={{ fontSize: 12, color: "var(--red)", margin: 0, lineHeight: 1.5 }}>{smsError}</p>
+              <div style={{ background: "var(--red-dim)", border: "1px solid var(--red-border)", borderRadius: 8, padding: "8px 12px", marginBottom: 10, animation: "fadeIn 200ms ease" }}>
+                <p style={{ fontSize: 11, color: "var(--red)", margin: 0, lineHeight: 1.5 }}>{smsError}</p>
               </div>
             )}
             {smsText.trim() && smartParse(smsText) && !smsError && (
-              <div style={{ background: "var(--green-dim)", border: "1px solid var(--green-border)", borderRadius: 12, padding: "14px 16px", marginBottom: 16, animation: "fadeIn 200ms ease" }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: "var(--green)", margin: "0 0 8px 0", textTransform: "uppercase", letterSpacing: 0.06 }}>Detected</p>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+              <div style={{ background: "var(--green-dim)", border: "1px solid var(--green-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 14, animation: "fadeIn 200ms ease" }}>
+                <p style={{ fontSize: 10, fontWeight: 600, color: "var(--green)", margin: "0 0 6px 0", textTransform: "uppercase", letterSpacing: 0.06 }}>Detected</p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
                   {[
                     { label: "Amount", value: formatCurrency(smartParse(smsText)!.amount), color: "var(--text)" },
                     { label: "Merchant", value: smartParse(smsText)!.merchant, color: "var(--text)" },
@@ -646,16 +675,16 @@ export default function TransactionsPage() {
                     { label: "Date", value: smartParse(smsText)!.date, color: "var(--text-secondary)" },
                     { label: "Type", value: smartParse(smsText)!.isIncome ? "Income" : "Expense", color: smartParse(smsText)!.isIncome ? "var(--green)" : "var(--red)" },
                   ].map(function (r) {
-                    return (<div key={r.label} style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontSize: 11, color: "var(--muted)" }}>{r.label}</span><span style={{ fontSize: 12, fontWeight: 600, color: r.color, fontVariantNumeric: "tabular-nums" }}>{r.value}</span></div>);
+                    return (<div key={r.label} style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontSize: 10, color: "var(--muted)" }}>{r.label}</span><span style={{ fontSize: 11, fontWeight: 600, color: r.color, fontVariantNumeric: "tabular-nums" }}>{r.value}</span></div>);
                   })}
                 </div>
               </div>
             )}
             <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={function () { setShowSms(false); }} style={{ flex: 1, height: 44, borderRadius: 10, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }}
+              <button onClick={function () { setShowSms(false); }} style={{ flex: 1, height: 42, borderRadius: 10, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }}
                 onMouseEnter={function (e) { e.currentTarget.style.background = "var(--surface)"; }}
                 onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; }}>Cancel</button>
-              <button onClick={addSms} style={{ flex: 1, height: 44, borderRadius: 10, background: "var(--green)", border: "none", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 200ms ease", boxShadow: "0 2px 8px rgba(26, 143, 78, 0.2)" }}
+              <button onClick={addSms} style={{ flex: 1, height: 42, borderRadius: 10, background: "var(--green)", border: "none", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 200ms ease", boxShadow: "0 2px 8px rgba(26, 143, 78, 0.2)" }}
                 onMouseEnter={function (e) { e.currentTarget.style.background = "var(--green-soft)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
                 onMouseLeave={function (e) { e.currentTarget.style.background = "var(--green)"; e.currentTarget.style.transform = "translateY(0)"; }}>Add Transaction</button>
             </div>
@@ -666,18 +695,18 @@ export default function TransactionsPage() {
       {/* ── CSV MODAL ── */}
       {showCsv && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowCsv(false); }}>
-          <div style={{ background: "var(--bg)", borderRadius: 20, padding: 28, width: "100%", maxWidth: 480, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16, 1, 0.3, 1)" }} onClick={function (e) { e.stopPropagation(); }}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", margin: "0 0 6px 0" }}>Import CSV</h2>
-            <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 16px 0" }}>Format: date, merchant, amount (one per line). Categories auto-detected.</p>
-            <textarea value={csvText} onChange={function (e) { setCsvText(e.target.value); }} placeholder={"2026-01-15, Swiggy, -250\n2026-01-14, Salary, 5000\n2026-01-13, Netflix, -15.99\n2026-01-12, Uber, -120"}
-              style={{ width: "100%", height: 140, borderRadius: 12, padding: "14px", fontSize: 13, fontFamily: "monospace", background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", outline: "none", resize: "none", lineHeight: 1.6, marginBottom: 16, transition: "all 200ms ease" }}
+          <div style={{ background: "var(--bg)", borderRadius: 20, padding: 24, width: "100%", maxWidth: 480, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16, 1, 0.3, 1)" }} onClick={function (e) { e.stopPropagation(); }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: "0 0 6px 0" }}>Import CSV</h2>
+            <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 14px 0" }}>Format: date, merchant, amount (one per line). Categories auto-detected.</p>
+            <textarea value={csvText} onChange={function (e) { setCsvText(e.target.value); }} placeholder={"2026-01-15, Swiggy, -250\n2026-01-14, Salary, 5000\n2026-01-13, Netflix, -15.99"}
+              style={{ width: "100%", height: 130, borderRadius: 12, padding: "12px", fontSize: 12, fontFamily: "monospace", background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", outline: "none", resize: "none", lineHeight: 1.6, marginBottom: 14, transition: "all 200ms ease" }}
               onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
               onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
             <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={function () { setShowCsv(false); }} style={{ flex: 1, height: 44, borderRadius: 10, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }}
+              <button onClick={function () { setShowCsv(false); }} style={{ flex: 1, height: 42, borderRadius: 10, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }}
                 onMouseEnter={function (e) { e.currentTarget.style.background = "var(--surface)"; }}
                 onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; }}>Cancel</button>
-              <button onClick={addCsv} disabled={!csvText.trim()} style={{ flex: 1, height: 44, borderRadius: 10, background: csvText.trim() ? "var(--green)" : "var(--card)", border: "none", color: csvText.trim() ? "#fff" : "var(--faint)", fontSize: 14, fontWeight: 600, cursor: csvText.trim() ? "pointer" : "not-allowed", fontFamily: "inherit", transition: "all 200ms ease", boxShadow: csvText.trim() ? "0 2px 8px rgba(26, 143, 78, 0.2)" : "none" }}
+              <button onClick={addCsv} disabled={!csvText.trim()} style={{ flex: 1, height: 42, borderRadius: 10, background: csvText.trim() ? "var(--green)" : "var(--card)", border: "none", color: csvText.trim() ? "#fff" : "var(--faint)", fontSize: 13, fontWeight: 600, cursor: csvText.trim() ? "pointer" : "not-allowed", fontFamily: "inherit", transition: "all 200ms ease", boxShadow: csvText.trim() ? "0 2px 8px rgba(26, 143, 78, 0.2)" : "none" }}
                 onMouseEnter={function (e) { if (csvText.trim()) { e.currentTarget.style.transform = "translateY(-1px)"; } }}
                 onMouseLeave={function (e) { e.currentTarget.style.transform = "translateY(0)"; }}>Import</button>
             </div>
