@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
 
 type Transaction = {
   id: string;
@@ -177,13 +176,10 @@ function CalendarDropdown(props: { value: string; onChange: (val: string) => voi
       </button>
       {open && (
         <div style={{ position: "absolute", bottom: 50, left: 0, right: 0, zIndex: 40, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 14, padding: 12, boxShadow: "var(--shadow-lg)", animation: "fadeIn 150ms cubic-bezier(0.16, 1, 0.3, 1)" }}>
-          {/* Toggle: Calendar / Custom */}
           <div style={{ display: "flex", gap: 0, marginBottom: 8, background: "var(--surface)", borderRadius: 8, padding: 2, border: "1px solid var(--border)" }}>
             <button onClick={function () { setCustomMode(false); setShowMonthPick(false); setShowYearPick(false); }} style={{ flex: 1, padding: "5px 0", borderRadius: 6, border: "none", background: !customMode ? "var(--bg)" : "transparent", color: !customMode ? "var(--text)" : "var(--muted)", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease", boxShadow: !customMode ? "0 1px 2px rgba(0,0,0,0.06)" : "none" }}>Calendar</button>
             <button onClick={function () { setCustomMode(true); setShowMonthPick(false); setShowYearPick(false); }} style={{ flex: 1, padding: "5px 0", borderRadius: 6, border: "none", background: customMode ? "var(--bg)" : "transparent", color: customMode ? "var(--text)" : "var(--muted)", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease", boxShadow: customMode ? "0 1px 2px rgba(0,0,0,0.06)" : "none" }}>Custom</button>
           </div>
-
-          {/* Custom date input */}
           {customMode ? (
             <div>
               <input type="text" placeholder="YYYY-MM-DD" value={customVal} onChange={function (e) { setCustomVal(e.target.value); }}
@@ -197,22 +193,22 @@ function CalendarDropdown(props: { value: string; onChange: (val: string) => voi
             </div>
           ) : (
             <>
-              {/* Nav: < Month Year > */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                 <button onClick={function () { if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); } else { setViewMonth(viewMonth - 1); } }} style={{ width: 24, height: 24, borderRadius: 5, background: "transparent", border: "1px solid var(--border)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text)", transition: "all 150ms ease" }}
                   onMouseEnter={function (e) { e.currentTarget.style.background = "var(--surface)"; }}
                   onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; }}>
                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
                 </button>
-                <button onClick={function () { setShowMonthPick(function (p) { return !p; }); setShowYearPick(false); }} style={{ padding: "2px 6px", borderRadius: 5, border: "none", background: showMonthPick ? "var(--green-dim)" : "transparent", color: showMonthPick ? "var(--green)" : "var(--text)", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease", whiteSpace: "nowrap" }}>{months[viewMonth]} {viewYear}</button>
+                <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <button onClick={function () { setShowMonthPick(function (p) { return !p; }); setShowYearPick(false); }} style={{ padding: "2px 6px", borderRadius: 5, border: "none", background: showMonthPick ? "var(--green-dim)" : "transparent", color: showMonthPick ? "var(--green)" : "var(--text)", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease", whiteSpace: "nowrap" }}>{months[viewMonth]}</button>
+                  <button onClick={function () { setShowYearPick(function (p) { return !p; }); setShowMonthPick(false); }} style={{ padding: "2px 6px", borderRadius: 5, border: "none", background: showYearPick ? "var(--green-dim)" : "transparent", color: showYearPick ? "var(--green)" : "var(--text)", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease", whiteSpace: "nowrap" }}>{viewYear}</button>
+                </div>
                 <button onClick={function () { if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); } else { setViewMonth(viewMonth + 1); } }} style={{ width: 24, height: 24, borderRadius: 5, background: "transparent", border: "1px solid var(--border)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text)", transition: "all 150ms ease" }}
                   onMouseEnter={function (e) { e.currentTarget.style.background = "var(--surface)"; }}
                   onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; }}>
                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
                 </button>
               </div>
-
-              {/* Month Picker */}
               {showMonthPick && (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2, marginBottom: 6, animation: "fadeIn 120ms ease" }}>
                   {months.map(function (m, idx) {
@@ -225,10 +221,8 @@ function CalendarDropdown(props: { value: string; onChange: (val: string) => voi
                   })}
                 </div>
               )}
-
-              {/* Year Picker */}
               {showYearPick && (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2, marginBottom: 6, maxHeight: 120, overflowY: "auto", animation: "fadeIn 120ms ease" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2, marginBottom: 6, maxHeight: 130, overflowY: "auto", animation: "fadeIn 120ms ease" }}>
                   {years.map(function (yr) {
                     var isSel = yr === viewYear;
                     return (
@@ -239,8 +233,6 @@ function CalendarDropdown(props: { value: string; onChange: (val: string) => voi
                   })}
                 </div>
               )}
-
-              {/* Days */}
               {!showMonthPick && !showYearPick && (
                 <>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1, marginBottom: 1 }}>
@@ -296,24 +288,24 @@ function Dropdown(props: {
   return (
     <div ref={ref} style={{ position: "relative", width: props.width || 150 }}>
       <button onClick={function () { setOpen(function (p) { return !p; }); }}
-        style={{ width: "100%", height: 40, padding: "0 14px", borderRadius: 10, background: open ? "var(--surface)" : "var(--bg)", border: "1px solid " + (open ? "var(--green-border)" : "var(--border)"), color: "var(--text)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)", boxShadow: open ? "0 0 0 3px var(--green-dim)" : "none", transform: open ? "scale(1.02)" : "scale(1)" }}>
-        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {selected && selected.letters && <span style={{ width: 18, height: 18, borderRadius: 4, background: selected.color ? selected.color + "15" : "var(--surface)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, color: selected.color || "var(--text)" }}>{selected.letters}</span>}
-          <span>{selected ? selected.label : props.value}</span>
+        style={{ width: "100%", height: 40, padding: "0 12px", borderRadius: 10, background: open ? "var(--surface)" : "var(--bg)", border: "1px solid " + (open ? "var(--green-border)" : "var(--border)"), color: "var(--text)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)", boxShadow: open ? "0 0 0 3px var(--green-dim)" : "none", transform: open ? "scale(1.02)" : "scale(1)" }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", overflow: "hidden" }}>
+          {selected && selected.letters && <span style={{ width: 18, height: 18, borderRadius: 4, background: selected.color ? selected.color + "15" : "var(--surface)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, color: selected.color || "var(--text)", flexShrink: 0 }}>{selected.letters}</span>}
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{selected ? selected.label : props.value}</span>
         </span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: "transform 200ms cubic-bezier(0.16, 1, 0.3, 1)", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}><polyline points="6 9 12 15 18 9" /></svg>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: "transform 200ms cubic-bezier(0.16, 1, 0.3, 1)", transform: open ? "rotate(180deg)" : "rotate(0deg)", flexShrink: 0 }}><polyline points="6 9 12 15 18 9" /></svg>
       </button>
       {open && (
         <div style={{ position: "absolute", top: 48, left: 0, right: 0, zIndex: 30, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: 4, boxShadow: "var(--shadow-lg)", animation: "fadeIn 150ms cubic-bezier(0.16, 1, 0.3, 1)", maxHeight: 240, overflowY: "auto" }}>
           {props.options.map(function (opt) {
             var isActive = opt.value === props.value;
             return (
-              <button key={opt.value} onClick={function () { props.onChange(opt.value); setOpen(false); }} style={{ width: "100%", padding: "8px 12px", borderRadius: 8, background: isActive ? "var(--green-dim)" : "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 8, transition: "all 120ms ease", color: isActive ? "var(--green)" : "var(--text)" }}
+              <button key={opt.value} onClick={function () { props.onChange(opt.value); setOpen(false); }} style={{ width: "100%", padding: "8px 12px", borderRadius: 8, background: isActive ? "var(--green-dim)" : "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 8, transition: "all 120ms ease", color: isActive ? "var(--green)" : "var(--text)", whiteSpace: "nowrap" }}
                 onMouseEnter={function (e) { if (!isActive) { e.currentTarget.style.background = "var(--surface)"; } }}
                 onMouseLeave={function (e) { if (!isActive) { e.currentTarget.style.background = "transparent"; } }}>
-                {opt.letters && <span style={{ width: 20, height: 20, borderRadius: 5, background: opt.color ? opt.color + "15" : "var(--surface)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, color: opt.color || "var(--muted)" }}>{opt.letters}</span>}
+                {opt.letters && <span style={{ width: 20, height: 20, borderRadius: 5, background: opt.color ? opt.color + "15" : "var(--surface)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, color: opt.color || "var(--muted)", flexShrink: 0 }}>{opt.letters}</span>}
                 <span style={{ fontSize: 13, fontWeight: isActive ? 600 : 500 }}>{opt.label}</span>
-                {isActive && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: "auto" }}><polyline points="20 6 9 17 4 12" /></svg>}
+                {isActive && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: "auto", flexShrink: 0 }}><polyline points="20 6 9 17 4 12" /></svg>}
               </button>
             );
           })}
@@ -323,15 +315,16 @@ function Dropdown(props: {
   );
 }
 
-function getDateRange(filter: string): { start: string; end: string } | null {
+function getDateRange(filter: string, customFrom?: string, customTo?: string): { start: string; end: string } | null {
   var now = new Date();
   var today = now.toISOString().split("T")[0];
+  if (filter === "custom" && customFrom) return { start: customFrom, end: customTo || customFrom };
   if (filter === "today") return { start: today, end: today };
-  if (filter === "yesterday") { var y = new Date(now); y.setDate(y.getDate() - 1); var ys = y.toISOString().split("T")[0]; return { start: ys, end: ys }; }
-  if (filter === "this_week") { var start = new Date(now); start.setDate(start.getDate() - start.getDay()); return { start: start.toISOString().split("T")[0], end: today }; }
-  if (filter === "this_month") { return { start: now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-01", end: today }; }
+  if (filter === "yesterday") { var y = new Date(now); y.setDate(y.getDate() - 1); return { start: y.toISOString().split("T")[0], end: y.toISOString().split("T")[0] }; }
+  if (filter === "this_week") { var s = new Date(now); s.setDate(s.getDate() - s.getDay()); return { start: s.toISOString().split("T")[0], end: today }; }
+  if (filter === "this_month") return { start: now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-01", end: today };
   if (filter === "last_month") { var lm = new Date(now.getFullYear(), now.getMonth() - 1, 1); var lme = new Date(now.getFullYear(), now.getMonth(), 0); return { start: lm.toISOString().split("T")[0], end: lme.toISOString().split("T")[0] }; }
-  if (filter === "this_year") { return { start: now.getFullYear() + "-01-01", end: today }; }
+  if (filter === "this_year") return { start: now.getFullYear() + "-01-01", end: today };
   return null;
 }
 
@@ -345,6 +338,8 @@ export default function TransactionsPage() {
   var [filterCat, setFilterCat] = useState("All");
   var [filterType, setFilterType] = useState("all");
   var [filterDate, setFilterDate] = useState("all");
+  var [customFrom, setCustomFrom] = useState("");
+  var [customTo, setCustomTo] = useState("");
   var [addForm, setAddForm] = useState({ amount: "", merchant: "", category: "Food", type: "expense" as "income" | "expense", date: new Date().toISOString().split("T")[0], note: "" });
   var [smsText, setSmsText] = useState("");
   var [csvText, setCsvText] = useState("");
@@ -430,7 +425,7 @@ export default function TransactionsPage() {
 
   var deleteTx = function (id: string) { setTransactions(function (prev) { return prev.filter(function (t) { return t.id !== id; }); }); };
 
-  var dateRange = getDateRange(filterDate);
+  var dateRange = getDateRange(filterDate, customFrom, customTo);
 
   var filtered = transactions.filter(function (t) {
     if (search && !t.merchant.toLowerCase().includes(search.toLowerCase()) && !t.category.toLowerCase().includes(search.toLowerCase())) return false;
@@ -458,6 +453,7 @@ export default function TransactionsPage() {
     { value: "this_month", label: "This month", letters: "TM", color: "#F97316" },
     { value: "last_month", label: "Last month", letters: "LM", color: "#EC4899" },
     { value: "this_year", label: "This year", letters: "TY", color: "#22C55E" },
+    { value: "custom", label: "Custom date", letters: "CD", color: "#F59E0B" },
   ];
 
   var allCatNames = Array.from(new Set(transactions.map(function (t) { return t.category; })));
@@ -469,7 +465,6 @@ export default function TransactionsPage() {
 
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "32px 0" }}>
-      {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32, flexWrap: "wrap", gap: 16 }}>
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 700, color: "var(--text)", letterSpacing: -0.5, margin: "0 0 4px 0" }}>Transactions</h1>
@@ -479,25 +474,21 @@ export default function TransactionsPage() {
           <button onClick={function () { setShowSms(true); setSmsError(""); }} style={{ height: 40, padding: "0 16px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)" }}
             onMouseEnter={function (e) { e.currentTarget.style.background = "var(--card)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
             onMouseLeave={function (e) { e.currentTarget.style.background = "var(--surface)"; e.currentTarget.style.transform = "translateY(0)"; }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>
-            SMS
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>SMS
           </button>
           <button onClick={function () { setShowCsv(true); }} style={{ height: 40, padding: "0 16px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)" }}
             onMouseEnter={function (e) { e.currentTarget.style.background = "var(--card)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
             onMouseLeave={function (e) { e.currentTarget.style.background = "var(--surface)"; e.currentTarget.style.transform = "translateY(0)"; }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
-            CSV
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>CSV
           </button>
           <button onClick={openAdd} style={{ height: 40, padding: "0 18px", borderRadius: 10, background: "var(--green)", border: "none", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)", boxShadow: "0 2px 8px rgba(26, 143, 78, 0.2)" }}
             onMouseEnter={function (e) { e.currentTarget.style.background = "var(--green-soft)"; e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(26, 143, 78, 0.3)"; }}
             onMouseLeave={function (e) { e.currentTarget.style.background = "var(--green)"; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(26, 143, 78, 0.2)"; }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-            Add
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>Add
           </button>
         </div>
       </div>
 
-      {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 24 }}>
         <div style={{ background: "var(--surface)", borderRadius: 12, padding: "16px 18px", border: "1px solid var(--border)" }}>
           <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.06, margin: "0 0 4px 0" }}>Income</p>
@@ -513,7 +504,6 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      {/* Search & Filters */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ flex: 1, minWidth: 180, position: "relative" }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 12, top: 13 }}><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
@@ -522,12 +512,26 @@ export default function TransactionsPage() {
             onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
             onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
         </div>
-        <Dropdown value={filterType} onChange={setFilterType} options={typeOptions} width={125} />
-        <Dropdown value={filterCat} onChange={setFilterCat} options={catOptions} width={145} />
-        <Dropdown value={filterDate} onChange={setFilterDate} options={dateOptions} width={125} />
+        <Dropdown value={filterType} onChange={setFilterType} options={typeOptions} width={130} />
+        <Dropdown value={filterCat} onChange={setFilterCat} options={catOptions} width={155} />
+        <Dropdown value={filterDate} onChange={setFilterDate} options={dateOptions} width={140} />
       </div>
 
-      {/* Transaction List */}
+      {filterDate === "custom" && (
+        <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", animation: "fadeIn 200ms ease" }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", whiteSpace: "nowrap" }}>From</span>
+          <input type="text" placeholder="YYYY-MM-DD" value={customFrom} onChange={function (e) { setCustomFrom(e.target.value); }}
+            style={{ width: 130, height: 36, padding: "0 10px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 12, outline: "none", fontFamily: "inherit", fontVariantNumeric: "tabular-nums", transition: "all 200ms ease" }}
+            onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--green-dim)"; }}
+            onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", whiteSpace: "nowrap" }}>To</span>
+          <input type="text" placeholder="YYYY-MM-DD" value={customTo} onChange={function (e) { setCustomTo(e.target.value); }}
+            style={{ width: 130, height: 36, padding: "0 10px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 12, outline: "none", fontFamily: "inherit", fontVariantNumeric: "tabular-nums", transition: "all 200ms ease" }}
+            onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--green-dim)"; }}
+            onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
+        </div>
+      )}
+
       {filtered.length === 0 ? (
         <div style={{ textAlign: "center", padding: "80px 20px" }}>
           <div style={{ width: 64, height: 64, borderRadius: 16, background: "var(--green-dim)", border: "1px solid var(--green-border)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
@@ -582,12 +586,10 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      {/* ── ADD / EDIT MODAL ── */}
       {showAdd && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { resetForm(); setShowAdd(false); }}>
           <div style={{ background: "var(--bg)", borderRadius: 20, padding: 24, width: "100%", maxWidth: 400, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16, 1, 0.3, 1)" }} onClick={function (e) { e.stopPropagation(); }}>
             <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: "0 0 14px 0" }}>{editId ? "Edit Transaction" : "Add Transaction"}</h2>
-
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0, marginBottom: 12, background: "var(--surface)", borderRadius: 8, padding: 3, border: "1px solid var(--border)" }}>
               {(["expense", "income"] as const).map(function (tp) {
                 var isActive = addForm.type === tp;
@@ -602,17 +604,14 @@ export default function TransactionsPage() {
                 );
               })}
             </div>
-
             <input type="text" inputMode="decimal" placeholder="0.00" value={addForm.amount} onChange={function (e) { handleAmountChange(e.target.value); }}
               style={{ width: "100%", height: 44, padding: "0 14px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 20, fontWeight: 700, outline: "none", fontFamily: "inherit", marginBottom: 8, fontVariantNumeric: "tabular-nums", transition: "all 200ms ease", letterSpacing: -0.5 }}
               onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
               onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
-
             <input type="text" placeholder="Merchant / Description" value={addForm.merchant} onChange={function (e) { setAddForm(function (f) { return { ...f, merchant: e.target.value }; }); }}
               style={{ width: "100%", height: 40, padding: "0 14px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, outline: "none", fontFamily: "inherit", marginBottom: 10, transition: "all 200ms ease" }}
               onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
               onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
-
             <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.06 }}>Category</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 10 }}>
               {currentCats.map(function (c) {
@@ -626,17 +625,14 @@ export default function TransactionsPage() {
                 );
               })}
             </div>
-
             <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.06 }}>Date</p>
             <div style={{ marginBottom: 8 }}>
               <CalendarDropdown value={addForm.date} onChange={function (val) { setAddForm(function (f) { return { ...f, date: val }; }); }} />
             </div>
-
             <input type="text" placeholder="Note (optional)" value={addForm.note} onChange={function (e) { setAddForm(function (f) { return { ...f, note: e.target.value }; }); }}
               style={{ width: "100%", height: 40, padding: "0 14px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, outline: "none", fontFamily: "inherit", marginBottom: 14, transition: "all 200ms ease" }}
               onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
               onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
-
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={function () { resetForm(); setShowAdd(false); }} style={{ flex: 1, height: 42, borderRadius: 10, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }}
                 onMouseEnter={function (e) { e.currentTarget.style.background = "var(--surface)"; }}
@@ -649,7 +645,6 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      {/* ── SMS MODAL ── */}
       {showSms && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowSms(false); }}>
           <div style={{ background: "var(--bg)", borderRadius: 20, padding: 24, width: "100%", maxWidth: 480, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16, 1, 0.3, 1)" }} onClick={function (e) { e.stopPropagation(); }}>
@@ -692,7 +687,6 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      {/* ── CSV MODAL ── */}
       {showCsv && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowCsv(false); }}>
           <div style={{ background: "var(--bg)", borderRadius: 20, padding: 24, width: "100%", maxWidth: 480, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16, 1, 0.3, 1)" }} onClick={function (e) { e.stopPropagation(); }}>
