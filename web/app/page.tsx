@@ -224,9 +224,7 @@ export default function Home() {
           border: "1px solid var(--border)",
           position: "relative", overflow: "hidden",
         }}>
-          {/* Gradient orb */}
           <div style={{ position: "absolute", top: -60, right: -60, width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle, var(--green-glow) 0%, transparent 70%)", pointerEvents: "none" }} />
-
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 28, position: "relative" }}>
             <div style={{ width: 8, height: 8, borderRadius: 4, background: "var(--green)", boxShadow: "0 0 10px var(--green-glow)" }} />
             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--green)" }}>Calm</span>
@@ -265,7 +263,7 @@ export default function Home() {
             { n: "03", title: "Built for the world.", desc: "Tax optimization for every country. Old vs New regime in India. Standard vs Itemized in the US. Category-wise deductions everywhere." },
           ].map(function (s, i) {
             return (
-              <div key={s.n} className={"reveal reveal-delay-" + (i + 1)} style={{ display: "flex", gap: 36, alignItems: "start" }} className="lp-why-item reveal">
+              <div key={s.n} className={"reveal reveal-delay-" + (i + 1)} style={{ display: "flex", gap: 36, alignItems: "start" }}>
                 <span style={{ fontSize: 44, fontWeight: 800, color: "var(--border-light)", letterSpacing: -1, lineHeight: 1, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{s.n}</span>
                 <div>
                   <h3 style={{ fontSize: 24, fontWeight: 700, color: "var(--text)", margin: "0 0 10px 0", letterSpacing: -0.3, fontFamily: "Georgia, 'Times New Roman', serif" }}>{s.title}</h3>
@@ -436,10 +434,7 @@ export default function Home() {
           .lp-hero h1 { font-size: 42px !important; letter-spacing: -1.5 !important; }
           .lp-preview { padding: 10px 20px 80px !important; }
           .lp-preview > div { padding: 28px 24px !important; }
-          .lp-preview > div > p:first-of-type { font-size: 32px !important; }
           .lp-why, .lp-sms, .lp-budget, .lp-stats, .lp-pricing, .lp-sec, .lp-cta { padding: 80px 20px !important; }
-          .lp-why-item { flex-direction: column !important; gap: 12px !important; }
-          .lp-why-item span { font-size: 28px !important; }
           .lp-sms-grid { grid-template-columns: 1fr !important; }
           .lp-stats3 { grid-template-columns: 1fr !important; }
           .lp-price3 { grid-template-columns: 1fr !important; }
