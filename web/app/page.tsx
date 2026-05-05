@@ -209,11 +209,11 @@ export default function Home() {
             { illus: <IllusShield />, title: "Bank-level security", desc: "AES-256 encrypted. Read-only access. No data selling. GDPR & DPDPA compliant. Delete anytime.", rev: true },
           ].map(function (f, i) {
             return (
-              <div key={f.title} className="reveal" style={{
+              <div key={f.title} className="reveal lp-feat-row" style={{
                 display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center",
                 marginBottom: i < 3 ? 100 : 0,
                 direction: f.rev ? "rtl" : "ltr",
-              }} className="lp-feat-row">
+              }}>
                 <div style={{ direction: "ltr" }}>
                   {f.illus}
                 </div>
@@ -285,7 +285,7 @@ export default function Home() {
                   {p.features.map(function (f) {
                     return (
                       <div key={f} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={p.hl ? "#1A8F4E" : "#1A8F4E"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A8F4E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                         <span style={{ fontSize: 13, color: p.hl ? "rgba(255,255,255,0.6)" : "#888" }}>{f}</span>
                       </div>
                     );
