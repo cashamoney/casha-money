@@ -33,6 +33,15 @@ type TransferRecord = {
 
 type Profile = { name: string; email: string };
 
+type Preset = {
+  type: "bank" | "upi" | "cash" | "card";
+  label: string;
+  color: string;
+  icon: string;
+  desc: string;
+  fields: Record<string, string>;
+};
+
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
 }
@@ -43,11 +52,11 @@ function formatCurrency(n: number) {
   return (n < 0 ? "-" : "") + "$" + str;
 }
 
-var PRESETS = [
-  { type: "bank" as const, label: "Bank Account", color: "#3B82F6", icon: "BK", desc: "Savings, checking, current", fields: { bankName: "Bank name (e.g. SBI, HDFC)", accountNumber: "Last 4 digits", holderName: "Your name" } },
-  { type: "upi" as const, label: "UPI", color: "#8B5CF6", icon: "UP", desc: "GPay, PhonePe, Paytm", fields: { platform: "Platform (e.g. GPay)", upiId: "UPI ID (e.g. name@upi)", holderName: "Your name" } },
-  { type: "cash" as const, label: "Cash", color: "#22C55E", icon: "CA", desc: "Wallet, purse, hand cash", fields: { holderName: "Label (e.g. My Wallet)" } },
-  { type: "card" as const, label: "Card", color: "#F97316", icon: "CD", desc: "Credit or debit card", fields: { bankName: "Bank name", cardNumber: "Card number", expiry: "MM/YY", holderName: "Name on card" } },
+var PRESETS: Preset[] = [
+  { type: "bank", label: "Bank Account", color: "#3B82F6", icon: "BK", desc: "Savings, checking, current", fields: { bankName: "Bank name (e.g. SBI, HDFC)", accountNumber: "Last 4 digits", holderName: "Your name" } },
+  { type: "upi", label: "UPI", color: "#8B5CF6", icon: "UP", desc: "GPay, PhonePe, Paytm", fields: { platform: "Platform (e.g. GPay)", upiId: "UPI ID (e.g. name@upi)", holderName: "Your name" } },
+  { type: "cash", label: "Cash", color: "#22C55E", icon: "CA", desc: "Wallet, purse, hand cash", fields: { holderName: "Label (e.g. My Wallet)" } },
+  { type: "card", label: "Card", color: "#F97316", icon: "CD", desc: "Credit or debit card", fields: { bankName: "Bank name", cardNumber: "Card number", expiry: "MM/YY", holderName: "Name on card" } },
 ];
 
 function detectCardType(n: string): string {
@@ -256,7 +265,8 @@ export default function AccountsPage() {
   var getAccTx = function (id: string) { return transactions.filter(function (t) { return t.accountId === id; }).slice(0, 5); };
   var initials = profile.name.split(" ").map(function (w) { return w[0] || ""; }).join("").toUpperCase().substring(0, 2);
 
-  var currentFields: Record<string, string> = PRESETS.find(function (p) { return p.type === selectedType; })?.fields || {};
+  var currentPreset = PRESETS.find(function (p) { return p.type === selectedType; });
+  var currentFields: Record<string, string> = currentPreset ? currentPreset.fields : {};
 
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "28px 0 40px" }}>
