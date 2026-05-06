@@ -147,6 +147,12 @@ export default function AccountsPage() {
   var [showAdd, setShowAdd] = useState(false);
   var [showAddMoney, setShowAddMoney] = useState(false);
   var [showTransfer, setShowTransfer] = useState(false);
+  var [showEdit, setShowEdit] = useState(false);
+  var [editId, setEditId] = useState("");
+  var [editName, setEditName] = useState("");
+  var [editType, setEditType] = useState<"bank" | "upi" | "cash" | "card">("bank");
+  var [editBalance, setEditBalance] = useState("");
+  var [editFields, setEditFields] = useState<Record<string, string>>({});
   var [addMoneyAccountId, setAddMoneyAccountId] = useState("");
   var [addMoneyAmount, setAddMoneyAmount] = useState("");
   var [transferFrom, setTransferFrom] = useState("");
@@ -214,6 +220,30 @@ export default function AccountsPage() {
     if (acc) showToast(acc.name + " removed");
   };
 
+  var openEdit = function (acc: Account) {
+    setEditId(acc.id);
+    setEditName(acc.name);
+    setEditType(acc.type);
+    setEditBalance(String(acc.balance));
+    setEditFields({ ...acc.details });
+    setShowEdit(true);
+  };
+
+  var doEdit = function () {
+    var pr = PRESETS.find(function (p) { return p.type === editType; });
+    if (!pr) return;
+    var finalName = editName.trim() || editFields.holderName || editFields.bankName || editFields.platform || pr.label;
+    var newBal = parseFloat(editBalance) || 0;
+    setAccounts(function (prev) {
+      return prev.map(function (a) {
+        if (a.id !== editId) return a;
+        return { ...a, name: finalName, type: editType, color: pr.color, balance: newBal, details: { ...editFields } };
+      });
+    });
+    setShowEdit(false);
+    showToast(finalName + " updated");
+  };
+
   var doAddMoney = function () {
     var amt = parseFloat(addMoneyAmount);
     if (!amt || amt <= 0 || !addMoneyAccountId) return;
@@ -267,6 +297,9 @@ export default function AccountsPage() {
 
   var currentPreset = PRESETS.find(function (p) { return p.type === selectedType; });
   var currentFields: Record<string, string> = currentPreset ? currentPreset.fields : {};
+
+  var editPreset = PRESETS.find(function (p) { return p.type === editType; });
+  var editCurrentFields: Record<string, string> = editPreset ? editPreset.fields : {};
 
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "28px 0 40px" }}>
@@ -407,6 +440,11 @@ export default function AccountsPage() {
                         )}
                       </div>
                       <div style={{ display: "flex", gap: 6 }}>
+                        <button onClick={function (e) { e.stopPropagation(); openEdit(acc); }} style={{ flex: 1, height: 30, borderRadius: 6, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease", display: "flex", alignItems: "center", justifyContent: "center", gap: 3 }}
+                          onMouseEnter={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.color = "var(--green)"; }}
+                          onMouseLeave={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text)"; }}>
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>Edit
+                        </button>
                         <button onClick={function (e) { e.stopPropagation(); setAddMoneyAccountId(acc.id); setAddMoneyAmount(""); setShowAddMoney(true); }} style={{ flex: 1, height: 30, borderRadius: 6, background: "var(--green-dim)", border: "1px solid var(--green-border)", color: "var(--green)", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }}
                           onMouseEnter={function (e) { e.currentTarget.style.background = "var(--green)"; e.currentTarget.style.color = "#fff"; }}
                           onMouseLeave={function (e) { e.currentTarget.style.background = "var(--green-dim)"; e.currentTarget.style.color = "var(--green)"; }}>+ Add Money</button>
@@ -566,6 +604,58 @@ export default function AccountsPage() {
               <button onClick={addAccount} style={{ flex: 1, height: 38, borderRadius: 8, background: "var(--green)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(26,143,78,0.15)", transition: "all 200ms ease" }}
                 onMouseEnter={function (e) { e.currentTarget.style.transform = "translateY(-1px)"; }}
                 onMouseLeave={function (e) { e.currentTarget.style.transform = "translateY(0)"; }}>Add Account</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEdit && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowEdit(false); }}>
+          <div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 400, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 4px 0" }}>Edit Account</h2>
+            <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 12px 0" }}>Change name, type, balance, or details.</p>
+
+            <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 4px 0" }}>Account name</p>
+            <input type="text" placeholder="Account name" value={editName} onChange={function (e) { setEditName(e.target.value); }}
+              style={{ width: "100%", height: 38, padding: "0 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, fontWeight: 600, outline: "none", fontFamily: "inherit", marginBottom: 10, transition: "all 200ms ease" }}
+              onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--green-dim)"; }}
+              onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
+
+            <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 4px 0" }}>Type</p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 4, marginBottom: 10 }}>
+              {PRESETS.map(function (p) {
+                var isActive = editType === p.type;
+                return (
+                  <button key={p.type} onClick={function () { setEditType(p.type); }} style={{ padding: "8px 0", borderRadius: 7, border: "1px solid " + (isActive ? p.color + "40" : "var(--border)"), background: isActive ? p.color + "10" : "transparent", cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                    <span style={{ width: 24, height: 24, borderRadius: 6, background: isActive ? p.color + "18" : "var(--surface)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: p.color }}>{p.icon}</span>
+                    <span style={{ fontSize: 9, fontWeight: isActive ? 700 : 500, color: isActive ? p.color : "var(--muted)" }}>{p.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 4px 0" }}>Balance</p>
+            <input type="text" inputMode="decimal" placeholder="0.00" value={editBalance} onChange={function (e) { setEditBalance(e.target.value.replace(/[^0-9.\-]/g, "")); }}
+              style={{ width: "100%", height: 44, padding: "0 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 18, fontWeight: 700, outline: "none", fontFamily: "inherit", fontVariantNumeric: "tabular-nums", marginBottom: 10, transition: "all 200ms ease" }}
+              onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--green-dim)"; }}
+              onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
+
+            <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 4px 0" }}>Details</p>
+            {Object.keys(editCurrentFields).map(function (key) {
+              var ph = editCurrentFields[key];
+              return (
+                <input key={key} type="text" placeholder={ph} value={editFields[key] || ""} onChange={function (e) { setEditFields(function (f) { var n = { ...f }; n[key] = key === "cardNumber" ? fmtCard(e.target.value) : key === "expiry" ? fmtExp(e.target.value) : e.target.value; return n; }); }}
+                  style={{ width: "100%", height: 38, padding: "0 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 12, outline: "none", fontFamily: "inherit", marginBottom: 6, transition: "all 200ms ease" }}
+                  onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--green-dim)"; }}
+                  onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
+              );
+            })}
+
+            <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+              <button onClick={function () { setShowEdit(false); }} style={{ flex: 1, height: 38, borderRadius: 8, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+              <button onClick={doEdit} style={{ flex: 1, height: 38, borderRadius: 8, background: "var(--green)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(26,143,78,0.15)", transition: "all 200ms ease" }}
+                onMouseEnter={function (e) { e.currentTarget.style.transform = "translateY(-1px)"; }}
+                onMouseLeave={function (e) { e.currentTarget.style.transform = "translateY(0)"; }}>Save Changes</button>
             </div>
           </div>
         </div>
