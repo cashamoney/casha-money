@@ -2,6 +2,17 @@
 
 import { useState, useEffect, useRef } from "react";
 
+type AccountType = "bank" | "upi" | "cash" | "card";
+
+type Account = {
+  id: string;
+  type: AccountType;
+  name: string;
+  balance: number;
+  color: string;
+  details: Record<string, string>;
+};
+
 type Transaction = {
   id: string;
   amount: number;
@@ -10,707 +21,565 @@ type Transaction = {
   category: string;
   date: string;
   note: string;
-  source: "manual" | "sms" | "csv";
+  source: "manual" | "sms" | "csv" | "auto";
+  accountId?: string;
+  toAccountId?: string;
 };
 
-var EXPENSE_CATS = [
-  { name: "Food", color: "#F97316", bg: "#FFF7ED", letters: "FD" },
-  { name: "Transport", color: "#3B82F6", bg: "#EFF6FF", letters: "TR" },
-  { name: "Shopping", color: "#A855F7", bg: "#FAF5FF", letters: "SH" },
-  { name: "Entertainment", color: "#EC4899", bg: "#FDF2F8", letters: "EN" },
-  { name: "Bills", color: "#EAB308", bg: "#FEFCE8", letters: "BL" },
-  { name: "Rent", color: "#EF4444", bg: "#FEF2F2", letters: "RN" },
-  { name: "Health", color: "#14B8A6", bg: "#F0FDFA", letters: "HT" },
-  { name: "Education", color: "#6366F1", bg: "#EEF2FF", letters: "ED" },
-  { name: "Investment", color: "#06B6D4", bg: "#ECFEFF", letters: "IV" },
-  { name: "Other", color: "#6B7280", bg: "#F9FAFB", letters: "OT" },
-];
+type TransferRecord = {
+  id: string;
+  from: string;
+  to: string;
+  amount: number;
+  date: string;
+};
 
-var INCOME_CATS = [
-  { name: "Salary", color: "#22C55E", bg: "#F0FDF4", letters: "SA" },
-  { name: "Freelance", color: "#10B981", bg: "#ECFDF5", letters: "FR" },
-  { name: "Returns", color: "#06B6D4", bg: "#ECFEFF", letters: "RT" },
-  { name: "Dividend", color: "#0EA5E9", bg: "#F0F9FF", letters: "DV" },
-  { name: "Interest", color: "#8B5CF6", bg: "#F5F3FF", letters: "NT" },
-  { name: "Cashback", color: "#F59E0B", bg: "#FFFBEB", letters: "CB" },
-  { name: "Refund", color: "#6366F1", bg: "#EEF2FF", letters: "RF" },
-  { name: "Gift", color: "#EC4899", bg: "#FDF2F8", letters: "GF" },
-  { name: "Rental", color: "#14B8A6", bg: "#F0FDFA", letters: "RL" },
-  { name: "Bonus", color: "#F97316", bg: "#FFF7ED", letters: "BN" },
-  { name: "Other", color: "#6B7280", bg: "#F9FAFB", letters: "OT" },
-];
+type Profile = { name: string; email: string };
 
-var ALL_CATS = EXPENSE_CATS.concat(INCOME_CATS);
+var CAT_MAP: Record<string, { color: string; bg: string; label: string }> = {
+  Food: { color: "#F97316", bg: "#FFF7ED", label: "FD" },
+  Transport: { color: "#3B82F6", bg: "#EFF6FF", label: "TR" },
+  Shopping: { color: "#A855F7", bg: "#FAF5FF", label: "SH" },
+  Entertainment: { color: "#EC4899", bg: "#FDF2F8", label: "EN" },
+  Bills: { color: "#EAB308", bg: "#FEFCE8", label: "BL" },
+  Rent: { color: "#EF4444", bg: "#FEF2F2", label: "RN" },
+  Health: { color: "#14B8A6", bg: "#F0FDFA", label: "HT" },
+  Education: { color: "#6366F1", bg: "#EEF2FF", label: "ED" },
+  Investment: { color: "#06B6D4", bg: "#ECFEFF", label: "IV" },
+  Salary: { color: "#22C55E", bg: "#F0FDF4", label: "SA" },
+  Transfer: { color: "#8B5CF6", bg: "#FAF5FF", label: "TF" },
+  Other: { color: "#6B7280", bg: "#F9FAFB", label: "OT" },
+};
 
-function getCat(name: string) {
-  return ALL_CATS.find(function (c) { return c.name === name; }) || { name: name, color: "#6B7280", bg: "#F9FAFB", letters: "OT" };
+function getCatInfo(name: string): { color: string; bg: string; label: string } {
+  var info = CAT_MAP[name];
+  return info || { color: "#6B7280", bg: "#F9FAFB", label: "OT" };
 }
 
-function getCatsForType(type: "income" | "expense") {
-  return type === "income" ? INCOME_CATS : EXPENSE_CATS;
-}
-
-function generateId() {
-  return Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
-}
-
-function formatCurrency(n: number) {
+function formatCurrency(n: number): string {
   var abs = Math.abs(n);
   var str = abs.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return (n < 0 ? "-" : "") + "$" + str;
 }
 
-function detectCategory(text: string): { category: string; isIncome: boolean } {
-  var l = text.toLowerCase();
-  var isIncome = l.includes("credited") || l.includes("received") || l.includes("deposited") || l.includes("salary") || l.includes("income") || l.includes("refund") || l.includes("dividend") || l.includes("interest") || l.includes("cashback") || l.includes("freelance") || l.includes("bonus") || l.includes("gift") || l.includes("rental");
-  if (isIncome) {
-    var cat = "Salary";
-    if (l.includes("freelance")) cat = "Freelance";
-    else if (l.includes("dividend")) cat = "Dividend";
-    else if (l.includes("interest")) cat = "Interest";
-    else if (l.includes("cashback")) cat = "Cashback";
-    else if (l.includes("refund")) cat = "Refund";
-    else if (l.includes("gift")) cat = "Gift";
-    else if (l.includes("bonus")) cat = "Bonus";
-    else if (l.includes("rental")) cat = "Rental";
-    else if (l.includes("invest") || l.includes("return")) cat = "Returns";
-    else if (!l.includes("salary")) cat = "Other";
-    return { category: cat, isIncome: true };
-  }
-  var cat = "Other";
-  if (l.includes("swiggy") || l.includes("zomato") || l.includes("food") || l.includes("doordash") || l.includes("restaurant") || l.includes("pizza") || l.includes("burger") || l.includes("coffee") || l.includes("starbucks") || l.includes("dominos") || l.includes("mcdonald") || l.includes("kfc") || l.includes("subway") || l.includes("bakery") || l.includes("cafe") || l.includes("tea") || l.includes("lunch") || l.includes("dinner") || l.includes("breakfast") || l.includes("grocery") || l.includes("grofers") || l.includes("bigbasket") || l.includes("blinkit")) cat = "Food";
-  else if (l.includes("uber") || l.includes("ola") || l.includes("fuel") || l.includes("petrol") || l.includes("lyft") || l.includes("gas") || l.includes("metro") || l.includes("train") || l.includes("cab") || l.includes("taxi") || l.includes("airline") || l.includes("flight") || l.includes("diesel") || l.includes("rapido")) cat = "Transport";
-  else if (l.includes("netflix") || l.includes("hotstar") || l.includes("spotify") || l.includes("hulu") || l.includes("movie") || l.includes("gaming") || l.includes("steam") || l.includes("playstation") || l.includes("xbox") || l.includes("disney") || l.includes("youtube") || l.includes("prime video") || l.includes("twitch")) cat = "Entertainment";
-  else if (l.includes("amazon") || l.includes("flipkart") || l.includes("myntra") || l.includes("target") || l.includes("walmart") || l.includes("shop") || l.includes("store") || l.includes("mall") || l.includes("ebay") || l.includes("etsy") || l.includes("ajio") || l.includes("nykaa") || l.includes("meesho")) cat = "Shopping";
-  else if (l.includes("rent") || l.includes("housing") || l.includes("lease")) cat = "Rent";
-  else if (l.includes("electricity") || l.includes("bill") || l.includes("water") || l.includes("utility") || l.includes("internet") || l.includes("phone") || l.includes("recharge") || l.includes("jio") || l.includes("airtel") || l.includes("vodafone") || l.includes("broadband") || l.includes("wifi")) cat = "Bills";
-  else if (l.includes("hospital") || l.includes("doctor") || l.includes("medicine") || l.includes("pharmacy") || l.includes("health") || l.includes("gym") || l.includes("fitness") || l.includes("dental") || l.includes("eye") || l.includes("clinic") || l.includes("medplus") || l.includes("apollo") || l.includes("1mg")) cat = "Health";
-  else if (l.includes("course") || l.includes("school") || l.includes("college") || l.includes("tuition") || l.includes("book") || l.includes("udemy") || l.includes("coursera") || l.includes("skillshare") || l.includes("university") || l.includes("academy") || l.includes("byju") || l.includes("unacademy")) cat = "Education";
-  else if (l.includes("stock") || l.includes("mutual fund") || l.includes("sip") || l.includes("invest") || l.includes("zerodha") || l.includes("groww") || l.includes("upstox") || l.includes("coinbase") || l.includes("crypto") || l.includes("bitcoin")) cat = "Investment";
-  return { category: cat, isIncome: false };
+function getIcon(type: string): string {
+  if (type === "bank") return "BK";
+  if (type === "upi") return "UP";
+  if (type === "cash") return "CA";
+  if (type === "card") return "CD";
+  return "AC";
 }
 
-function smartParse(text: string): { amount: number; merchant: string; category: string; date: string; isIncome: boolean } | null {
-  if (!text.trim()) return null;
-  var am = text.match(/Rs\.?([\d,]+\.?\d*)/i) || text.match(/INR\s*([\d,]+\.?\d*)/i) || text.match(/\$([\d,]+\.?\d*)/i) || text.match(/([\d,]+\.?\d*)\s*(?:debited|credited|spent|paid|received|withdrawn|deposited)/i) || text.match(/([\d,]+\.?\d*)/);
-  if (!am) return null;
-  var amount = parseFloat(am[1].replace(/,/g, ""));
-  if (isNaN(amount) || amount === 0) return null;
-  var mm = text.match(/(?:to|at|info[:\s]*|to\s+|from\s+|by\s+)([A-Za-z\s]+)/i);
-  var merchant = mm ? mm[1].trim().substring(0, 24) : "Transaction";
-  var det = detectCategory(text);
-  var dm = text.match(/(\d{1,2}[\-\/]\d{1,2}[\-\/]\d{2,4})/) || text.match(/(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*)/i);
-  var date = dm ? dm[1] : new Date().toISOString().split("T")[0];
-  return { amount: amount, merchant: merchant, category: det.category, date: date, isIncome: det.isIncome };
+function getGrad(type: string): [string, string] {
+  if (type === "bank") return ["#1E3A5F", "#3B82F6"];
+  if (type === "upi") return ["#4C1D95", "#8B5CF6"];
+  if (type === "cash") return ["#064E3B", "#22C55E"];
+  if (type === "card") return ["#7C2D12", "#F97316"];
+  return ["#1A1A2E", "#4A4A6A"];
 }
 
-function CategoryIcon(props: { name: string; size?: number }) {
-  var cat = getCat(props.name);
-  var s = props.size || 42;
-  return (
-    <div style={{ width: s, height: s, borderRadius: Math.round(s * 0.28), background: cat.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-      <span style={{ fontSize: Math.round(s * 0.28), fontWeight: 800, color: cat.color, letterSpacing: -0.5 }}>{cat.letters}</span>
-    </div>
-  );
+function generateId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
 }
 
-function CalendarDropdown(props: { value: string; onChange: (val: string) => void }) {
-  var [open, setOpen] = useState(false);
-  var [showMonthPick, setShowMonthPick] = useState(false);
-  var [showYearPick, setShowYearPick] = useState(false);
-  var [customMode, setCustomMode] = useState(false);
-  var [customVal, setCustomVal] = useState(props.value);
-  var ref = useRef<HTMLDivElement>(null);
-  var d = new Date(props.value);
-  var [viewYear, setViewYear] = useState(d.getFullYear());
-  var [viewMonth, setViewMonth] = useState(d.getMonth());
-  var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-  useEffect(function () {
-    if (!open) { setShowMonthPick(false); setShowYearPick(false); setCustomMode(false); return; }
-    var handler = function (e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); }
-    };
-    document.addEventListener("mousedown", handler);
-    return function () { document.removeEventListener("mousedown", handler); };
-  }, [open]);
-
-  useEffect(function () {
-    setViewYear(d.getFullYear());
-    setViewMonth(d.getMonth());
-    setCustomVal(props.value);
-  }, [props.value, open]);
-
-  var daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-  var firstDay = new Date(viewYear, viewMonth, 1).getDay();
-  var days: (number | null)[] = [];
-  for (var i = 0; i < firstDay; i++) days.push(null);
-  for (var j = 1; j <= daysInMonth; j++) days.push(j);
-
-  var selectDay = function (day: number) {
-    var m = String(viewMonth + 1).padStart(2, "0");
-    var dd = String(day).padStart(2, "0");
-    props.onChange(viewYear + "-" + m + "-" + dd);
-    setOpen(false);
-  };
-
-  var selected = props.value;
-  var today = new Date().toISOString().split("T")[0];
-  var currentYear = new Date().getFullYear();
-  var years: number[] = [];
-  for (var y = currentYear - 5; y <= currentYear + 5; y++) years.push(y);
-
-  var applyCustom = function () {
-    if (customVal.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      props.onChange(customVal);
-      setOpen(false);
-    }
-  };
-
-  return (
-    <div ref={ref} style={{ position: "relative" }}>
-      <button onClick={function () { setOpen(function (p) { return !p; }); }}
-        style={{ width: "100%", height: 44, padding: "0 14px", borderRadius: 10, background: "var(--surface)", border: "1px solid " + (open ? "var(--green-border)" : "var(--border)"), color: "var(--text)", fontSize: 14, fontWeight: 500, outline: "none", fontFamily: "inherit", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "all 200ms ease", boxShadow: open ? "0 0 0 3px var(--green-dim)" : "none" }}>
-        <span>{selected}</span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
-      </button>
-      {open && (
-        <div style={{ position: "absolute", bottom: 50, left: 0, right: 0, zIndex: 40, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 14, padding: 12, boxShadow: "var(--shadow-lg)", animation: "fadeIn 150ms cubic-bezier(0.16, 1, 0.3, 1)" }}>
-          <div style={{ display: "flex", gap: 0, marginBottom: 8, background: "var(--surface)", borderRadius: 8, padding: 2, border: "1px solid var(--border)" }}>
-            <button onClick={function () { setCustomMode(false); setShowMonthPick(false); setShowYearPick(false); }} style={{ flex: 1, padding: "5px 0", borderRadius: 6, border: "none", background: !customMode ? "var(--bg)" : "transparent", color: !customMode ? "var(--text)" : "var(--muted)", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease", boxShadow: !customMode ? "0 1px 2px rgba(0,0,0,0.06)" : "none" }}>Calendar</button>
-            <button onClick={function () { setCustomMode(true); setShowMonthPick(false); setShowYearPick(false); }} style={{ flex: 1, padding: "5px 0", borderRadius: 6, border: "none", background: customMode ? "var(--bg)" : "transparent", color: customMode ? "var(--text)" : "var(--muted)", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease", boxShadow: customMode ? "0 1px 2px rgba(0,0,0,0.06)" : "none" }}>Custom</button>
-          </div>
-          {customMode ? (
-            <div>
-              <input type="text" placeholder="YYYY-MM-DD" value={customVal} onChange={function (e) { setCustomVal(e.target.value); }}
-                onKeyDown={function (e) { if (e.key === "Enter") applyCustom(); }}
-                style={{ width: "100%", height: 36, padding: "0 10px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, fontWeight: 500, outline: "none", fontFamily: "inherit", fontVariantNumeric: "tabular-nums", transition: "all 200ms ease" }}
-                onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--green-dim)"; }}
-                onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
-              <button onClick={applyCustom} style={{ width: "100%", height: 32, marginTop: 6, borderRadius: 8, background: "var(--green)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }}
-                onMouseEnter={function (e) { e.currentTarget.style.background = "var(--green-soft)"; }}
-                onMouseLeave={function (e) { e.currentTarget.style.background = "var(--green)"; }}>Apply</button>
-            </div>
-          ) : (
-            <>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                <button onClick={function () { if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); } else { setViewMonth(viewMonth - 1); } }} style={{ width: 24, height: 24, borderRadius: 5, background: "transparent", border: "1px solid var(--border)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text)", transition: "all 150ms ease" }}
-                  onMouseEnter={function (e) { e.currentTarget.style.background = "var(--surface)"; }}
-                  onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; }}>
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
-                </button>
-                <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  <button onClick={function () { setShowMonthPick(function (p) { return !p; }); setShowYearPick(false); }} style={{ padding: "2px 6px", borderRadius: 5, border: "none", background: showMonthPick ? "var(--green-dim)" : "transparent", color: showMonthPick ? "var(--green)" : "var(--text)", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease", whiteSpace: "nowrap" }}>{months[viewMonth]}</button>
-                  <button onClick={function () { setShowYearPick(function (p) { return !p; }); setShowMonthPick(false); }} style={{ padding: "2px 6px", borderRadius: 5, border: "none", background: showYearPick ? "var(--green-dim)" : "transparent", color: showYearPick ? "var(--green)" : "var(--text)", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease", whiteSpace: "nowrap" }}>{viewYear}</button>
-                </div>
-                <button onClick={function () { if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); } else { setViewMonth(viewMonth + 1); } }} style={{ width: 24, height: 24, borderRadius: 5, background: "transparent", border: "1px solid var(--border)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text)", transition: "all 150ms ease" }}
-                  onMouseEnter={function (e) { e.currentTarget.style.background = "var(--surface)"; }}
-                  onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; }}>
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
-                </button>
-              </div>
-              {showMonthPick && (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2, marginBottom: 6, animation: "fadeIn 120ms ease" }}>
-                  {months.map(function (m, idx) {
-                    var isSel = idx === viewMonth;
-                    return (
-                      <button key={m} onClick={function () { setViewMonth(idx); setShowMonthPick(false); }} style={{ padding: "5px 0", borderRadius: 5, border: "none", background: isSel ? "var(--green)" : "transparent", color: isSel ? "#fff" : "var(--text)", fontSize: 10, fontWeight: isSel ? 700 : 500, cursor: "pointer", fontFamily: "inherit", transition: "all 120ms ease" }}
-                        onMouseEnter={function (e) { if (!isSel) { e.currentTarget.style.background = "var(--surface)"; } }}
-                        onMouseLeave={function (e) { if (!isSel) { e.currentTarget.style.background = "transparent"; } }}>{m}</button>
-                    );
-                  })}
-                </div>
-              )}
-              {showYearPick && (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2, marginBottom: 6, maxHeight: 130, overflowY: "auto", animation: "fadeIn 120ms ease" }}>
-                  {years.map(function (yr) {
-                    var isSel = yr === viewYear;
-                    return (
-                      <button key={yr} onClick={function () { setViewYear(yr); setShowYearPick(false); }} style={{ padding: "5px 0", borderRadius: 5, border: "none", background: isSel ? "var(--green)" : "transparent", color: isSel ? "#fff" : "var(--text)", fontSize: 10, fontWeight: isSel ? 700 : 500, cursor: "pointer", fontFamily: "inherit", transition: "all 120ms ease" }}
-                        onMouseEnter={function (e) { if (!isSel) { e.currentTarget.style.background = "var(--surface)"; } }}
-                        onMouseLeave={function (e) { if (!isSel) { e.currentTarget.style.background = "transparent"; } }}>{yr}</button>
-                    );
-                  })}
-                </div>
-              )}
-              {!showMonthPick && !showYearPick && (
-                <>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1, marginBottom: 1 }}>
-                    {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map(function (d) {
-                      return <span key={d} style={{ fontSize: 9, fontWeight: 700, color: "var(--muted)", textAlign: "center", padding: "2px 0" }}>{d}</span>;
-                    })}
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1 }}>
-                    {days.map(function (day, idx) {
-                      if (day === null) return <div key={"e" + idx} style={{ height: 26 }} />;
-                      var m = String(viewMonth + 1).padStart(2, "0");
-                      var dd = String(day).padStart(2, "0");
-                      var dateStr = viewYear + "-" + m + "-" + dd;
-                      var isSel = dateStr === selected;
-                      var isToday = dateStr === today;
-                      return (
-                        <button key={day} onClick={function () { selectDay(day); }}
-                          style={{ height: 26, borderRadius: 5, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 10, fontWeight: isSel ? 700 : 500, color: isSel ? "#fff" : "var(--text)", background: isSel ? "var(--green)" : isToday ? "var(--green-dim)" : "transparent", transition: "all 120ms ease", display: "flex", alignItems: "center", justifyContent: "center" }}
-                          onMouseEnter={function (e) { if (!isSel) { e.currentTarget.style.background = "var(--surface)"; } }}
-                          onMouseLeave={function (e) { if (!isSel) { e.currentTarget.style.background = isToday ? "var(--green-dim)" : "transparent"; } }}>{day}</button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Dropdown(props: {
-  value: string;
-  onChange: (val: string) => void;
-  options: { value: string; label: string; letters?: string; color?: string }[];
-  width?: number;
-}) {
-  var [open, setOpen] = useState(false);
-  var ref = useRef<HTMLDivElement>(null);
-  var selected = props.options.find(function (o) { return o.value === props.value; });
-
-  useEffect(function () {
-    if (!open) return;
-    var handler = function (e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); }
-    };
-    document.addEventListener("mousedown", handler);
-    return function () { document.removeEventListener("mousedown", handler); };
-  }, [open]);
-
-  return (
-    <div ref={ref} style={{ position: "relative", width: props.width || 150 }}>
-      <button onClick={function () { setOpen(function (p) { return !p; }); }}
-        style={{ width: "100%", height: 40, padding: "0 12px", borderRadius: 10, background: open ? "var(--surface)" : "var(--bg)", border: "1px solid " + (open ? "var(--green-border)" : "var(--border)"), color: "var(--text)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)", boxShadow: open ? "0 0 0 3px var(--green-dim)" : "none", transform: open ? "scale(1.02)" : "scale(1)" }}>
-        <span style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", overflow: "hidden" }}>
-          {selected && selected.letters && <span style={{ width: 18, height: 18, borderRadius: 4, background: selected.color ? selected.color + "15" : "var(--surface)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, color: selected.color || "var(--text)", flexShrink: 0 }}>{selected.letters}</span>}
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{selected ? selected.label : props.value}</span>
-        </span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: "transform 200ms cubic-bezier(0.16, 1, 0.3, 1)", transform: open ? "rotate(180deg)" : "rotate(0deg)", flexShrink: 0 }}><polyline points="6 9 12 15 18 9" /></svg>
-      </button>
-      {open && (
-        <div style={{ position: "absolute", top: 48, left: 0, right: 0, zIndex: 30, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: 4, boxShadow: "var(--shadow-lg)", animation: "fadeIn 150ms cubic-bezier(0.16, 1, 0.3, 1)", maxHeight: 240, overflowY: "auto" }}>
-          {props.options.map(function (opt) {
-            var isActive = opt.value === props.value;
-            return (
-              <button key={opt.value} onClick={function () { props.onChange(opt.value); setOpen(false); }} style={{ width: "100%", padding: "8px 12px", borderRadius: 8, background: isActive ? "var(--green-dim)" : "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 8, transition: "all 120ms ease", color: isActive ? "var(--green)" : "var(--text)", whiteSpace: "nowrap" }}
-                onMouseEnter={function (e) { if (!isActive) { e.currentTarget.style.background = "var(--surface)"; } }}
-                onMouseLeave={function (e) { if (!isActive) { e.currentTarget.style.background = "transparent"; } }}>
-                {opt.letters && <span style={{ width: 20, height: 20, borderRadius: 5, background: opt.color ? opt.color + "15" : "var(--surface)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, color: opt.color || "var(--muted)", flexShrink: 0 }}>{opt.letters}</span>}
-                <span style={{ fontSize: 13, fontWeight: isActive ? 600 : 500 }}>{opt.label}</span>
-                {isActive && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: "auto", flexShrink: 0 }}><polyline points="20 6 9 17 4 12" /></svg>}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function getDateRange(filter: string, customFrom?: string, customTo?: string): { start: string; end: string } | null {
+/* 🔧 PRODUCTION: Replace with real SMS/bank API parsing.
+   Example: const res = await fetch("/api/transactions/detect", { method: "POST" });
+   const data = await res.json(); return data.transactions; */
+function autoDetectTransactions(accounts: Account[]): Transaction[] {
+  var results: Transaction[] = [];
   var now = new Date();
-  var today = now.toISOString().split("T")[0];
-  if (filter === "custom" && customFrom) return { start: customFrom, end: customTo || customFrom };
-  if (filter === "today") return { start: today, end: today };
-  if (filter === "yesterday") { var y = new Date(now); y.setDate(y.getDate() - 1); return { start: y.toISOString().split("T")[0], end: y.toISOString().split("T")[0] }; }
-  if (filter === "this_week") { var s = new Date(now); s.setDate(s.getDate() - s.getDay()); return { start: s.toISOString().split("T")[0], end: today }; }
-  if (filter === "this_month") return { start: now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-01", end: today };
-  if (filter === "last_month") { var lm = new Date(now.getFullYear(), now.getMonth() - 1, 1); var lme = new Date(now.getFullYear(), now.getMonth(), 0); return { start: lm.toISOString().split("T")[0], end: lme.toISOString().split("T")[0] }; }
-  if (filter === "this_year") return { start: now.getFullYear() + "-01-01", end: today };
-  return null;
+  var merchants = [
+    { name: "Swiggy", cat: "Food", min: 80, max: 450 },
+    { name: "Zomato", cat: "Food", min: 100, max: 600 },
+    { name: "Uber", cat: "Transport", min: 50, max: 350 },
+    { name: "Ola", cat: "Transport", min: 40, max: 280 },
+    { name: "Amazon", cat: "Shopping", min: 200, max: 3000 },
+    { name: "Flipkart", cat: "Shopping", min: 150, max: 2500 },
+    { name: "Netflix", cat: "Entertainment", min: 149, max: 649 },
+    { name: "Spotify", cat: "Entertainment", min: 119, max: 119 },
+    { name: "Electricity Bill", cat: "Bills", min: 800, max: 2500 },
+    { name: "Internet Bill", cat: "Bills", min: 500, max: 1200 },
+    { name: "MedPlus", cat: "Health", min: 50, max: 800 },
+    { name: "Apollo Pharmacy", cat: "Health", min: 100, max: 1200 },
+    { name: "Udemy", cat: "Education", min: 499, max: 1999 },
+    { name: "Groww", cat: "Investment", min: 1000, max: 10000 },
+    { name: "Salary Credit", cat: "Salary", min: 25000, max: 80000 },
+    { name: "Freelance Payment", cat: "Salary", min: 5000, max: 30000 },
+    { name: "Refund", cat: "Other", min: 100, max: 1500 },
+  ];
+  if (accounts.length === 0) return results;
+  var count = 8 + Math.floor(Math.random() * 12);
+  for (var i = 0; i < count; i++) {
+    var m = merchants[Math.floor(Math.random() * merchants.length)];
+    var isIncome = m.cat === "Salary" || m.cat === "Investment" || m.name === "Refund" || m.name === "Freelance Payment";
+    var amount = m.min + Math.round((Math.random() * (m.max - m.min)) * 100) / 100;
+    var daysAgo = Math.floor(Math.random() * 30);
+    var d = new Date(now.getTime() - daysAgo * 86400000);
+    var date = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    var acc = accounts[Math.floor(Math.random() * accounts.length)];
+    results.push({
+      id: generateId(),
+      amount: isIncome ? amount : -amount,
+      type: isIncome ? "income" : "expense",
+      merchant: m.name,
+      category: m.cat,
+      date: date,
+      note: "",
+      source: "auto" as "manual" | "sms" | "csv" | "auto",
+      accountId: acc.id,
+    });
+  }
+  results.sort(function (a, b) { return b.date.localeCompare(a.date); });
+  return results;
+}
+
+function parseStatement(text: string, accounts: Account[]): { date: string; merchant: string; amount: number; isIncome: boolean; category: string; selected: boolean; accountId: string }[] {
+  var results: { date: string; merchant: string; amount: number; isIncome: boolean; category: string; selected: boolean; accountId: string }[] = [];
+  var defaultAccId = accounts.length > 0 ? accounts[0].id : "";
+  text.trim().split("\n").forEach(function (line) {
+    if (!line.trim()) return;
+    var l = line.trim();
+    var am = l.match(/Rs\.?\s*([\d,]+\.?\d*)/i) || l.match(/INR\s*([\d,]+\.?\d*)/i) || l.match(/\$\s*([\d,]+\.?\d*)/i) || l.match(/([\d,]+\.\d{2})/) || l.match(/([\d,]+)/);
+    if (!am) return;
+    var amount = parseFloat(am[1].replace(/,/g, ""));
+    if (isNaN(amount) || amount === 0) return;
+    var isIncome = /CR|Credit|credited|received|deposited|refund|salary|income/i.test(l);
+    var dm = l.match(/(\d{4}-\d{2}-\d{2})/) || l.match(/(\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})/);
+    var date = dm ? dm[1] : new Date().toISOString().split("T")[0];
+    if (date.match(/^\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}$/)) { var p = date.split(/[-\/]/); if (p[2].length === 2) p[2] = "20" + p[2]; date = p[2] + "-" + p[1].padStart(2, "0") + "-" + p[0].padStart(2, "0"); }
+    var merchant = l.replace(dm ? dm[0] : "", "").replace(am[0], "").replace(/Rs\.?|INR|\$|DR|CR|Debit|Credit|debited|credited|spent|paid|received/gi, "").replace(/[\d\-\/]+/g, "").replace(/[^\w\s]/g, "").trim().substring(0, 24) || "Transaction";
+    var ml = merchant.toLowerCase();
+    var cat = "Other";
+    if (ml.includes("swiggy") || ml.includes("zomato") || ml.includes("food") || ml.includes("grocery") || ml.includes("coffee") || ml.includes("restaurant") || ml.includes("starbucks") || ml.includes("doordash") || ml.includes("blinkit")) cat = "Food";
+    else if (ml.includes("uber") || ml.includes("ola") || ml.includes("lyft") || ml.includes("fuel") || ml.includes("petrol") || ml.includes("metro") || ml.includes("cab") || ml.includes("flight")) cat = "Transport";
+    else if (ml.includes("amazon") || ml.includes("flipkart") || ml.includes("myntra") || ml.includes("walmart") || ml.includes("shop") || ml.includes("store")) cat = "Shopping";
+    else if (ml.includes("netflix") || ml.includes("spotify") || ml.includes("movie") || ml.includes("gaming") || ml.includes("steam")) cat = "Entertainment";
+    else if (ml.includes("bill") || ml.includes("electricity") || ml.includes("water") || ml.includes("internet") || ml.includes("phone")) cat = "Bills";
+    else if (ml.includes("rent")) cat = "Rent";
+    else if (ml.includes("hospital") || ml.includes("doctor") || ml.includes("medicine") || ml.includes("health") || ml.includes("gym")) cat = "Health";
+    else if (ml.includes("course") || ml.includes("school") || ml.includes("book") || ml.includes("udemy")) cat = "Education";
+    else if (ml.includes("stock") || ml.includes("invest") || ml.includes("mutual") || ml.includes("sip")) cat = "Investment";
+    else if (ml.includes("salary") || ml.includes("freelance") || ml.includes("income")) cat = "Salary";
+    else if (ml.includes("transfer")) cat = "Transfer";
+    results.push({ date: date, merchant: merchant, amount: amount, isIncome: isIncome, category: cat, selected: true, accountId: defaultAccId });
+  });
+  return results;
 }
 
 export default function TransactionsPage() {
   var [transactions, setTransactions] = useState<Transaction[]>([]);
+  var [accounts, setAccounts] = useState<Account[]>([]);
+  var [transfers, setTransfers] = useState<TransferRecord[]>([]);
+  var [profile, setProfile] = useState<Profile>({ name: "John Doe", email: "john@example.com" });
+  var [filter, setFilter] = useState<"all" | "income" | "expense" | "transfer">("all");
+  var [filterAccount, setFilterAccount] = useState<string>("all");
+  var [searchQuery, setSearchQuery] = useState("");
   var [showAdd, setShowAdd] = useState(false);
-  var [showSms, setShowSms] = useState(false);
-  var [showCsv, setShowCsv] = useState(false);
-  var [editId, setEditId] = useState<string | null>(null);
-  var [search, setSearch] = useState("");
-  var [filterCat, setFilterCat] = useState("All");
-  var [filterType, setFilterType] = useState("all");
-  var [filterDate, setFilterDate] = useState("all");
-  var [customFrom, setCustomFrom] = useState("");
-  var [customTo, setCustomTo] = useState("");
-  var [addForm, setAddForm] = useState({ amount: "", merchant: "", category: "Food", type: "expense" as "income" | "expense", date: new Date().toISOString().split("T")[0], note: "" });
-  var [smsText, setSmsText] = useState("");
-  var [csvText, setCsvText] = useState("");
-  var [smsError, setSmsError] = useState("");
+  var [showDetect, setShowDetect] = useState(false);
+  var [showImport, setShowImport] = useState(false);
+  var [showDetail, setShowDetail] = useState(false);
+  var [detailTx, setDetailTx] = useState<Transaction | null>(null);
+  var [detecting, setDetecting] = useState(false);
+  var [statementText, setStatementText] = useState("");
+  var [parsedEntries, setParsedEntries] = useState<{ date: string; merchant: string; amount: number; isIncome: boolean; category: string; selected: boolean; accountId: string }[]>([]);
+  var [addForm, setAddForm] = useState({ merchant: "", amount: "", type: "expense" as "income" | "expense", category: "Other", date: new Date().toISOString().split("T")[0], note: "", accountId: "" });
+  var [toast, setToast] = useState("");
+  var [visibleCount, setVisibleCount] = useState(30);
+  var loaderRef = useRef<HTMLDivElement>(null);
 
   useEffect(function () {
-    var saved = localStorage.getItem("casha-transactions");
-    if (saved) { try { setTransactions(JSON.parse(saved)); } catch (e) {} }
+    var t = localStorage.getItem("casha-transactions"); if (t) { try { setTransactions(JSON.parse(t)); } catch (e) { /* ignore */ } }
+    var a = localStorage.getItem("casha-accounts"); if (a) { try { setAccounts(JSON.parse(a)); } catch (e) { /* ignore */ } }
+    var tr = localStorage.getItem("casha-transfers"); if (tr) { try { setTransfers(JSON.parse(tr)); } catch (e) { /* ignore */ } }
+    var p = localStorage.getItem("casha-profile"); if (p) { try { setProfile(JSON.parse(p)); } catch (e) { /* ignore */ } }
   }, []);
 
+  useEffect(function () { localStorage.setItem("casha-transactions", JSON.stringify(transactions)); }, [transactions]);
+  useEffect(function () { localStorage.setItem("casha-accounts", JSON.stringify(accounts)); }, [accounts]);
+  useEffect(function () { localStorage.setItem("casha-transfers", JSON.stringify(transfers)); }, [transfers]);
+
   useEffect(function () {
-    localStorage.setItem("casha-transactions", JSON.stringify(transactions));
-  }, [transactions]);
+    if (!loaderRef.current) return;
+    var obs = new IntersectionObserver(function (entries) {
+      if (entries[0].isIntersecting) setVisibleCount(function (c) { return c + 30; });
+    }, { threshold: 0.1 });
+    obs.observe(loaderRef.current);
+    return function () { obs.disconnect(); };
+  }, [transactions, filter, filterAccount, searchQuery]);
 
-  var resetForm = function () {
-    setAddForm({ amount: "", merchant: "", category: "Food", type: "expense", date: new Date().toISOString().split("T")[0], note: "" });
-    setEditId(null);
+  var showToast = function (msg: string) { setToast(msg); setTimeout(function () { setToast(""); }, 2500); };
+
+  var getAccount = function (id: string | undefined): Account | null {
+    if (!id) return null;
+    return accounts.find(function (a) { return a.id === id; }) || null;
   };
 
-  var openAdd = function () { resetForm(); setShowAdd(true); };
-
-  var openEdit = function (t: Transaction) {
-    setEditId(t.id);
-    setAddForm({ amount: String(Math.abs(t.amount)), merchant: t.merchant, category: t.category, type: t.type, date: t.date, note: t.note });
-    setShowAdd(true);
+  var isTransferTx = function (t: Transaction): boolean {
+    return t.merchant.startsWith("Transfer to ") || t.merchant.startsWith("Transfer from ");
   };
 
-  var handleAmountChange = function (val: string) {
-    var cleaned = val.replace(/[^0-9.]/g, "");
-    var parts = cleaned.split(".");
-    if (parts.length > 2) cleaned = parts[0] + "." + parts.slice(1).join("");
-    setAddForm(function (f) { return { ...f, amount: cleaned }; });
-  };
-
-  var saveForm = function () {
-    var amt = parseFloat(addForm.amount);
-    if (!amt || !addForm.merchant.trim()) return;
-    if (editId) {
-      setTransactions(function (prev) {
-        return prev.map(function (t) {
-          if (t.id !== editId) return t;
-          return { ...t, amount: addForm.type === "expense" ? -amt : amt, type: addForm.type, merchant: addForm.merchant.trim(), category: addForm.category, date: addForm.date, note: addForm.note };
-        });
-      });
-    } else {
-      var t: Transaction = { id: generateId(), amount: addForm.type === "expense" ? -amt : amt, type: addForm.type, merchant: addForm.merchant.trim(), category: addForm.category, date: addForm.date, note: addForm.note, source: "manual" };
-      setTransactions(function (prev) { return [t, ...prev]; });
+  var getTransferPartner = function (t: Transaction): { partner: Account | null; direction: "out" | "in" } {
+    if (t.merchant.startsWith("Transfer to ")) {
+      var name = t.merchant.replace("Transfer to ", "");
+      var partner = accounts.find(function (a) { return a.name === name; }) || null;
+      return { partner: partner, direction: "out" };
     }
-    resetForm();
-    setShowAdd(false);
+    if (t.merchant.startsWith("Transfer from ")) {
+      var name2 = t.merchant.replace("Transfer from ", "");
+      var partner2 = accounts.find(function (a) { return a.name === name2; }) || null;
+      return { partner: partner2, direction: "in" };
+    }
+    return { partner: null, direction: t.type === "expense" ? "out" : "in" };
   };
 
-  var addSms = function () {
-    var parsed = smartParse(smsText);
-    if (!parsed) { setSmsError("Could not detect an amount. Try: Rs.2,500 debited from A/c XX1234. Info: Swiggy"); return; }
-    setSmsError("");
-    var t: Transaction = { id: generateId(), amount: parsed.isIncome ? parsed.amount : -parsed.amount, type: parsed.isIncome ? "income" : "expense", merchant: parsed.merchant, category: parsed.category, date: parsed.date, note: "", source: "sms" };
-    setTransactions(function (prev) { return [t, ...prev]; });
-    setSmsText("");
-    setShowSms(false);
-  };
-
-  var addCsv = function () {
-    var lines = csvText.trim().split("\n");
-    var newT: Transaction[] = [];
-    lines.forEach(function (line) {
-      var parts = line.split(",");
-      if (parts.length >= 2) {
-        var amtStr = parts.length >= 3 ? parts[2].trim() : parts[1].trim();
-        var amt = parseFloat(amtStr.replace(/[^0-9.\-]/g, ""));
-        if (!isNaN(amt) && amt !== 0) {
-          var merchant = parts.length >= 3 ? parts[1].trim().substring(0, 24) : parts[0].trim().substring(0, 24);
-          var dateStr = parts.length >= 3 ? parts[0].trim() : new Date().toISOString().split("T")[0];
-          var fullText = merchant + " " + amtStr;
-          var det = detectCategory(fullText);
-          var isIncome = amt > 0 || det.isIncome;
-          newT.push({ id: generateId(), amount: amt, type: isIncome ? "income" : "expense", merchant: merchant, category: det.category, date: dateStr, note: "", source: "csv" });
-        }
-      }
-    });
-    if (newT.length > 0) { setTransactions(function (prev) { return [...newT, ...prev]; }); setCsvText(""); setShowCsv(false); }
-  };
-
-  var deleteTx = function (id: string) { setTransactions(function (prev) { return prev.filter(function (t) { return t.id !== id; }); }); };
-
-  var dateRange = getDateRange(filterDate, customFrom, customTo);
+  var now = new Date();
+  var thisMs = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
+  var thisMonthExp = transactions.filter(function (t) { return t.type === "expense" && t.date.startsWith(thisMs) && !isTransferTx(t); }).reduce(function (s, t) { return s + Math.abs(t.amount); }, 0);
+  var thisMonthInc = transactions.filter(function (t) { return t.type === "income" && t.date.startsWith(thisMs) && !isTransferTx(t); }).reduce(function (s, t) { return s + t.amount; }, 0);
+  var thisMonthTransfers = transactions.filter(function (t) { return t.date.startsWith(thisMs) && isTransferTx(t); });
+  var totalTransferred = thisMonthTransfers.filter(function (t) { return t.type === "expense"; }).reduce(function (s, t) { return s + Math.abs(t.amount); }, 0);
 
   var filtered = transactions.filter(function (t) {
-    if (search && !t.merchant.toLowerCase().includes(search.toLowerCase()) && !t.category.toLowerCase().includes(search.toLowerCase())) return false;
-    if (filterCat !== "All" && t.category !== filterCat) return false;
-    if (filterType === "income" && t.type !== "income") return false;
-    if (filterType === "expense" && t.type !== "expense") return false;
-    if (dateRange) { if (t.date < dateRange.start || t.date > dateRange.end) return false; }
+    if (filter === "income" && t.type !== "income") return false;
+    if (filter === "expense" && t.type !== "expense") return false;
+    if (filter === "transfer" && !isTransferTx(t)) return false;
+    if (filterAccount !== "all" && t.accountId !== filterAccount) return false;
+    if (searchQuery) {
+      var q = searchQuery.toLowerCase();
+      if (t.merchant.toLowerCase().indexOf(q) === -1 && t.category.toLowerCase().indexOf(q) === -1 && t.note.toLowerCase().indexOf(q) === -1) return false;
+    }
     return true;
   });
 
-  var totalIncome = filtered.filter(function (t) { return t.type === "income"; }).reduce(function (s, t) { return s + t.amount; }, 0);
-  var totalExpense = filtered.filter(function (t) { return t.type === "expense"; }).reduce(function (s, t) { return s + Math.abs(t.amount); }, 0);
+  var visible = filtered.slice(0, visibleCount);
+  var hasMore = filtered.length > visibleCount;
 
-  var typeOptions = [
-    { value: "all", label: "All types", letters: "AT", color: "#6B7280" },
-    { value: "income", label: "Income", letters: "IN", color: "#22C55E" },
-    { value: "expense", label: "Expense", letters: "EX", color: "#EF4444" },
-  ];
+  var grouped: { label: string; date: string; items: Transaction[] }[] = [];
+  var groupMap: Record<string, Transaction[]> = {};
+  visible.forEach(function (t) {
+    if (!groupMap[t.date]) groupMap[t.date] = [];
+    groupMap[t.date].push(t);
+  });
+  Object.keys(groupMap).sort(function (a, b) { return b.localeCompare(a); }).forEach(function (date) {
+    var d = new Date(date + "T00:00:00");
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var yesterday = new Date(today.getTime() - 86400000);
+    var label = "";
+    if (d.getTime() === today.getTime()) label = "Today";
+    else if (d.getTime() === yesterday.getTime()) label = "Yesterday";
+    else label = d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+    grouped.push({ label: label, date: date, items: groupMap[date] });
+  });
 
-  var dateOptions = [
-    { value: "all", label: "All dates", letters: "AD", color: "#6B7280" },
-    { value: "today", label: "Today", letters: "TD", color: "#3B82F6" },
-    { value: "yesterday", label: "Yesterday", letters: "YD", color: "#8B5CF6" },
-    { value: "this_week", label: "This week", letters: "TW", color: "#06B6D4" },
-    { value: "this_month", label: "This month", letters: "TM", color: "#F97316" },
-    { value: "last_month", label: "Last month", letters: "LM", color: "#EC4899" },
-    { value: "this_year", label: "This year", letters: "TY", color: "#22C55E" },
-    { value: "custom", label: "Custom date", letters: "CD", color: "#F59E0B" },
-  ];
+  var doAutoDetect = function () {
+    setDetecting(true);
+    setTimeout(function () {
+      var detected = autoDetectTransactions(accounts);
+      setTransactions(function (prev) { return detected.concat(prev); });
+      setDetecting(false);
+      setShowDetect(false);
+      showToast(detected.length + " transactions detected automatically");
+    }, 2000);
+  };
 
-  var allCatNames = Array.from(new Set(transactions.map(function (t) { return t.category; })));
-  var catOptions = [{ value: "All", label: "All categories", letters: "AC", color: "#6B7280" }].concat(
-    allCatNames.map(function (name) { var c = getCat(name); return { value: name, label: name, letters: c.letters, color: c.color }; })
-  );
+  var handleParse = function () {
+    if (!statementText.trim()) return;
+    setParsedEntries(parseStatement(statementText, accounts));
+  };
 
-  var currentCats = getCatsForType(addForm.type);
+  var toggleEntry = function (idx: number) {
+    setParsedEntries(function (prev) { return prev.map(function (e, i) { return i === idx ? { ...e, selected: !e.selected } : e; }); });
+  };
+
+  var addParsed = function () {
+    var sel = parsedEntries.filter(function (e) { return e.selected; });
+    var newTx = sel.map(function (e) {
+      return { id: generateId(), amount: e.isIncome ? e.amount : -e.amount, type: (e.isIncome ? "income" : "expense") as "income" | "expense", merchant: e.merchant, category: e.category, date: e.date, note: "", source: "csv" as "manual" | "sms" | "csv" | "auto", accountId: e.accountId };
+    });
+    setTransactions(function (prev) { return newTx.concat(prev); });
+    setParsedEntries([]); setStatementText(""); setShowImport(false);
+    showToast(newTx.length + " transactions imported");
+  };
+
+  var addManual = function () {
+    var amt = parseFloat(addForm.amount);
+    if (!amt || amt <= 0 || !addForm.merchant.trim()) return;
+    var tx: Transaction = { id: generateId(), amount: addForm.type === "expense" ? -amt : amt, type: addForm.type, merchant: addForm.merchant.trim(), category: addForm.category, date: addForm.date || new Date().toISOString().split("T")[0], note: addForm.note, source: "manual", accountId: addForm.accountId || undefined };
+    setTransactions(function (prev) { return [tx, ...prev]; });
+    setAddForm({ merchant: "", amount: "", type: "expense", category: "Other", date: new Date().toISOString().split("T")[0], note: "", accountId: "" });
+    setShowAdd(false);
+    showToast(tx.merchant + " " + (tx.type === "income" ? "+" : "-") + formatCurrency(amt) + " added");
+  };
+
+  var deleteTx = function (id: string) {
+    setTransactions(function (prev) { return prev.filter(function (t) { return t.id !== id; }); });
+    showToast("Transaction deleted");
+  };
+
+  var accountOptions = accounts.map(function (a) { return { id: a.id, name: a.name, type: a.type, color: a.color }; });
 
   return (
-    <div style={{ maxWidth: 960, margin: "0 auto", padding: "32px 0" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32, flexWrap: "wrap", gap: 16 }}>
-        <div>
-          <h1 style={{ fontSize: 28, fontWeight: 700, color: "var(--text)", letterSpacing: -0.5, margin: "0 0 4px 0" }}>Transactions</h1>
-          <p style={{ fontSize: 14, color: "var(--muted)", margin: 0 }}>Track your money</p>
+    <div style={{ maxWidth: 960, margin: "0 auto", padding: "28px 0 40px" }}>
+      {toast && <div style={{ position: "fixed", top: 24, left: "50%", transform: "translateX(-50%)", zIndex: 100, background: "var(--green)", color: "#fff", padding: "10px 24px", borderRadius: 10, fontSize: 13, fontWeight: 600, fontFamily: "inherit", boxShadow: "0 4px 20px rgba(26,143,78,0.3)", animation: "fadeIn 200ms ease" }}>{toast}</div>}
+
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--text)", letterSpacing: -0.5, margin: "0 0 2px 0" }}>Transactions</h1>
+        <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>See every money movement — which account sent or received it.</p>
+      </div>
+
+      {/* SUMMARY CARDS */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 16 }}>
+        <div style={{ background: "var(--surface)", borderRadius: 10, padding: "12px 14px", border: "1px solid var(--border)" }}>
+          <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 2px 0" }}>Money in</p>
+          <p style={{ fontSize: 18, fontWeight: 700, color: "var(--green)", margin: 0, fontVariantNumeric: "tabular-nums" }}>+{formatCurrency(thisMonthInc)}</p>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={function () { setShowSms(true); setSmsError(""); }} style={{ height: 40, padding: "0 16px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)" }}
-            onMouseEnter={function (e) { e.currentTarget.style.background = "var(--card)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-            onMouseLeave={function (e) { e.currentTarget.style.background = "var(--surface)"; e.currentTarget.style.transform = "translateY(0)"; }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>SMS
-          </button>
-          <button onClick={function () { setShowCsv(true); }} style={{ height: 40, padding: "0 16px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)" }}
-            onMouseEnter={function (e) { e.currentTarget.style.background = "var(--card)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-            onMouseLeave={function (e) { e.currentTarget.style.background = "var(--surface)"; e.currentTarget.style.transform = "translateY(0)"; }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>CSV
-          </button>
-          <button onClick={openAdd} style={{ height: 40, padding: "0 18px", borderRadius: 10, background: "var(--green)", border: "none", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)", boxShadow: "0 2px 8px rgba(26, 143, 78, 0.2)" }}
-            onMouseEnter={function (e) { e.currentTarget.style.background = "var(--green-soft)"; e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(26, 143, 78, 0.3)"; }}
-            onMouseLeave={function (e) { e.currentTarget.style.background = "var(--green)"; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(26, 143, 78, 0.2)"; }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>Add
-          </button>
+        <div style={{ background: "var(--surface)", borderRadius: 10, padding: "12px 14px", border: "1px solid var(--border)" }}>
+          <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 2px 0" }}>Money out</p>
+          <p style={{ fontSize: 18, fontWeight: 700, color: "var(--red)", margin: 0, fontVariantNumeric: "tabular-nums" }}>-{formatCurrency(thisMonthExp)}</p>
+        </div>
+        <div style={{ background: "var(--surface)", borderRadius: 10, padding: "12px 14px", border: "1px solid var(--border)" }}>
+          <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 2px 0" }}>Transferred</p>
+          <p style={{ fontSize: 18, fontWeight: 700, color: "#8B5CF6", margin: 0, fontVariantNumeric: "tabular-nums" }}>{formatCurrency(totalTransferred)}</p>
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 24 }}>
-        <div style={{ background: "var(--surface)", borderRadius: 12, padding: "16px 18px", border: "1px solid var(--border)" }}>
-          <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.06, margin: "0 0 4px 0" }}>Income</p>
-          <p style={{ fontSize: 20, fontWeight: 700, color: "var(--green)", margin: 0, fontVariantNumeric: "tabular-nums" }}>{formatCurrency(totalIncome)}</p>
-        </div>
-        <div style={{ background: "var(--surface)", borderRadius: 12, padding: "16px 18px", border: "1px solid var(--border)" }}>
-          <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.06, margin: "0 0 4px 0" }}>Expense</p>
-          <p style={{ fontSize: 20, fontWeight: 700, color: "var(--red)", margin: 0, fontVariantNumeric: "tabular-nums" }}>{formatCurrency(totalExpense)}</p>
-        </div>
-        <div style={{ background: "var(--surface)", borderRadius: 12, padding: "16px 18px", border: "1px solid var(--border)" }}>
-          <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.06, margin: "0 0 4px 0" }}>Net</p>
-          <p style={{ fontSize: 20, fontWeight: 700, color: totalIncome - totalExpense >= 0 ? "var(--green)" : "var(--red)", margin: 0, fontVariantNumeric: "tabular-nums" }}>{formatCurrency(totalIncome - totalExpense)}</p>
-        </div>
+      {/* ACTION BUTTONS */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+        <button onClick={function () { setShowAdd(true); setAddForm({ merchant: "", amount: "", type: "expense", category: "Other", date: new Date().toISOString().split("T")[0], note: "", accountId: accounts.length > 0 ? accounts[0].id : "" }); }} style={{ height: 36, padding: "0 14px", borderRadius: 8, background: "var(--green)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4, transition: "all 200ms ease", boxShadow: "0 2px 8px rgba(26,143,78,0.15)" }} onMouseEnter={function (e) { e.currentTarget.style.transform = "translateY(-1px)"; }} onMouseLeave={function (e) { e.currentTarget.style.transform = "translateY(0)"; }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>Add Transaction</button>
+        <button onClick={function () { setShowDetect(true); }} style={{ height: 36, padding: "0 14px", borderRadius: 8, background: "linear-gradient(135deg, #1A8F4E, #2DD4BF)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4, transition: "all 200ms ease", boxShadow: "0 2px 8px rgba(26,143,78,0.2)" }} onMouseEnter={function (e) { e.currentTarget.style.transform = "translateY(-1px)"; }} onMouseLeave={function (e) { e.currentTarget.style.transform = "translateY(0)"; }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>Auto-Detect</button>
+        <button onClick={function () { setShowImport(true); setParsedEntries([]); setStatementText(""); }} style={{ height: 36, padding: "0 14px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4, transition: "all 150ms ease" }} onMouseEnter={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.color = "var(--green)"; }} onMouseLeave={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text)"; }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>Import</button>
       </div>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-        <div style={{ flex: 1, minWidth: 180, position: "relative" }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 12, top: 13 }}><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-          <input type="text" placeholder="Search transactions..." value={search} onChange={function (e) { setSearch(e.target.value); }}
-            style={{ width: "100%", height: 40, padding: "0 12px 0 36px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, outline: "none", fontFamily: "inherit", transition: "all 200ms ease" }}
-            onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
-            onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
-        </div>
-        <Dropdown value={filterType} onChange={setFilterType} options={typeOptions} width={130} />
-        <Dropdown value={filterCat} onChange={setFilterCat} options={catOptions} width={155} />
-        <Dropdown value={filterDate} onChange={setFilterDate} options={dateOptions} width={140} />
+      {/* FILTERS */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
+        {[{ key: "all", label: "All" }, { key: "income", label: "Income" }, { key: "expense", label: "Expense" }, { key: "transfer", label: "Transfers" }].map(function (f) {
+          var isActive = filter === f.key;
+          return (<button key={f.key} onClick={function () { setFilter(f.key as "all" | "income" | "expense" | "transfer"); setVisibleCount(30); }} style={{ height: 28, padding: "0 10px", borderRadius: 6, border: "1px solid " + (isActive ? "var(--green-border)" : "var(--border)"), background: isActive ? "var(--green-dim)" : "transparent", color: isActive ? "var(--green)" : "var(--muted)", fontSize: 11, fontWeight: isActive ? 700 : 500, cursor: "pointer", fontFamily: "inherit", transition: "all 120ms ease" }}>{f.label}</button>);
+        })}
+        {accounts.length > 0 && (<select value={filterAccount} onChange={function (e) { setFilterAccount(e.target.value); setVisibleCount(30); }} style={{ height: 28, padding: "0 8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 11, fontWeight: 500, fontFamily: "inherit", outline: "none", cursor: "pointer" }}>
+          <option value="all">All Accounts</option>
+          {accounts.map(function (a) { return (<option key={a.id} value={a.id}>{a.name}</option>); })}
+        </select>)}
       </div>
 
-      {filterDate === "custom" && (
-        <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", animation: "fadeIn 200ms ease" }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", whiteSpace: "nowrap" }}>From</span>
-          <input type="text" placeholder="YYYY-MM-DD" value={customFrom} onChange={function (e) { setCustomFrom(e.target.value); }}
-            style={{ width: 130, height: 36, padding: "0 10px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 12, outline: "none", fontFamily: "inherit", fontVariantNumeric: "tabular-nums", transition: "all 200ms ease" }}
-            onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--green-dim)"; }}
-            onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
-          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", whiteSpace: "nowrap" }}>To</span>
-          <input type="text" placeholder="YYYY-MM-DD" value={customTo} onChange={function (e) { setCustomTo(e.target.value); }}
-            style={{ width: 130, height: 36, padding: "0 10px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 12, outline: "none", fontFamily: "inherit", fontVariantNumeric: "tabular-nums", transition: "all 200ms ease" }}
-            onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--green-dim)"; }}
-            onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
-        </div>
-      )}
+      {/* SEARCH */}
+      <div style={{ marginBottom: 12 }}>
+        <input type="text" placeholder="Search merchant, category, or note..." value={searchQuery} onChange={function (e) { setSearchQuery(e.target.value); setVisibleCount(30); }} style={{ width: "100%", height: 36, padding: "0 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 12, outline: "none", fontFamily: "inherit", transition: "all 200ms ease" }} onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--green-dim)"; }} onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
+      </div>
 
+      {/* TRANSACTION LIST */}
       {filtered.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "80px 20px" }}>
-          <div style={{ width: 64, height: 64, borderRadius: 16, background: "var(--green-dim)", border: "1px solid var(--green-border)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+        <div style={{ background: "var(--surface)", borderRadius: 12, padding: "36px 20px", border: "1px solid var(--border)", textAlign: "center" }}>
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: "var(--green-dim)", border: "1px solid var(--green-border)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px" }}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg></div>
+          <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", margin: "0 0 4px 0" }}>No transactions yet</p>
+          <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 14px 0", lineHeight: 1.5 }}>Add one manually, import a statement, or auto-detect from your accounts.</p>
+          <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap" }}>
+            <button onClick={function () { setShowAdd(true); }} style={{ padding: "8px 14px", borderRadius: 8, background: "var(--green)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Add Transaction</button>
+            <button onClick={function () { setShowDetect(true); }} style={{ padding: "8px 14px", borderRadius: 8, background: "linear-gradient(135deg, #1A8F4E, #2DD4BF)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Auto-Detect</button>
           </div>
-          <h3 style={{ fontSize: 17, fontWeight: 600, color: "var(--text)", margin: "0 0 6px 0" }}>Where did your money go?</h3>
-          <p style={{ fontSize: 14, color: "var(--muted)", margin: "0 0 20px 0" }}>Log your first transaction to find out.</p>
-          <button onClick={openAdd} style={{ padding: "10px 24px", borderRadius: 10, background: "var(--green)", border: "none", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 200ms ease", boxShadow: "0 2px 8px rgba(26, 143, 78, 0.2)" }}
-            onMouseEnter={function (e) { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(26, 143, 78, 0.3)"; }}
-            onMouseLeave={function (e) { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(26, 143, 78, 0.2)"; }}>Add Transaction</button>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          {filtered.map(function (t, idx) {
-            var cat = getCat(t.category);
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {grouped.map(function (group) {
+            var dayTotal = group.items.reduce(function (s, t) { return s + (t.type === "income" ? t.amount : t.amount); }, 0);
             return (
-              <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", borderRadius: 12, background: "var(--bg)", border: "1px solid var(--border)", transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)", cursor: "default", animation: "fadeIn 300ms ease " + (idx * 30) + "ms both" }}
-                onMouseEnter={function (e) { e.currentTarget.style.background = "var(--surface)"; e.currentTarget.style.borderColor = "var(--border-light)"; e.currentTarget.style.transform = "translateX(4px)"; }}
-                onMouseLeave={function (e) { e.currentTarget.style.background = "var(--bg)"; e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.transform = "translateX(0)"; }}>
-                <CategoryIcon name={t.category} size={42} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.merchant}</p>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: cat.color, background: cat.bg, padding: "2px 7px", borderRadius: 5 }}>{t.category}</span>
-                    <span style={{ fontSize: 11, color: "var(--muted)" }}>{t.date}</span>
-                    {t.source !== "manual" && <span style={{ fontSize: 9, fontWeight: 700, color: "var(--muted)", background: "var(--surface)", padding: "2px 6px", borderRadius: 4, textTransform: "uppercase" }}>{t.source}</span>}
-                  </div>
+              <div key={group.date}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4, padding: "0 2px" }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", margin: 0, textTransform: "uppercase", letterSpacing: 0.03 }}>{group.label}</p>
+                  <p style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)", margin: 0, fontVariantNumeric: "tabular-nums" }}>{group.items.length} transactions</p>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginRight: 2 }}>
-                    {t.type === "income" ? (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" /></svg>
-                    ) : (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><polyline points="19 12 12 19 5 12" /></svg>
-                    )}
-                    <span style={{ fontSize: 15, fontWeight: 700, color: t.type === "income" ? "var(--green)" : "var(--red)", fontVariantNumeric: "tabular-nums" }}>{formatCurrency(Math.abs(t.amount))}</span>
-                  </div>
-                  <button onClick={function () { openEdit(t); }} style={{ width: 26, height: 26, borderRadius: 5, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--faint)", transition: "all 150ms ease" }}
-                    onMouseEnter={function (e) { e.currentTarget.style.background = "var(--green-dim)"; e.currentTarget.style.color = "var(--green)"; e.currentTarget.style.transform = "scale(1.15)"; }}
-                    onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--faint)"; e.currentTarget.style.transform = "scale(1)"; }}>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                  </button>
-                  <button onClick={function () { deleteTx(t.id); }} style={{ width: 26, height: 26, borderRadius: 5, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--faint)", transition: "all 150ms ease" }}
-                    onMouseEnter={function (e) { e.currentTarget.style.background = "var(--red-dim)"; e.currentTarget.style.color = "var(--red)"; e.currentTarget.style.transform = "scale(1.15)"; }}
-                    onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--faint)"; e.currentTarget.style.transform = "scale(1)"; }}>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
-                  </button>
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  {group.items.map(function (tx) {
+                    var ci = getCatInfo(tx.category);
+                    var acc = getAccount(tx.accountId);
+                    var isTf = isTransferTx(tx);
+                    var tfInfo = isTf ? getTransferPartner(tx) : null;
+                    return (
+                      <div key={tx.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", cursor: "pointer", transition: "all 150ms ease" }} onClick={function () { setDetailTx(tx); setShowDetail(true); }} onMouseEnter={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.background = "var(--green-dim)"; }} onMouseLeave={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "var(--surface)"; }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 8, background: ci.bg, border: "1px solid " + ci.color + "25", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <span style={{ fontSize: 10, fontWeight: 800, color: ci.color }}>{ci.label}</span>
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tx.merchant}</p>
+                            {isTf && <span style={{ fontSize: 7, fontWeight: 700, color: "#8B5CF6", background: "#FAF5FF", padding: "1px 4px", borderRadius: 2, textTransform: "uppercase", flexShrink: 0 }}>TRANSFER</span>}
+                            {tx.source === "auto" && <span style={{ fontSize: 7, fontWeight: 700, color: "var(--green)", background: "var(--green-dim)", padding: "1px 4px", borderRadius: 2, textTransform: "uppercase", flexShrink: 0 }}>AUTO</span>}
+                            {tx.source === "csv" && <span style={{ fontSize: 7, fontWeight: 700, color: "#3B82F6", background: "#EFF6FF", padding: "1px 4px", borderRadius: 2, textTransform: "uppercase", flexShrink: 0 }}>CSV</span>}
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+                            {acc && (<div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                              <div style={{ width: 16, height: 16, borderRadius: 4, background: "linear-gradient(135deg, " + getGrad(acc.type)[0] + ", " + getGrad(acc.type)[1] + ")", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                <span style={{ fontSize: 6, fontWeight: 800, color: "#fff" }}>{getIcon(acc.type)}</span>
+                              </div>
+                              <span style={{ fontSize: 10, color: "var(--muted)", fontWeight: 500 }}>{acc.name}</span>
+                            </div>)}
+                            {isTf && tfInfo && tfInfo.partner && (
+                              <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2.5"><path d="M5 12h14" /><path d="M12 5l7 7-7 7" /></svg>
+                                <div style={{ width: 16, height: 16, borderRadius: 4, background: "linear-gradient(135deg, " + getGrad(tfInfo.partner.type)[0] + ", " + getGrad(tfInfo.partner.type)[1] + ")", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                  <span style={{ fontSize: 6, fontWeight: 800, color: "#fff" }}>{getIcon(tfInfo.partner.type)}</span>
+                                </div>
+                                <span style={{ fontSize: 10, color: tfInfo.direction === "out" ? "var(--red)" : "var(--green)", fontWeight: 500 }}>{tfInfo.direction === "out" ? "to" : "from"} {tfInfo.partner.name}</span>
+                              </div>
+                            )}
+                            {!acc && !isTf && <span style={{ fontSize: 10, color: "var(--muted)" }}>{tx.category}</span>}
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", flexShrink: 0 }}>
+                          <p style={{ fontSize: 14, fontWeight: 700, color: tx.type === "income" ? "var(--green)" : "var(--red)", margin: 0, fontVariantNumeric: "tabular-nums" }}>{tx.type === "income" ? "+" : "-"}{formatCurrency(Math.abs(tx.amount))}</p>
+                          <span style={{ fontSize: 9, color: "var(--muted)", marginTop: 1 }}>{tx.date}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
           })}
+          {hasMore && <div ref={loaderRef} style={{ textAlign: "center", padding: "12px 0" }}><p style={{ fontSize: 11, color: "var(--muted)", margin: 0 }}>Loading more...</p></div>}
         </div>
       )}
 
+      {/* DETAIL MODAL */}
+      {showDetail && detailTx && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowDetail(false); setDetailTx(null); }}>
+          <div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 380, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
+            {function () {
+              var ci = getCatInfo(detailTx.category);
+              var acc = getAccount(detailTx.accountId);
+              var isTf = isTransferTx(detailTx);
+              var tfInfo = isTf ? getTransferPartner(detailTx) : null;
+              return (
+                <>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 10, background: ci.bg, border: "1px solid " + ci.color + "25", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: ci.color }}>{ci.label}</span>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: 0 }}>{detailTx.merchant}</p>
+                      <p style={{ fontSize: 11, color: "var(--muted)", margin: "2px 0 0 0" }}>{detailTx.date} {isTf ? "\u00B7 Transfer" : "\u00B7 " + detailTx.category}</p>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "center", marginBottom: 14, padding: "14px 0", borderRadius: 10, background: detailTx.type === "income" ? "var(--green-dim)" : "var(--red-dim)", border: "1px solid " + (detailTx.type === "income" ? "var(--green-border)" : "var(--red-border)") }}>
+                    <p style={{ fontSize: 10, fontWeight: 600, color: detailTx.type === "income" ? "var(--green)" : "var(--red)", margin: "0 0 2px 0", textTransform: "uppercase" }}>{detailTx.type === "income" ? "Money In" : "Money Out"}</p>
+                    <p style={{ fontSize: 28, fontWeight: 800, color: detailTx.type === "income" ? "var(--green)" : "var(--red)", margin: 0, fontVariantNumeric: "tabular-nums" }}>{detailTx.type === "income" ? "+" : "-"}{formatCurrency(Math.abs(detailTx.amount))}</p>
+                  </div>
+                  {acc && (
+                    <div style={{ padding: "10px 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", marginBottom: 8 }}>
+                      <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 6px 0" }}>Account</p>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, " + getGrad(acc.type)[0] + ", " + getGrad(acc.type)[1] + ")", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <span style={{ fontSize: 10, fontWeight: 800, color: "#fff" }}>{getIcon(acc.type)}</span>
+                        </div>
+                        <div>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{acc.name}</p>
+                          <p style={{ fontSize: 10, color: "var(--muted)", margin: "1px 0 0 0" }}>{acc.type} {acc.details.bankName ? "\u00B7 " + acc.details.bankName : ""} {acc.details.upiId ? "\u00B7 " + acc.details.upiId : ""}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {isTf && tfInfo && tfInfo.partner && (
+                    <div style={{ padding: "10px 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", marginBottom: 8 }}>
+                      <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 6px 0" }}>{tfInfo.direction === "out" ? "Transferred To" : "Received From"}</p>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, " + getGrad(tfInfo.partner.type)[0] + ", " + getGrad(tfInfo.partner.type)[1] + ")", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <span style={{ fontSize: 10, fontWeight: 800, color: "#fff" }}>{getIcon(tfInfo.partner.type)}</span>
+                        </div>
+                        <div>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{tfInfo.partner.name}</p>
+                          <p style={{ fontSize: 10, color: "var(--muted)", margin: "1px 0 0 0" }}>{tfInfo.partner.type} {tfInfo.partner.details.bankName ? "\u00B7 " + tfInfo.partner.details.bankName : ""} {tfInfo.partner.details.upiId ? "\u00B7 " + tfInfo.partner.details.upiId : ""}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, marginBottom: 12 }}>
+                    <div style={{ padding: "8px 10px", borderRadius: 6, background: "var(--surface)" }}>
+                      <span style={{ fontSize: 8, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase" }}>Category</span>
+                      <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: "2px 0 0 0" }}>{detailTx.category}</p>
+                    </div>
+                    <div style={{ padding: "8px 10px", borderRadius: 6, background: "var(--surface)" }}>
+                      <span style={{ fontSize: 8, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase" }}>Source</span>
+                      <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: "2px 0 0 0" }}>{detailTx.source === "auto" ? "Auto-detected" : detailTx.source === "csv" ? "Imported" : detailTx.source === "sms" ? "SMS" : "Manual"}</p>
+                    </div>
+                  </div>
+                  {detailTx.note && (<div style={{ padding: "8px 10px", borderRadius: 6, background: "var(--surface)", marginBottom: 12 }}><span style={{ fontSize: 8, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase" }}>Note</span><p style={{ fontSize: 12, color: "var(--text)", margin: "2px 0 0 0" }}>{detailTx.note}</p></div>)}
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={function () { setShowDetail(false); setDetailTx(null); }} style={{ flex: 1, height: 36, borderRadius: 8, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Close</button>
+                    <button onClick={function () { deleteTx(detailTx.id); setShowDetail(false); setDetailTx(null); }} style={{ height: 36, padding: "0 14px", borderRadius: 8, background: "transparent", border: "1px solid var(--red-border)", color: "var(--red)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }} onMouseEnter={function (e) { e.currentTarget.style.background = "var(--red)"; e.currentTarget.style.color = "#fff"; }} onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--red)"; }}>Delete</button>
+                  </div>
+                </>
+              );
+            }()}
+          </div>
+        </div>
+      )}
+
+      {/* ADD TRANSACTION MODAL */}
       {showAdd && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { resetForm(); setShowAdd(false); }}>
-          <div style={{ background: "var(--bg)", borderRadius: 20, padding: 24, width: "100%", maxWidth: 400, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16, 1, 0.3, 1)" }} onClick={function (e) { e.stopPropagation(); }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: "0 0 14px 0" }}>{editId ? "Edit Transaction" : "Add Transaction"}</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0, marginBottom: 12, background: "var(--surface)", borderRadius: 8, padding: 3, border: "1px solid var(--border)" }}>
-              {(["expense", "income"] as const).map(function (tp) {
-                var isActive = addForm.type === tp;
-                return (
-                  <button key={tp} onClick={function () {
-                    var newCats = getCatsForType(tp);
-                    var valid = newCats.some(function (c) { return c.name === addForm.category; });
-                    setAddForm(function (f) { return { ...f, type: tp, category: valid ? f.category : newCats[0].name }; });
-                  }} style={{ padding: "8px 0", borderRadius: 6, border: "none", background: isActive ? "var(--bg)" : "transparent", color: isActive ? "var(--text)" : "var(--muted)", fontSize: 12, fontWeight: isActive ? 700 : 500, cursor: "pointer", fontFamily: "inherit", transition: "all 200ms ease", boxShadow: isActive ? "0 1px 3px rgba(0,0,0,0.08)" : "none" }}>
-                    {tp === "income" ? "Income" : "Expense"}
-                  </button>
-                );
-              })}
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowAdd(false); }}>
+          <div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 380, maxHeight: "90vh", overflowY: "auto", boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 4px 0" }}>Add Transaction</h2>
+            <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 12px 0" }}>Record a new income or expense.</p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, marginBottom: 10 }}>
+              <button onClick={function () { setAddForm(function (f) { return { ...f, type: "expense" }; }); }} style={{ height: 34, borderRadius: 7, border: "1px solid " + (addForm.type === "expense" ? "var(--red-border)" : "var(--border)"), background: addForm.type === "expense" ? "var(--red-dim)" : "transparent", color: addForm.type === "expense" ? "var(--red)" : "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Expense</button>
+              <button onClick={function () { setAddForm(function (f) { return { ...f, type: "income" }; }); }} style={{ height: 34, borderRadius: 7, border: "1px solid " + (addForm.type === "income" ? "var(--green-border)" : "var(--border)"), background: addForm.type === "income" ? "var(--green-dim)" : "transparent", color: addForm.type === "income" ? "var(--green)" : "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Income</button>
             </div>
-            <input type="text" inputMode="decimal" placeholder="0.00" value={addForm.amount} onChange={function (e) { handleAmountChange(e.target.value); }}
-              style={{ width: "100%", height: 44, padding: "0 14px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 20, fontWeight: 700, outline: "none", fontFamily: "inherit", marginBottom: 8, fontVariantNumeric: "tabular-nums", transition: "all 200ms ease", letterSpacing: -0.5 }}
-              onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
-              onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
-            <input type="text" placeholder="Merchant / Description" value={addForm.merchant} onChange={function (e) { setAddForm(function (f) { return { ...f, merchant: e.target.value }; }); }}
-              style={{ width: "100%", height: 40, padding: "0 14px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, outline: "none", fontFamily: "inherit", marginBottom: 10, transition: "all 200ms ease" }}
-              onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
-              onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
-            <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.06 }}>Category</p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 10 }}>
-              {currentCats.map(function (c) {
-                var isActive = addForm.category === c.name;
-                return (
-                  <button key={c.name} onClick={function () { setAddForm(function (f) { return { ...f, category: c.name }; }); }}
-                    style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid " + (isActive ? c.color + "40" : "var(--border)"), background: isActive ? c.bg : "transparent", cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease", display: "flex", alignItems: "center", gap: 3, transform: isActive ? "scale(1.04)" : "scale(1)" }}>
-                    <span style={{ width: 14, height: 14, borderRadius: 3, background: isActive ? c.color + "20" : "var(--surface)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 6, fontWeight: 800, color: c.color }}>{c.letters}</span>
-                    <span style={{ fontSize: 10, fontWeight: isActive ? 700 : 500, color: isActive ? c.color : "var(--muted)" }}>{c.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.06 }}>Date</p>
-            <div style={{ marginBottom: 8 }}>
-              <CalendarDropdown value={addForm.date} onChange={function (val) { setAddForm(function (f) { return { ...f, date: val }; }); }} />
-            </div>
-            <input type="text" placeholder="Note (optional)" value={addForm.note} onChange={function (e) { setAddForm(function (f) { return { ...f, note: e.target.value }; }); }}
-              style={{ width: "100%", height: 40, padding: "0 14px", borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, outline: "none", fontFamily: "inherit", marginBottom: 14, transition: "all 200ms ease" }}
-              onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
-              onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
-            <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={function () { resetForm(); setShowAdd(false); }} style={{ flex: 1, height: 42, borderRadius: 10, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }}
-                onMouseEnter={function (e) { e.currentTarget.style.background = "var(--surface)"; }}
-                onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; }}>Cancel</button>
-              <button onClick={saveForm} style={{ flex: 1, height: 42, borderRadius: 10, background: "var(--green)", border: "none", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 200ms ease", boxShadow: "0 2px 8px rgba(26, 143, 78, 0.2)" }}
-                onMouseEnter={function (e) { e.currentTarget.style.background = "var(--green-soft)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                onMouseLeave={function (e) { e.currentTarget.style.background = "var(--green)"; e.currentTarget.style.transform = "translateY(0)"; }}>{editId ? "Save" : "Add"}</button>
+            <input type="text" placeholder="Merchant (e.g. Swiggy, Salary)" value={addForm.merchant} onChange={function (e) { setAddForm(function (f) { return { ...f, merchant: e.target.value }; }); }} style={{ width: "100%", height: 38, padding: "0 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 12, outline: "none", fontFamily: "inherit", marginBottom: 6, transition: "all 200ms ease" }} onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--green-dim)"; }} onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
+            <input type="text" inputMode="decimal" placeholder="Amount" value={addForm.amount} onChange={function (e) { setAddForm(function (f) { return { ...f, amount: e.target.value.replace(/[^0-9.]/g, "") }; }); }} style={{ width: "100%", height: 44, padding: "0 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 18, fontWeight: 700, outline: "none", fontFamily: "inherit", marginBottom: 6, fontVariantNumeric: "tabular-nums", transition: "all 200ms ease" }} onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--green-dim)"; }} onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
+            <select value={addForm.category} onChange={function (e) { setAddForm(function (f) { return { ...f, category: e.target.value }; }); }} style={{ width: "100%", height: 36, padding: "0 10px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 12, outline: "none", fontFamily: "inherit", marginBottom: 6, cursor: "pointer" }}>
+              {["Food", "Transport", "Shopping", "Entertainment", "Bills", "Rent", "Health", "Education", "Investment", "Salary", "Other"].map(function (c) { return (<option key={c} value={c}>{c}</option>); })}
+            </select>
+            <input type="date" value={addForm.date} onChange={function (e) { setAddForm(function (f) { return { ...f, date: e.target.value }; }); }} style={{ width: "100%", height: 36, padding: "0 10px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 12, outline: "none", fontFamily: "inherit", marginBottom: 6 }} />
+            {accounts.length > 0 && (<select value={addForm.accountId} onChange={function (e) { setAddForm(function (f) { return { ...f, accountId: e.target.value }; }); }} style={{ width: "100%", height: 36, padding: "0 10px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 12, outline: "none", fontFamily: "inherit", marginBottom: 6, cursor: "pointer" }}>
+              <option value="">No account</option>
+              {accounts.map(function (a) { return (<option key={a.id} value={a.id}>{a.name} ({a.type})</option>); })}
+            </select>)}
+            <input type="text" placeholder="Note (optional)" value={addForm.note} onChange={function (e) { setAddForm(function (f) { return { ...f, note: e.target.value }; }); }} style={{ width: "100%", height: 36, padding: "0 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 12, outline: "none", fontFamily: "inherit", marginBottom: 10, transition: "all 200ms ease" }} onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--green-dim)"; }} onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
+            <div style={{ display: "flex", gap: 6 }}>
+              <button onClick={function () { setShowAdd(false); }} style={{ flex: 1, height: 38, borderRadius: 8, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+              <button onClick={addManual} disabled={!addForm.merchant.trim() || !addForm.amount} style={{ flex: 1, height: 38, borderRadius: 8, background: addForm.merchant.trim() && addForm.amount ? "var(--green)" : "var(--card)", border: "none", color: addForm.merchant.trim() && addForm.amount ? "#fff" : "var(--faint)", fontSize: 12, fontWeight: 600, cursor: addForm.merchant.trim() && addForm.amount ? "pointer" : "not-allowed", fontFamily: "inherit" }}>Add</button>
             </div>
           </div>
         </div>
       )}
 
-      {showSms && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowSms(false); }}>
-          <div style={{ background: "var(--bg)", borderRadius: 20, padding: 24, width: "100%", maxWidth: 480, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16, 1, 0.3, 1)" }} onClick={function (e) { e.stopPropagation(); }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: "0 0 6px 0" }}>Paste Bank SMS</h2>
-            <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 14px 0" }}>Works with any bank, any country. Just paste any message with an amount.</p>
-            <textarea value={smsText} onChange={function (e) { setSmsText(e.target.value); setSmsError(""); }} placeholder={"Rs.2,500 debited from A/c XX1234. Info: Swiggy\n\n$45.00 spent at Starbucks\n\nINR 50000 credited - Salary"}
-              style={{ width: "100%", height: 110, borderRadius: 12, padding: "12px", fontSize: 12, fontFamily: "inherit", background: "var(--surface)", border: "1px solid " + (smsError ? "var(--red-border)" : "var(--border)"), color: "var(--text)", outline: "none", resize: "none", lineHeight: 1.6, marginBottom: smsError ? 8 : 10, transition: "all 200ms ease" }}
-              onFocus={function (e) { if (!smsError) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; } }}
-              onBlur={function (e) { e.currentTarget.style.borderColor = smsError ? "var(--red-border)" : "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
-            {smsError && (
-              <div style={{ background: "var(--red-dim)", border: "1px solid var(--red-border)", borderRadius: 8, padding: "8px 12px", marginBottom: 10, animation: "fadeIn 200ms ease" }}>
-                <p style={{ fontSize: 11, color: "var(--red)", margin: 0, lineHeight: 1.5 }}>{smsError}</p>
-              </div>
-            )}
-            {smsText.trim() && smartParse(smsText) && !smsError && (
-              <div style={{ background: "var(--green-dim)", border: "1px solid var(--green-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 14, animation: "fadeIn 200ms ease" }}>
-                <p style={{ fontSize: 10, fontWeight: 600, color: "var(--green)", margin: "0 0 6px 0", textTransform: "uppercase", letterSpacing: 0.06 }}>Detected</p>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
-                  {[
-                    { label: "Amount", value: formatCurrency(smartParse(smsText)!.amount), color: "var(--text)" },
-                    { label: "Merchant", value: smartParse(smsText)!.merchant, color: "var(--text)" },
-                    { label: "Category", value: smartParse(smsText)!.category, color: "var(--green)" },
-                    { label: "Date", value: smartParse(smsText)!.date, color: "var(--text-secondary)" },
-                    { label: "Type", value: smartParse(smsText)!.isIncome ? "Income" : "Expense", color: smartParse(smsText)!.isIncome ? "var(--green)" : "var(--red)" },
-                  ].map(function (r) {
-                    return (<div key={r.label} style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontSize: 10, color: "var(--muted)" }}>{r.label}</span><span style={{ fontSize: 11, fontWeight: 600, color: r.color, fontVariantNumeric: "tabular-nums" }}>{r.value}</span></div>);
-                  })}
-                </div>
-              </div>
-            )}
+      {/* AUTO-DETECT MODAL */}
+      {showDetect && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { if (!detecting) setShowDetect(false); }}>
+          <div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 380, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)", textAlign: "center" }} onClick={function (e) { e.stopPropagation(); }}>
+            <div style={{ width: 52, height: 52, borderRadius: 14, background: detecting ? "var(--green-dim)" : "linear-gradient(135deg, #1A8F4E, #2DD4BF)", border: detecting ? "1px solid var(--green-border)" : "none", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+              {detecting ? <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" style={{ animation: "spin 1s linear infinite" }}><path d="M21 12a9 9 0 11-6.219-8.56" /></svg> : <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>}
+            </div>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 6px 0" }}>{detecting ? "Detecting Transactions..." : "Auto-Detect Transactions"}</h3>
+            <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 6px 0", lineHeight: 1.5 }}>
+              {detecting ? "Scanning your accounts for recent activity..." : "We'll scan your connected accounts and find recent transactions automatically."}
+            </p>
+            {!detecting && accounts.length === 0 && <p style={{ fontSize: 11, color: "var(--red)", margin: "0 0 12px 0" }}>Add at least one account first to detect transactions.</p>}
+            {!detecting && accounts.length > 0 && <p style={{ fontSize: 10, color: "var(--muted)", margin: "0 0 16px 0", lineHeight: 1.5 }}>Found {accounts.length} account{accounts.length > 1 ? "s" : ""}: {accounts.map(function (a) { return a.name; }).join(", ")}</p>}
+            {detecting && <div style={{ width: "100%", height: 4, borderRadius: 2, background: "var(--green-dim)", overflow: "hidden", margin: "8px 0 16px" }}><div style={{ width: "60%", height: "100%", borderRadius: 2, background: "var(--green)", animation: "pulse 1.5s ease-in-out infinite" }} /></div>}
             <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={function () { setShowSms(false); }} style={{ flex: 1, height: 42, borderRadius: 10, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }}
-                onMouseEnter={function (e) { e.currentTarget.style.background = "var(--surface)"; }}
-                onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; }}>Cancel</button>
-              <button onClick={addSms} style={{ flex: 1, height: 42, borderRadius: 10, background: "var(--green)", border: "none", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 200ms ease", boxShadow: "0 2px 8px rgba(26, 143, 78, 0.2)" }}
-                onMouseEnter={function (e) { e.currentTarget.style.background = "var(--green-soft)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                onMouseLeave={function (e) { e.currentTarget.style.background = "var(--green)"; e.currentTarget.style.transform = "translateY(0)"; }}>Add Transaction</button>
+              <button onClick={function () { if (!detecting) setShowDetect(false); }} disabled={detecting} style={{ flex: 1, height: 40, borderRadius: 8, background: "transparent", border: detecting ? "1px solid var(--border)" : "1px solid var(--border)", color: detecting ? "var(--faint)" : "var(--muted)", fontSize: 12, fontWeight: 600, cursor: detecting ? "not-allowed" : "pointer", fontFamily: "inherit" }}>Cancel</button>
+              <button onClick={doAutoDetect} disabled={detecting || accounts.length === 0} style={{ flex: 1, height: 40, borderRadius: 8, background: detecting || accounts.length === 0 ? "var(--card)" : "linear-gradient(135deg, #1A8F4E, #2DD4BF)", border: "none", color: detecting || accounts.length === 0 ? "var(--faint)" : "#fff", fontSize: 12, fontWeight: 600, cursor: detecting || accounts.length === 0 ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: detecting ? "none" : "0 2px 8px rgba(26,143,78,0.2)" }}>{detecting ? "Scanning..." : "Detect Now"}</button>
             </div>
           </div>
         </div>
       )}
 
-      {showCsv && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowCsv(false); }}>
-          <div style={{ background: "var(--bg)", borderRadius: 20, padding: 24, width: "100%", maxWidth: 480, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16, 1, 0.3, 1)" }} onClick={function (e) { e.stopPropagation(); }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: "0 0 6px 0" }}>Import CSV</h2>
-            <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 14px 0" }}>Format: date, merchant, amount (one per line). Categories auto-detected.</p>
-            <textarea value={csvText} onChange={function (e) { setCsvText(e.target.value); }} placeholder={"2026-01-15, Swiggy, -250\n2026-01-14, Salary, 5000\n2026-01-13, Netflix, -15.99"}
-              style={{ width: "100%", height: 130, borderRadius: 12, padding: "12px", fontSize: 12, fontFamily: "monospace", background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", outline: "none", resize: "none", lineHeight: 1.6, marginBottom: 14, transition: "all 200ms ease" }}
-              onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--green-dim)"; }}
-              onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
-            <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={function () { setShowCsv(false); }} style={{ flex: 1, height: 42, borderRadius: 10, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }}
-                onMouseEnter={function (e) { e.currentTarget.style.background = "var(--surface)"; }}
-                onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; }}>Cancel</button>
-              <button onClick={addCsv} disabled={!csvText.trim()} style={{ flex: 1, height: 42, borderRadius: 10, background: csvText.trim() ? "var(--green)" : "var(--card)", border: "none", color: csvText.trim() ? "#fff" : "var(--faint)", fontSize: 13, fontWeight: 600, cursor: csvText.trim() ? "pointer" : "not-allowed", fontFamily: "inherit", transition: "all 200ms ease", boxShadow: csvText.trim() ? "0 2px 8px rgba(26, 143, 78, 0.2)" : "none" }}
-                onMouseEnter={function (e) { if (csvText.trim()) { e.currentTarget.style.transform = "translateY(-1px)"; } }}
-                onMouseLeave={function (e) { e.currentTarget.style.transform = "translateY(0)"; }}>Import</button>
-            </div>
+      {/* IMPORT MODAL */}
+      {showImport && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowImport(false); }}>
+          <div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 400, maxHeight: "90vh", overflowY: "auto", boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 4px 0" }}>Import Statement</h2>
+            <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 10px 0" }}>Paste your bank statement or SMS. We auto-detect amounts, names and categories.</p>
+            <textarea value={statementText} onChange={function (e) { setStatementText(e.target.value); setParsedEntries([]); }} placeholder={"15/01/2025 SWIGGY 250.00\n16/01/2025 NETFLIX 15.99\n17/01/2025 SALARY 50000.00 CR\n18/01/2025 UBER 185.50"} style={{ width: "100%", height: 80, borderRadius: 8, padding: "10px", fontSize: 11, fontFamily: "monospace", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", outline: "none", resize: "none", lineHeight: 1.5, marginBottom: 8, transition: "all 200ms ease" }} onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--green-dim)"; }} onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
+            <button onClick={handleParse} disabled={!statementText.trim()} style={{ height: 32, padding: "0 14px", borderRadius: 7, background: statementText.trim() ? "var(--green)" : "var(--card)", border: "none", color: statementText.trim() ? "#fff" : "var(--faint)", fontSize: 11, fontWeight: 600, cursor: statementText.trim() ? "pointer" : "not-allowed", fontFamily: "inherit", marginBottom: 8 }}>Detect Transactions</button>
+            {parsedEntries.length > 0 && (<div style={{ marginTop: 8, animation: "fadeIn 200ms ease" }}><p style={{ fontSize: 11, fontWeight: 700, color: "var(--text)", margin: "0 0 6px 0" }}>Found {parsedEntries.length} — toggle to select</p><div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: 8, maxHeight: 200, overflowY: "auto" }}>{parsedEntries.map(function (entry, idx) { var ci = getCatInfo(entry.category); return (<div key={idx} onClick={function () { toggleEntry(idx); }} style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 8px", borderRadius: 5, background: entry.selected ? "var(--green-dim)" : "var(--bg)", border: "1px solid " + (entry.selected ? "var(--green-border)" : "var(--border)"), cursor: "pointer", transition: "all 120ms ease", opacity: entry.selected ? 1 : 0.4 }}><div style={{ width: 14, height: 14, borderRadius: 3, border: entry.selected ? "none" : "2px solid var(--border)", background: entry.selected ? "var(--green)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{entry.selected && <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}</div><span style={{ width: 16, height: 11, borderRadius: 2, background: ci.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 5, fontWeight: 800, color: ci.color, flexShrink: 0 }}>{ci.label}</span><span style={{ flex: 1, fontSize: 10, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.merchant}</span><span style={{ fontSize: 10, fontWeight: 700, color: entry.isIncome ? "var(--green)" : "var(--red)", fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{entry.isIncome ? "+" : "-"}{formatCurrency(entry.amount)}</span></div>); })}</div><button onClick={addParsed} style={{ height: 32, padding: "0 14px", borderRadius: 7, background: "var(--green)", border: "none", color: "#fff", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Add {parsedEntries.filter(function (e) { return e.selected; }).length} Transactions</button></div>)}
+            <div style={{ display: "flex", gap: 6, marginTop: 8 }}><button onClick={function () { setShowImport(false); }} style={{ flex: 1, height: 34, borderRadius: 7, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Close</button></div>
           </div>
         </div>
       )}
 
-      <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-      `}</style>
+      <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } } @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }`}</style>
     </div>
   );
 }
