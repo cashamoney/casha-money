@@ -45,8 +45,6 @@ type Preset = {
   canAutoDetect: boolean;
 };
 
-type CatSpend = { category: string; total: number; count: number; color: string; bg: string; label: string };
-
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
 }
@@ -125,6 +123,9 @@ function fmtExp(v: string): string {
   return c;
 }
 
+/* 🔧 PRODUCTION: Replace simulateBalance with real API call.
+   Example: const res = await fetch("/api/balance", { method: "POST", body: JSON.stringify({type, details}) });
+   const data = await res.json(); return data.balance; */
 function simulateBalance(type: string, details: Record<string, string>): number {
   var seed = 0;
   var str = JSON.stringify(details);
@@ -186,29 +187,7 @@ function getPresetLabel(type: AccountType): string {
   return pr ? pr.label : "Account";
 }
 
-/* 🔧 PRODUCTION: getSpendingByCategory reads from state.
-   When you add a database, replace transactions state with a DB query. */
-function getSpendingByCategory(transactions: Transaction[], monthPrefix: string): CatSpend[] {
-  var map: Record<string, { total: number; count: number }> = {};
-  transactions.forEach(function (t) {
-    if (t.type !== "expense") return;
-    if (!t.date.startsWith(monthPrefix)) return;
-    var cat = t.category || "Other";
-    if (!map[cat]) map[cat] = { total: 0, count: 0 };
-    map[cat].total += Math.abs(t.amount);
-    map[cat].count += 1;
-  });
-  var results: CatSpend[] = [];
-  Object.keys(map).forEach(function (cat) {
-    var info = getCatInfo(cat);
-    results.push({ category: cat, total: map[cat].total, count: map[cat].count, color: info.color, bg: info.bg, label: info.label });
-  });
-  results.sort(function (a, b) { return b.total - a.total; });
-  return results;
-}
-
-/* 🔧 PRODUCTION: getLast6Months reads from state.
-   When you add a database, replace with aggregated query. */
+/* 🔧 PRODUCTION: Replace with DB aggregated query */
 function getLast6Months(transactions: Transaction[]): { month: string; income: number; expense: number; label: string }[] {
   var now = new Date();
   var months: { month: string; income: number; expense: number; label: string }[] = [];
@@ -266,6 +245,7 @@ export default function AccountsPage() {
   var nameRef = useRef<HTMLInputElement>(null);
   var emailRef = useRef<HTMLInputElement>(null);
 
+  /* 🔧 PRODUCTION: Replace localStorage with DB reads */
   useEffect(function () {
     var a = localStorage.getItem("casha-accounts"); if (a) { try { setAccounts(JSON.parse(a)); } catch (e) { /* ignore */ } }
     var t = localStorage.getItem("casha-transactions"); if (t) { try { setTransactions(JSON.parse(t)); } catch (e) { /* ignore */ } }
@@ -273,6 +253,7 @@ export default function AccountsPage() {
     var p = localStorage.getItem("casha-profile"); if (p) { try { setProfile(JSON.parse(p)); } catch (e) { /* ignore */ } }
   }, []);
 
+  /* 🔧 PRODUCTION: Replace localStorage with DB writes */
   useEffect(function () { localStorage.setItem("casha-accounts", JSON.stringify(accounts)); }, [accounts]);
   useEffect(function () { localStorage.setItem("casha-transactions", JSON.stringify(transactions)); }, [transactions]);
   useEffect(function () { localStorage.setItem("casha-transfers", JSON.stringify(transfers)); }, [transfers]);
@@ -292,7 +273,6 @@ export default function AccountsPage() {
   var cashTotal = accounts.filter(function (a) { return a.type === "cash"; }).reduce(function (s, a) { return s + a.balance; }, 0);
   var cardTotal = accounts.filter(function (a) { return a.type === "card"; }).reduce(function (s, a) { return s + a.balance; }, 0);
 
-  var catSpending = getSpendingByCategory(transactions, thisMs);
   var sixMonths = getLast6Months(transactions);
   var maxMonthVal = Math.max.apply(null, sixMonths.map(function (m) { return Math.max(m.income, m.expense); })) || 1;
 
@@ -310,6 +290,8 @@ export default function AccountsPage() {
   });
 
   var requestAutoDetect = function () { setDetecting(true); setAutoDetectedBalance(null); setShowPerm(true); };
+
+  /* 🔧 PRODUCTION: Replace setTimeout with await fetchRealBalance(type, details) */
   var grantPermission = function () {
     setShowPerm(false);
     setTimeout(function () {
@@ -320,6 +302,7 @@ export default function AccountsPage() {
       showToast("Balance detected: " + formatCurrency(bal));
     }, 1500);
   };
+
   var denyPermission = function () { setShowPerm(false); setDetecting(false); setAutoDetectedBalance(null); };
 
   var addAccount = function () {
@@ -412,16 +395,22 @@ export default function AccountsPage() {
   var currentFields: Record<string, string> = getPresetFields(selectedType);
   var editCurrentFields: Record<string, string> = getPresetFields(editType);
 
+  /* ---- shared badge style ---- */
+  var badgeStyle = function (color1: string, color2: string, text: string): React.CSSProperties => {
+    return { width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg, " + color1 + ", " + color2 + ")", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "#fff", flexShrink: 0 };
+  };
+
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "28px 0 40px" }}>
       {toast && <div style={{ position: "fixed", top: 24, left: "50%", transform: "translateX(-50%)", zIndex: 100, background: "var(--green)", color: "#fff", padding: "10px 24px", borderRadius: 10, fontSize: 13, fontWeight: 600, fontFamily: "inherit", boxShadow: "0 4px 20px rgba(26,143,78,0.3)", animation: "fadeIn 200ms ease" }}>{toast}</div>}
 
+      {/* HEADER */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--text)", letterSpacing: -0.5, margin: "0 0 2px 0" }}>Accounts</h1>
         <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>See where your money is. Add accounts, move money between them.</p>
       </div>
 
-      {/* TOTAL BALANCE CARD */}
+      {/* TOTAL BALANCE */}
       <div style={{ background: "linear-gradient(135deg, #1A8F4E, #2DD4BF)", borderRadius: 16, padding: "24px 24px 20px", marginBottom: 16, color: "#fff", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -24, right: -24, width: 100, height: 100, borderRadius: "50%", background: "rgba(255,255,255,0.07)" }} />
         <p style={{ fontSize: 11, fontWeight: 600, opacity: 0.75, margin: "0 0 4px 0", textTransform: "uppercase", letterSpacing: 0.08 }}>Your Total Balance</p>
@@ -433,7 +422,7 @@ export default function AccountsPage() {
         </div>
       </div>
 
-      {/* INCOME / EXPENSE CARDS */}
+      {/* INCOME / EXPENSE */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
         <div style={{ background: "var(--surface)", borderRadius: 10, padding: "12px 14px", border: "1px solid var(--border)" }}><p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.05, margin: "0 0 2px 0" }}>Money in this month</p><p style={{ fontSize: 18, fontWeight: 700, color: "var(--green)", margin: 0, fontVariantNumeric: "tabular-nums" }}>+{formatCurrency(thisMonthInc)}</p></div>
         <div style={{ background: "var(--surface)", borderRadius: 10, padding: "12px 14px", border: "1px solid var(--border)" }}><p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.05, margin: "0 0 2px 0" }}>Money out this month</p><p style={{ fontSize: 18, fontWeight: 700, color: "var(--red)", margin: 0, fontVariantNumeric: "tabular-nums" }}>-{formatCurrency(thisMonthExp)}</p></div>
@@ -465,34 +454,6 @@ export default function AccountsPage() {
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: "var(--red)" }} /><span style={{ fontSize: 10, color: "var(--muted)", fontWeight: 600 }}>Expense</span></div>
         </div>
       </div>
-
-      {/* SPENDING BY CATEGORY CHART */}
-      {catSpending.length > 0 && (
-        <div style={{ background: "var(--surface)", borderRadius: 12, padding: "18px 20px", border: "1px solid var(--border)", marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 2a10 10 0 0110 10" /><path d="M12 2a10 10 0 00-10 10" /></svg>
-            <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", margin: 0 }}>Spending by Category</p>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {catSpending.map(function (cs) {
-              var pct = thisMonthExp > 0 ? (cs.total / thisMonthExp) * 100 : 0;
-              return (
-                <div key={cs.category}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-                    <span style={{ width: 22, height: 22, borderRadius: 6, background: cs.bg, border: "1px solid " + cs.color + "30", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, color: cs.color, flexShrink: 0 }}>{cs.label}</span>
-                    <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: "var(--text)" }}>{cs.category}</span>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>{formatCurrency(cs.total)}</span>
-                    <span style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", width: 32, textAlign: "right" }}>{pct.toFixed(0)}%</span>
-                  </div>
-                  <div style={{ width: "100%", height: 6, borderRadius: 3, background: "var(--bg)", overflow: "hidden" }}>
-                    <div style={{ width: pct + "%", height: "100%", borderRadius: 3, background: cs.color, transition: "width 400ms ease" }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* ACTION BUTTONS */}
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
@@ -568,43 +529,49 @@ export default function AccountsPage() {
       </div>
 
       {/* TRANSFER RULES */}
-      <div style={{ background: "var(--surface)", borderRadius: 12, padding: "16px 18px", border: "1px solid var(--border)", marginBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg, #1A8F4E, #2DD4BF)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 014-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 01-4 4H3" /></svg>
+      <div style={{ background: "var(--surface)", borderRadius: 12, padding: "18px 20px", border: "1px solid var(--border)", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 9, background: "linear-gradient(135deg, #1A8F4E, #2DD4BF)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 014-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 01-4 4H3" /></svg>
           </div>
           <div>
-            <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", margin: 0 }}>Transfer Rules</p>
-            <p style={{ fontSize: 10, color: "var(--muted)", margin: "1px 0 0 0" }}>How money moves between your accounts</p>
+            <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", margin: 0 }}>How Transfers Work</p>
+            <p style={{ fontSize: 10, color: "var(--muted)", margin: "1px 0 0 0" }}>Understanding how money moves between your accounts</p>
           </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-          <div style={{ padding: "10px", borderRadius: 8, background: "var(--green-dim)", border: "1px solid var(--green-border)", textAlign: "center" }}>
-            <div style={{ display: "flex", justifyContent: "center", gap: 4, marginBottom: 6 }}>
-              <span style={{ width: 24, height: 24, borderRadius: 6, background: "linear-gradient(135deg, #1E3A5F, #3B82F6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, color: "#fff" }}>BK</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" style={{ alignSelf: "center" }}><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 014-4h14" /></svg>
-              <span style={{ width: 24, height: 24, borderRadius: 6, background: "linear-gradient(135deg, #4C1D95, #8B5CF6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, color: "#fff" }}>UP</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, background: "var(--green-dim)", border: "1px solid var(--green-border)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+              <span style={badgeStyle("#1E3A5F", "#3B82F6", "BK")}>BK</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><path d="M5 12h14" /><path d="M12 5l7 7-7 7" /></svg>
+              <span style={badgeStyle("#4C1D95", "#8B5CF6", "UP")}>UP</span>
             </div>
-            <p style={{ fontSize: 10, fontWeight: 700, color: "var(--green)", margin: 0 }}>Online ↔ Online</p>
-            <p style={{ fontSize: 8, color: "var(--muted)", margin: "2px 0 0 0" }}>Bank, UPI, Card</p>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: "var(--green)", margin: 0 }}>Online accounts can transfer freely</p>
+              <p style={{ fontSize: 10, color: "var(--muted)", margin: "2px 0 0 0" }}>Bank ↔ UPI ↔ Card — instant electronic transfer between any online accounts</p>
+            </div>
           </div>
-          <div style={{ padding: "10px", borderRadius: 8, background: "var(--red-dim)", border: "1px solid var(--red-border)", textAlign: "center" }}>
-            <div style={{ display: "flex", justifyContent: "center", gap: 4, marginBottom: 6, opacity: 0.5 }}>
-              <span style={{ width: 24, height: 24, borderRadius: 6, background: "linear-gradient(135deg, #064E3B, #22C55E)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, color: "#fff" }}>CA</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--red)" strokeWidth="2.5" style={{ alignSelf: "center" }}><line x1="1" y1="1" x2="23" y2="23" /><line x1="23" y1="1" x2="1" y2="23" /></svg>
-              <span style={{ width: 24, height: 24, borderRadius: 6, background: "linear-gradient(135deg, #1E3A5F, #3B82F6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, color: "#fff" }}>BK</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, background: "var(--red-dim)", border: "1px solid var(--red-border)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0, opacity: 0.5 }}>
+              <span style={badgeStyle("#064E3B", "#22C55E", "CA")}>CA</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" strokeWidth="2.5"><line x1="2" y1="2" x2="22" y2="22" /></svg>
+              <span style={badgeStyle("#1E3A5F", "#3B82F6", "BK")}>BK</span>
             </div>
-            <p style={{ fontSize: 10, fontWeight: 700, color: "var(--red)", margin: 0 }}>Cash ↔ Online</p>
-            <p style={{ fontSize: 8, color: "var(--muted)", margin: "2px 0 0 0" }}>Not possible</p>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: "var(--red)", margin: 0 }}>Cash cannot transfer electronically</p>
+              <p style={{ fontSize: 10, color: "var(--muted)", margin: "2px 0 0 0" }}>Physical cash and online accounts are separate — no direct electronic link</p>
+            </div>
           </div>
-          <div style={{ padding: "10px", borderRadius: 8, background: "var(--green-dim)", border: "1px solid var(--green-border)", textAlign: "center" }}>
-            <div style={{ display: "flex", justifyContent: "center", gap: 4, marginBottom: 6 }}>
-              <span style={{ width: 24, height: 24, borderRadius: 6, background: "linear-gradient(135deg, #064E3B, #22C55E)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, color: "#fff" }}>CA</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" style={{ alignSelf: "center" }}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-              <span style={{ width: 24, height: 24, borderRadius: 6, background: "var(--green)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 7, fontWeight: 800, color: "#fff" }}>+</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, background: "var(--green-dim)", border: "1px solid var(--green-border)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+              <span style={badgeStyle("#064E3B", "#22C55E", "CA")}>CA</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><path d="M12 5v14" /><path d="M5 12h14" /></svg>
+              <span style={{ width: 28, height: 28, borderRadius: 8, background: "var(--green)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: "#fff", flexShrink: 0 }}>+</span>
             </div>
-            <p style={{ fontSize: 10, fontWeight: 700, color: "var(--green)", margin: 0 }}>Use Add Money</p>
-            <p style={{ fontSize: 8, color: "var(--muted)", margin: "2px 0 0 0" }}>Cash to online</p>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: "var(--green)", margin: 0 }}>Use "Add Money" to deposit cash</p>
+              <p style={{ fontSize: 10, color: "var(--muted)", margin: "2px 0 0 0" }}>Manually record cash going into any bank, UPI, or card account</p>
+            </div>
           </div>
         </div>
       </div>
