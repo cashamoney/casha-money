@@ -82,9 +82,6 @@ function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
 }
 
-/* 🔧 PRODUCTION: Replace with real SMS/bank API parsing.
-   Example: const res = await fetch("/api/transactions/detect", { method: "POST" });
-   const data = await res.json(); return data.transactions; */
 function autoDetectTransactions(accounts: Account[]): Transaction[] {
   var results: Transaction[] = [];
   var now = new Date();
@@ -125,7 +122,7 @@ function autoDetectTransactions(accounts: Account[]): Transaction[] {
       category: m.cat,
       date: date,
       note: "",
-      source: "auto" as "manual" | "sms" | "csv" | "auto",
+      source: "auto",
       accountId: acc.id,
     });
   }
@@ -293,8 +290,8 @@ export default function TransactionsPage() {
 
   var addParsed = function () {
     var sel = parsedEntries.filter(function (e) { return e.selected; });
-    var newTx = sel.map(function (e) {
-      return { id: generateId(), amount: e.isIncome ? e.amount : -e.amount, type: (e.isIncome ? "income" : "expense") as "income" | "expense", merchant: e.merchant, category: e.category, date: e.date, note: "", source: "csv" as "manual" | "sms" | "csv" | "auto", accountId: e.accountId };
+    var newTx: Transaction[] = sel.map(function (e) {
+      return { id: generateId(), amount: e.isIncome ? e.amount : -e.amount, type: (e.isIncome ? "income" : "expense") as "income" | "expense", merchant: e.merchant, category: e.category, date: e.date, note: "", source: "csv" as "manual" | "sms" | "csv" | "auto", accountId: e.accountId || undefined };
     });
     setTransactions(function (prev) { return newTx.concat(prev); });
     setParsedEntries([]); setStatementText(""); setShowImport(false);
@@ -316,8 +313,6 @@ export default function TransactionsPage() {
     showToast("Transaction deleted");
   };
 
-  var accountOptions = accounts.map(function (a) { return { id: a.id, name: a.name, type: a.type, color: a.color }; });
-
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "28px 0 40px" }}>
       {toast && <div style={{ position: "fixed", top: 24, left: "50%", transform: "translateX(-50%)", zIndex: 100, background: "var(--green)", color: "#fff", padding: "10px 24px", borderRadius: 10, fontSize: 13, fontWeight: 600, fontFamily: "inherit", boxShadow: "0 4px 20px rgba(26,143,78,0.3)", animation: "fadeIn 200ms ease" }}>{toast}</div>}
@@ -327,7 +322,6 @@ export default function TransactionsPage() {
         <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>See every money movement — which account sent or received it.</p>
       </div>
 
-      {/* SUMMARY CARDS */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 16 }}>
         <div style={{ background: "var(--surface)", borderRadius: 10, padding: "12px 14px", border: "1px solid var(--border)" }}>
           <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 2px 0" }}>Money in</p>
@@ -343,14 +337,12 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      {/* ACTION BUTTONS */}
       <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
         <button onClick={function () { setShowAdd(true); setAddForm({ merchant: "", amount: "", type: "expense", category: "Other", date: new Date().toISOString().split("T")[0], note: "", accountId: accounts.length > 0 ? accounts[0].id : "" }); }} style={{ height: 36, padding: "0 14px", borderRadius: 8, background: "var(--green)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4, transition: "all 200ms ease", boxShadow: "0 2px 8px rgba(26,143,78,0.15)" }} onMouseEnter={function (e) { e.currentTarget.style.transform = "translateY(-1px)"; }} onMouseLeave={function (e) { e.currentTarget.style.transform = "translateY(0)"; }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>Add Transaction</button>
         <button onClick={function () { setShowDetect(true); }} style={{ height: 36, padding: "0 14px", borderRadius: 8, background: "linear-gradient(135deg, #1A8F4E, #2DD4BF)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4, transition: "all 200ms ease", boxShadow: "0 2px 8px rgba(26,143,78,0.2)" }} onMouseEnter={function (e) { e.currentTarget.style.transform = "translateY(-1px)"; }} onMouseLeave={function (e) { e.currentTarget.style.transform = "translateY(0)"; }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>Auto-Detect</button>
         <button onClick={function () { setShowImport(true); setParsedEntries([]); setStatementText(""); }} style={{ height: 36, padding: "0 14px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4, transition: "all 150ms ease" }} onMouseEnter={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.color = "var(--green)"; }} onMouseLeave={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text)"; }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>Import</button>
       </div>
 
-      {/* FILTERS */}
       <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
         {[{ key: "all", label: "All" }, { key: "income", label: "Income" }, { key: "expense", label: "Expense" }, { key: "transfer", label: "Transfers" }].map(function (f) {
           var isActive = filter === f.key;
@@ -362,12 +354,10 @@ export default function TransactionsPage() {
         </select>)}
       </div>
 
-      {/* SEARCH */}
       <div style={{ marginBottom: 12 }}>
         <input type="text" placeholder="Search merchant, category, or note..." value={searchQuery} onChange={function (e) { setSearchQuery(e.target.value); setVisibleCount(30); }} style={{ width: "100%", height: 36, padding: "0 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 12, outline: "none", fontFamily: "inherit", transition: "all 200ms ease" }} onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--green-dim)"; }} onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
       </div>
 
-      {/* TRANSACTION LIST */}
       {filtered.length === 0 ? (
         <div style={{ background: "var(--surface)", borderRadius: 12, padding: "36px 20px", border: "1px solid var(--border)", textAlign: "center" }}>
           <div style={{ width: 48, height: 48, borderRadius: 12, background: "var(--green-dim)", border: "1px solid var(--green-border)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px" }}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg></div>
@@ -381,7 +371,6 @@ export default function TransactionsPage() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {grouped.map(function (group) {
-            var dayTotal = group.items.reduce(function (s, t) { return s + (t.type === "income" ? t.amount : t.amount); }, 0);
             return (
               <div key={group.date}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4, padding: "0 2px" }}>
@@ -450,7 +439,7 @@ export default function TransactionsPage() {
               var isTf = isTransferTx(detailTx);
               var tfInfo = isTf ? getTransferPartner(detailTx) : null;
               return (
-                <>
+                <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
                     <div style={{ width: 44, height: 44, borderRadius: 10, background: ci.bg, border: "1px solid " + ci.color + "25", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <span style={{ fontSize: 14, fontWeight: 800, color: ci.color }}>{ci.label}</span>
@@ -507,7 +496,7 @@ export default function TransactionsPage() {
                     <button onClick={function () { setShowDetail(false); setDetailTx(null); }} style={{ flex: 1, height: 36, borderRadius: 8, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Close</button>
                     <button onClick={function () { deleteTx(detailTx.id); setShowDetail(false); setDetailTx(null); }} style={{ height: 36, padding: "0 14px", borderRadius: 8, background: "transparent", border: "1px solid var(--red-border)", color: "var(--red)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }} onMouseEnter={function (e) { e.currentTarget.style.background = "var(--red)"; e.currentTarget.style.color = "#fff"; }} onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--red)"; }}>Delete</button>
                   </div>
-                </>
+                </div>
               );
             }()}
           </div>
@@ -558,7 +547,7 @@ export default function TransactionsPage() {
             {!detecting && accounts.length > 0 && <p style={{ fontSize: 10, color: "var(--muted)", margin: "0 0 16px 0", lineHeight: 1.5 }}>Found {accounts.length} account{accounts.length > 1 ? "s" : ""}: {accounts.map(function (a) { return a.name; }).join(", ")}</p>}
             {detecting && <div style={{ width: "100%", height: 4, borderRadius: 2, background: "var(--green-dim)", overflow: "hidden", margin: "8px 0 16px" }}><div style={{ width: "60%", height: "100%", borderRadius: 2, background: "var(--green)", animation: "pulse 1.5s ease-in-out infinite" }} /></div>}
             <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={function () { if (!detecting) setShowDetect(false); }} disabled={detecting} style={{ flex: 1, height: 40, borderRadius: 8, background: "transparent", border: detecting ? "1px solid var(--border)" : "1px solid var(--border)", color: detecting ? "var(--faint)" : "var(--muted)", fontSize: 12, fontWeight: 600, cursor: detecting ? "not-allowed" : "pointer", fontFamily: "inherit" }}>Cancel</button>
+              <button onClick={function () { if (!detecting) setShowDetect(false); }} disabled={detecting} style={{ flex: 1, height: 40, borderRadius: 8, background: "transparent", border: "1px solid var(--border)", color: detecting ? "var(--faint)" : "var(--muted)", fontSize: 12, fontWeight: 600, cursor: detecting ? "not-allowed" : "pointer", fontFamily: "inherit" }}>Cancel</button>
               <button onClick={doAutoDetect} disabled={detecting || accounts.length === 0} style={{ flex: 1, height: 40, borderRadius: 8, background: detecting || accounts.length === 0 ? "var(--card)" : "linear-gradient(135deg, #1A8F4E, #2DD4BF)", border: "none", color: detecting || accounts.length === 0 ? "var(--faint)" : "#fff", fontSize: 12, fontWeight: 600, cursor: detecting || accounts.length === 0 ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: detecting ? "none" : "0 2px 8px rgba(26,143,78,0.2)" }}>{detecting ? "Scanning..." : "Detect Now"}</button>
             </div>
           </div>
