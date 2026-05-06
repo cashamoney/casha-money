@@ -226,12 +226,14 @@ export default function AccountsPage() {
     var toAcc = accounts.find(function (a) { return a.id === transferTo; });
     if (!fromAcc || !toAcc) return;
     if (fromAcc.balance < amt) { showToast("Not enough balance in " + fromAcc.name); return; }
+    var fromName = fromAcc.name;
+    var toName = toAcc.name;
     setAccounts(function (prev) { return prev.map(function (a) { if (a.id === transferFrom) return { ...a, balance: a.balance - amt }; if (a.id === transferTo) return { ...a, balance: a.balance + amt }; return a; }); });
     var today = new Date().toISOString().split("T")[0];
     setTransfers(function (prev) { return [{ id: generateId(), from: transferFrom, to: transferTo, amount: amt, date: today }, ...prev]; });
-    setTransactions(function (prev) { return [{ id: generateId(), amount: -amt, type: "expense", merchant: "Transfer to " + toAcc.name, category: "Other", date: today, note: "Transfer", source: "manual" as const, accountId: transferFrom }, { id: generateId(), amount: amt, type: "income", merchant: "Transfer from " + fromAcc.name, category: "Other", date: today, note: "Transfer", source: "manual" as const, accountId: transferTo }, ...prev]; });
+    setTransactions(function (prev) { return [{ id: generateId(), amount: -amt, type: "expense", merchant: "Transfer to " + toName, category: "Other", date: today, note: "Transfer", source: "manual" as const, accountId: transferFrom }, { id: generateId(), amount: amt, type: "income", merchant: "Transfer from " + fromName, category: "Other", date: today, note: "Transfer", source: "manual" as const, accountId: transferTo }, ...prev]; });
     setTransferAmount(""); setTransferFrom(""); setTransferTo(""); setShowTransfer(false);
-    showToast(formatCurrency(amt) + " moved from " + fromAcc.name + " to " + toAcc.name);
+    showToast(formatCurrency(amt) + " moved from " + fromName + " to " + toName);
   };
 
   var saveName = function () { if (nameInput.trim()) setProfile(function (p) { return { ...p, name: nameInput.trim() }; }); setEditingName(false); };
@@ -261,13 +263,11 @@ export default function AccountsPage() {
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "28px 0 40px" }}>
       {toast && <div style={{ position: "fixed", top: 24, left: "50%", transform: "translateX(-50%)", zIndex: 100, background: "var(--green)", color: "#fff", padding: "10px 24px", borderRadius: 10, fontSize: 13, fontWeight: 600, fontFamily: "inherit", boxShadow: "0 4px 20px rgba(26,143,78,0.3)", animation: "fadeIn 200ms ease" }}>{toast}</div>}
 
-      {/* HEADER */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--text)", letterSpacing: -0.5, margin: "0 0 2px 0" }}>Accounts</h1>
         <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>See where your money is. Add accounts, move money between them.</p>
       </div>
 
-      {/* TOTAL BALANCE */}
       <div style={{ background: "linear-gradient(135deg, #1A8F4E, #2DD4BF)", borderRadius: 16, padding: "24px 24px 20px", marginBottom: 16, color: "#fff", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -24, right: -24, width: 100, height: 100, borderRadius: "50%", background: "rgba(255,255,255,0.07)" }} />
         <p style={{ fontSize: 11, fontWeight: 600, opacity: 0.75, margin: "0 0 4px 0", textTransform: "uppercase", letterSpacing: 0.08 }}>Your Total Balance</p>
@@ -292,7 +292,6 @@ export default function AccountsPage() {
         </div>
       </div>
 
-      {/* THIS MONTH */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
         <div style={{ background: "var(--surface)", borderRadius: 10, padding: "12px 14px", border: "1px solid var(--border)" }}>
           <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.05, margin: "0 0 2px 0" }}>Money in this month</p>
@@ -304,7 +303,6 @@ export default function AccountsPage() {
         </div>
       </div>
 
-      {/* ACTIONS */}
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
         <button onClick={function () { setSelectedType("bank"); setFormFields({}); setInitialBalance(""); setShowAdd(true); }} style={{ height: 36, padding: "0 14px", borderRadius: 8, background: "var(--green)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4, transition: "all 200ms ease", boxShadow: "0 2px 8px rgba(26,143,78,0.15)" }}
           onMouseEnter={function (e) { e.currentTarget.style.transform = "translateY(-1px)"; }}
@@ -323,7 +321,6 @@ export default function AccountsPage() {
         </button>}
       </div>
 
-      {/* ACCOUNTS */}
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
           <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", margin: 0 }}>Your Accounts</p>
@@ -417,7 +414,6 @@ export default function AccountsPage() {
         )}
       </div>
 
-      {/* HOW IT WORKS */}
       {accounts.length === 0 && (
         <div style={{ background: "var(--surface)", borderRadius: 12, padding: "18px 20px", border: "1px solid var(--border)", marginBottom: 16 }}>
           <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", margin: "0 0 10px 0" }}>How it works</p>
@@ -441,7 +437,6 @@ export default function AccountsPage() {
         </div>
       )}
 
-      {/* STATEMENT PARSER */}
       <div style={{ background: "var(--surface)", borderRadius: 12, padding: "18px 20px", border: "1px solid var(--border)", marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>
@@ -477,7 +472,6 @@ export default function AccountsPage() {
         )}
       </div>
 
-      {/* PROFILE + SETTINGS */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 0 }}>
         <div style={{ background: "var(--surface)", borderRadius: 10, padding: "14px 16px", border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg, #1A8F4E, #2DD4BF)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -521,7 +515,6 @@ export default function AccountsPage() {
         </div>
       </div>
 
-      {/* ADD ACCOUNT MODAL */}
       {showAdd && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowAdd(false); }}>
           <div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 400, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
@@ -569,7 +562,6 @@ export default function AccountsPage() {
         </div>
       )}
 
-      {/* ADD MONEY MODAL */}
       {showAddMoney && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowAddMoney(false); }}>
           <div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 360, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
@@ -600,7 +592,6 @@ export default function AccountsPage() {
         </div>
       )}
 
-      {/* TRANSFER MODAL */}
       {showTransfer && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowTransfer(false); }}>
           <div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 360, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
