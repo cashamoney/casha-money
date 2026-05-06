@@ -45,6 +45,8 @@ type Preset = {
   canAutoDetect: boolean;
 };
 
+type CatSpend = { category: string; total: number; count: number; color: string; bg: string; label: string };
+
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
 }
@@ -65,6 +67,25 @@ var PRESETS: Preset[] = [
   { type: "cash", label: "Cash", color: "#22C55E", icon: "CA", desc: "Wallet, purse, hand cash", fields: { holderName: "Label (e.g. My Wallet)" }, canAutoDetect: false },
   { type: "card", label: "Card", color: "#F97316", icon: "CD", desc: "Credit or debit card", fields: { bankName: "Bank name", cardNumber: "Card number", expiry: "MM/YY", holderName: "Name on card" }, canAutoDetect: true },
 ];
+
+var CAT_MAP: Record<string, { color: string; bg: string; label: string }> = {
+  Food: { color: "#F97316", bg: "#FFF7ED", label: "FD" },
+  Transport: { color: "#3B82F6", bg: "#EFF6FF", label: "TR" },
+  Shopping: { color: "#A855F7", bg: "#FAF5FF", label: "SH" },
+  Entertainment: { color: "#EC4899", bg: "#FDF2F8", label: "EN" },
+  Bills: { color: "#EAB308", bg: "#FEFCE8", label: "BL" },
+  Rent: { color: "#EF4444", bg: "#FEF2F2", label: "RN" },
+  Health: { color: "#14B8A6", bg: "#F0FDFA", label: "HT" },
+  Education: { color: "#6366F1", bg: "#EEF2FF", label: "ED" },
+  Investment: { color: "#06B6D4", bg: "#ECFEFF", label: "IV" },
+  Salary: { color: "#22C55E", bg: "#F0FDF4", label: "SA" },
+  Other: { color: "#6B7280", bg: "#F9FAFB", label: "OT" },
+};
+
+function getCatInfo(name: string): { color: string; bg: string; label: string } {
+  var info = CAT_MAP[name];
+  return info || { color: "#6B7280", bg: "#F9FAFB", label: "OT" };
+}
 
 function detectCardType(n: string): string {
   var c = n.replace(/\D/g, "");
@@ -102,18 +123,6 @@ function fmtExp(v: string): string {
   var c = v.replace(/\D/g, "").substring(0, 4);
   if (c.length >= 2) return c.substring(0, 2) + "/" + c.substring(2);
   return c;
-}
-
-function getCatIcon(name: string): { l: string; c: string; b: string } {
-  var m: Record<string, { l: string; c: string; b: string }> = {
-    Food: { l: "FD", c: "#F97316", b: "#FFF7ED" }, Transport: { l: "TR", c: "#3B82F6", b: "#EFF6FF" },
-    Shopping: { l: "SH", c: "#A855F7", b: "#FAF5FF" }, Entertainment: { l: "EN", c: "#EC4899", b: "#FDF2F8" },
-    Bills: { l: "BL", c: "#EAB308", b: "#FEFCE8" }, Rent: { l: "RN", c: "#EF4444", b: "#FEF2F2" },
-    Health: { l: "HT", c: "#14B8A6", b: "#F0FDFA" }, Education: { l: "ED", c: "#6366F1", b: "#EEF2FF" },
-    Investment: { l: "IV", c: "#06B6D4", b: "#ECFEFF" }, Salary: { l: "SA", c: "#22C55E", b: "#F0FDF4" },
-    Other: { l: "OT", c: "#6B7280", b: "#F9FAFB" },
-  };
-  return m[name] || { l: "OT", c: "#6B7280", b: "#F9FAFB" };
 }
 
 function simulateBalance(type: string, details: Record<string, string>): number {
@@ -170,6 +179,54 @@ function getPresetFields(type: AccountType): Record<string, string> {
 function getPresetCanAutoDetect(type: AccountType): boolean {
   var pr = PRESETS.find(function (p) { return p.type === type; });
   return pr ? pr.canAutoDetect : false;
+}
+
+function getPresetLabel(type: AccountType): string {
+  var pr = PRESETS.find(function (p) { return p.type === type; });
+  return pr ? pr.label : "Account";
+}
+
+/* 🔧 PRODUCTION: getSpendingByCategory reads from state.
+   When you add a database, replace transactions state with a DB query. */
+function getSpendingByCategory(transactions: Transaction[], monthPrefix: string): CatSpend[] {
+  var map: Record<string, { total: number; count: number }> = {};
+  transactions.forEach(function (t) {
+    if (t.type !== "expense") return;
+    if (!t.date.startsWith(monthPrefix)) return;
+    var cat = t.category || "Other";
+    if (!map[cat]) map[cat] = { total: 0, count: 0 };
+    map[cat].total += Math.abs(t.amount);
+    map[cat].count += 1;
+  });
+  var results: CatSpend[] = [];
+  Object.keys(map).forEach(function (cat) {
+    var info = getCatInfo(cat);
+    results.push({ category: cat, total: map[cat].total, count: map[cat].count, color: info.color, bg: info.bg, label: info.label });
+  });
+  results.sort(function (a, b) { return b.total - a.total; });
+  return results;
+}
+
+/* 🔧 PRODUCTION: getLast6Months reads from state.
+   When you add a database, replace with aggregated query. */
+function getLast6Months(transactions: Transaction[]): { month: string; income: number; expense: number; label: string }[] {
+  var now = new Date();
+  var months: { month: string; income: number; expense: number; label: string }[] = [];
+  for (var i = 5; i >= 0; i--) {
+    var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    var prefix = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+    var label = d.toLocaleString("en-US", { month: "short" });
+    var inc = 0;
+    var exp = 0;
+    transactions.forEach(function (t) {
+      if (t.date.startsWith(prefix)) {
+        if (t.type === "income") inc += t.amount;
+        else exp += Math.abs(t.amount);
+      }
+    });
+    months.push({ month: prefix, income: inc, expense: exp, label: label });
+  }
+  return months;
 }
 
 export default function AccountsPage() {
@@ -235,13 +292,16 @@ export default function AccountsPage() {
   var cashTotal = accounts.filter(function (a) { return a.type === "cash"; }).reduce(function (s, a) { return s + a.balance; }, 0);
   var cardTotal = accounts.filter(function (a) { return a.type === "card"; }).reduce(function (s, a) { return s + a.balance; }, 0);
 
+  var catSpending = getSpendingByCategory(transactions, thisMs);
+  var sixMonths = getLast6Months(transactions);
+  var maxMonthVal = Math.max.apply(null, sixMonths.map(function (m) { return Math.max(m.income, m.expense); })) || 1;
+
   var canAutoDetect = getPresetCanAutoDetect(selectedType);
   var hasEnoughDetail = (selectedType === "bank" && !!(formFields.bankName && formFields.accountNumber)) ||
     (selectedType === "upi" && !!formFields.upiId) ||
     (selectedType === "card" && !!(formFields.cardNumber && formFields.cardNumber.replace(/\D/g, "").length >= 4));
 
   var onlineAccounts = accounts.filter(function (a) { return isOnlineType(a.type); });
-
   var fromAcc = accounts.find(function (a) { return a.id === transferFrom; });
   var fromIsOnline = fromAcc ? isOnlineType(fromAcc.type) : true;
   var eligibleToAccounts = accounts.filter(function (a) {
@@ -249,12 +309,7 @@ export default function AccountsPage() {
     return fromIsOnline === isOnlineType(a.type);
   });
 
-  var requestAutoDetect = function () {
-    setDetecting(true);
-    setAutoDetectedBalance(null);
-    setShowPerm(true);
-  };
-
+  var requestAutoDetect = function () { setDetecting(true); setAutoDetectedBalance(null); setShowPerm(true); };
   var grantPermission = function () {
     setShowPerm(false);
     setTimeout(function () {
@@ -265,17 +320,12 @@ export default function AccountsPage() {
       showToast("Balance detected: " + formatCurrency(bal));
     }, 1500);
   };
-
-  var denyPermission = function () {
-    setShowPerm(false);
-    setDetecting(false);
-    setAutoDetectedBalance(null);
-  };
+  var denyPermission = function () { setShowPerm(false); setDetecting(false); setAutoDetectedBalance(null); };
 
   var addAccount = function () {
     var prColor = getPresetColor(selectedType);
-    var prFields = getPresetFields(selectedType);
-    var name = formFields.holderName || formFields.bankName || formFields.platform || (PRESETS.find(function (p) { return p.type === selectedType; })?.label || "Account");
+    var prLabel = getPresetLabel(selectedType);
+    var name = formFields.holderName || formFields.bankName || formFields.platform || prLabel;
     var bal = parseFloat(initialBalance) || 0;
     var newAcc: Account = { id: generateId(), type: selectedType, name: name, balance: bal, color: prColor, details: { ...formFields } };
     setAccounts(function (prev) { return [...prev, newAcc]; });
@@ -294,26 +344,17 @@ export default function AccountsPage() {
   };
 
   var openEdit = function (acc: Account) {
-    setEditId(acc.id);
-    setEditName(acc.name);
-    setEditType(acc.type);
-    setEditBalance(String(acc.balance));
-    setEditFields({ ...acc.details });
-    setShowEdit(true);
+    setEditId(acc.id); setEditName(acc.name); setEditType(acc.type); setEditBalance(String(acc.balance)); setEditFields({ ...acc.details }); setShowEdit(true);
   };
 
   var doEdit = function () {
     var prColor = getPresetColor(editType);
-    var finalName = editName.trim() || editFields.holderName || editFields.bankName || editFields.platform || (PRESETS.find(function (p) { return p.type === editType; })?.label || "Account");
+    var prLabel = getPresetLabel(editType);
+    var finalName = editName.trim() || editFields.holderName || editFields.bankName || editFields.platform || prLabel;
     var newBal = parseFloat(editBalance) || 0;
     var eid = editId;
     var ef = { ...editFields };
-    setAccounts(function (prev) {
-      return prev.map(function (a) {
-        if (a.id !== eid) return a;
-        return { ...a, name: finalName, type: editType, color: prColor, balance: newBal, details: ef };
-      });
-    });
+    setAccounts(function (prev) { return prev.map(function (a) { if (a.id !== eid) return a; return { ...a, name: finalName, type: editType, color: prColor, balance: newBal, details: ef }; }); });
     setShowEdit(false);
     showToast(finalName + " updated");
   };
@@ -338,10 +379,7 @@ export default function AccountsPage() {
     var fa = accounts.find(function (a) { return a.id === transferFrom; });
     var ta = accounts.find(function (a) { return a.id === transferTo; });
     if (!fa || !ta) return;
-    if (isOnlineType(fa.type) !== isOnlineType(ta.type)) {
-      showToast("Cannot transfer between cash and online accounts");
-      return;
-    }
+    if (isOnlineType(fa.type) !== isOnlineType(ta.type)) { showToast("Cannot transfer between cash and online accounts"); return; }
     if (fa.balance < amt) { showToast("Not enough balance in " + fa.name); return; }
     var fromName = fa.name;
     var toName = ta.name;
@@ -357,14 +395,11 @@ export default function AccountsPage() {
 
   var saveName = function () { if (nameInput.trim()) setProfile(function (p) { return { ...p, name: nameInput.trim() }; }); setEditingName(false); };
   var saveEmail = function () { if (emailInput.trim()) setProfile(function (p) { return { ...p, email: emailInput.trim() }; }); setEditingEmail(false); };
-
   var exportData = function () {
     var blob = new Blob([JSON.stringify({ profile: profile, accounts: accounts, transactions: transactions, transfers: transfers, exportedAt: new Date().toISOString() }, null, 2)], { type: "application/json" });
     var url = URL.createObjectURL(blob); var a = document.createElement("a"); a.href = url; a.download = "casha-" + new Date().toISOString().split("T")[0] + ".json"; a.click(); URL.revokeObjectURL(url); showToast("Downloaded");
   };
-
   var clearAll = function () { setTransactions([]); setAccounts([]); setTransfers([]); setShowClearConfirm(false); showToast("Cleared everything"); };
-
   var handleParse = function () { if (!statementText.trim()) return; setParsedEntries(parseStatement(statementText)); };
   var toggleEntry = function (idx: number) { setParsedEntries(function (prev) { return prev.map(function (e, i) { return i === idx ? { ...e, selected: !e.selected } : e; }); }); };
   var addParsed = function () {
@@ -372,10 +407,8 @@ export default function AccountsPage() {
     setTransactions(function (prev) { return sel.map(function (e) { return { id: generateId(), amount: e.isIncome ? e.amount : -e.amount, type: (e.isIncome ? "income" : "expense") as "income" | "expense", merchant: e.merchant, category: e.category, date: e.date, note: "", source: "csv" as "manual" | "sms" | "csv" }; }).concat(prev); });
     setParsedEntries([]); setStatementText(""); showToast(sel.length + " transactions added");
   };
-
   var getAccTx = function (id: string) { return transactions.filter(function (t) { return t.accountId === id; }).slice(0, 5); };
   var initials = profile.name.split(" ").map(function (w) { return w[0] || ""; }).join("").toUpperCase().substring(0, 2);
-
   var currentFields: Record<string, string> = getPresetFields(selectedType);
   var editCurrentFields: Record<string, string> = getPresetFields(editType);
 
@@ -388,6 +421,7 @@ export default function AccountsPage() {
         <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>See where your money is. Add accounts, move money between them.</p>
       </div>
 
+      {/* TOTAL BALANCE CARD */}
       <div style={{ background: "linear-gradient(135deg, #1A8F4E, #2DD4BF)", borderRadius: 16, padding: "24px 24px 20px", marginBottom: 16, color: "#fff", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -24, right: -24, width: 100, height: 100, borderRadius: "50%", background: "rgba(255,255,255,0.07)" }} />
         <p style={{ fontSize: 11, fontWeight: 600, opacity: 0.75, margin: "0 0 4px 0", textTransform: "uppercase", letterSpacing: 0.08 }}>Your Total Balance</p>
@@ -399,17 +433,75 @@ export default function AccountsPage() {
         </div>
       </div>
 
+      {/* INCOME / EXPENSE CARDS */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
         <div style={{ background: "var(--surface)", borderRadius: 10, padding: "12px 14px", border: "1px solid var(--border)" }}><p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.05, margin: "0 0 2px 0" }}>Money in this month</p><p style={{ fontSize: 18, fontWeight: 700, color: "var(--green)", margin: 0, fontVariantNumeric: "tabular-nums" }}>+{formatCurrency(thisMonthInc)}</p></div>
         <div style={{ background: "var(--surface)", borderRadius: 10, padding: "12px 14px", border: "1px solid var(--border)" }}><p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.05, margin: "0 0 2px 0" }}>Money out this month</p><p style={{ fontSize: 18, fontWeight: 700, color: "var(--red)", margin: 0, fontVariantNumeric: "tabular-nums" }}>-{formatCurrency(thisMonthExp)}</p></div>
       </div>
 
+      {/* 6-MONTH CHART */}
+      <div style={{ background: "var(--surface)", borderRadius: 12, padding: "18px 20px", border: "1px solid var(--border)", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>
+          <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", margin: 0 }}>6-Month Overview</p>
+        </div>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 120, marginBottom: 8 }}>
+          {sixMonths.map(function (m) {
+            var incH = Math.max(4, (m.income / maxMonthVal) * 100);
+            var expH = Math.max(4, (m.expense / maxMonthVal) * 100);
+            return (
+              <div key={m.month} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 100, width: "100%" }}>
+                  <div style={{ flex: 1, height: incH, background: "var(--green)", borderRadius: 3, minHeight: 4, transition: "height 400ms ease", opacity: 0.8 }} title={"Income: " + formatCurrency(m.income)} />
+                  <div style={{ flex: 1, height: expH, background: "var(--red)", borderRadius: 3, minHeight: 4, transition: "height 400ms ease", opacity: 0.8 }} title={"Expense: " + formatCurrency(m.expense)} />
+                </div>
+                <span style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)" }}>{m.label}</span>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ display: "flex", gap: 16, justifyContent: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: "var(--green)" }} /><span style={{ fontSize: 10, color: "var(--muted)", fontWeight: 600 }}>Income</span></div>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: "var(--red)" }} /><span style={{ fontSize: 10, color: "var(--muted)", fontWeight: 600 }}>Expense</span></div>
+        </div>
+      </div>
+
+      {/* SPENDING BY CATEGORY CHART */}
+      {catSpending.length > 0 && (
+        <div style={{ background: "var(--surface)", borderRadius: 12, padding: "18px 20px", border: "1px solid var(--border)", marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 2a10 10 0 0110 10" /><path d="M12 2a10 10 0 00-10 10" /></svg>
+            <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", margin: 0 }}>Spending by Category</p>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {catSpending.map(function (cs) {
+              var pct = thisMonthExp > 0 ? (cs.total / thisMonthExp) * 100 : 0;
+              return (
+                <div key={cs.category}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                    <span style={{ width: 22, height: 22, borderRadius: 6, background: cs.bg, border: "1px solid " + cs.color + "30", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, color: cs.color, flexShrink: 0 }}>{cs.label}</span>
+                    <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: "var(--text)" }}>{cs.category}</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>{formatCurrency(cs.total)}</span>
+                    <span style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", width: 32, textAlign: "right" }}>{pct.toFixed(0)}%</span>
+                  </div>
+                  <div style={{ width: "100%", height: 6, borderRadius: 3, background: "var(--bg)", overflow: "hidden" }}>
+                    <div style={{ width: pct + "%", height: "100%", borderRadius: 3, background: cs.color, transition: "width 400ms ease" }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ACTION BUTTONS */}
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
         <button onClick={function () { setSelectedType("bank"); setFormFields({}); setInitialBalance(""); setAutoDetectedBalance(null); setShowAdd(true); }} style={{ height: 36, padding: "0 14px", borderRadius: 8, background: "var(--green)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4, transition: "all 200ms ease", boxShadow: "0 2px 8px rgba(26,143,78,0.15)" }} onMouseEnter={function (e) { e.currentTarget.style.transform = "translateY(-1px)"; }} onMouseLeave={function (e) { e.currentTarget.style.transform = "translateY(0)"; }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>Add Account</button>
         {accounts.length >= 1 && <button onClick={function () { setAddMoneyAccountId(accounts[0].id); setAddMoneyAmount(""); setShowAddMoney(true); }} style={{ height: 36, padding: "0 14px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4, transition: "all 150ms ease" }} onMouseEnter={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.color = "var(--green)"; }} onMouseLeave={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text)"; }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>Add Money</button>}
         {onlineAccounts.length >= 2 && <button onClick={function () { setTransferFrom(onlineAccounts[0].id); setTransferTo(onlineAccounts[1].id); setTransferAmount(""); setShowTransfer(true); }} style={{ height: 36, padding: "0 14px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4, transition: "all 150ms ease" }} onMouseEnter={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.color = "var(--green)"; }} onMouseLeave={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text)"; }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 014-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 01-4 4H3" /></svg>Transfer</button>}
       </div>
 
+      {/* ACCOUNTS LIST */}
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
           <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", margin: 0 }}>Your Accounts</p>
@@ -448,7 +540,7 @@ export default function AccountsPage() {
                     <div style={{ padding: "0 14px 12px", animation: "fadeIn 200ms ease" }}>
                       <div style={{ borderTop: "1px solid var(--border)", paddingTop: 10, marginBottom: 8 }}>
                         {Object.keys(acc.details).length > 0 && (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, marginBottom: 8 }}>{Object.entries(acc.details).map(function (e) { return (<div key={e[0]} style={{ padding: "4px 8px", borderRadius: 5, background: "var(--surface)" }}><span style={{ fontSize: 8, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase" }}>{e[0].replace(/([A-Z])/g, " $1").trim()}</span><p style={{ fontSize: 11, fontWeight: 500, color: "var(--text)", margin: "1px 0 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e[1]}</p></div>); })}</div>)}
-                        {txs.length > 0 && (<div style={{ marginBottom: 8 }}><p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 4px 0" }}>Recent Activity</p>{txs.map(function (t) { var cat = getCatIcon(t.category); return (<div key={t.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0" }}><span style={{ width: 16, height: 12, borderRadius: 2, background: cat.b, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 5, fontWeight: 800, color: cat.c }}>{cat.l}</span><span style={{ flex: 1, fontSize: 11, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.merchant}</span><span style={{ fontSize: 11, fontWeight: 700, color: t.type === "income" ? "var(--green)" : "var(--red)", fontVariantNumeric: "tabular-nums" }}>{t.type === "income" ? "+" : "-"}{formatCurrency(Math.abs(t.amount))}</span></div>); })}</div>)}
+                        {txs.length > 0 && (<div style={{ marginBottom: 8 }}><p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 4px 0" }}>Recent Activity</p>{txs.map(function (t) { var ci = getCatInfo(t.category); return (<div key={t.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0" }}><span style={{ width: 16, height: 12, borderRadius: 2, background: ci.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 5, fontWeight: 800, color: ci.color }}>{ci.label}</span><span style={{ flex: 1, fontSize: 11, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.merchant}</span><span style={{ fontSize: 11, fontWeight: 700, color: t.type === "income" ? "var(--green)" : "var(--red)", fontVariantNumeric: "tabular-nums" }}>{t.type === "income" ? "+" : "-"}{formatCurrency(Math.abs(t.amount))}</span></div>); })}</div>)}
                       </div>
                       <div style={{ display: "flex", gap: 6 }}>
                         <button onClick={function (e) { e.stopPropagation(); openEdit(acc); }} style={{ flex: 1, height: 30, borderRadius: 6, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease", display: "flex", alignItems: "center", justifyContent: "center", gap: 3 }} onMouseEnter={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.color = "var(--green)"; }} onMouseLeave={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text)"; }}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>Edit</button>
@@ -466,23 +558,58 @@ export default function AccountsPage() {
 
       {accounts.length === 0 && (<div style={{ background: "var(--surface)", borderRadius: 12, padding: "18px 20px", border: "1px solid var(--border)", marginBottom: 16 }}><p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", margin: "0 0 10px 0" }}>How it works</p><div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{[{ step: "1", title: "Add your accounts", desc: "Bank, UPI (GPay/PhonePe), cash wallet, or card" }, { step: "2", title: "Auto-detect balance", desc: "Enter card/bank/UPI details and we'll fetch your balance" }, { step: "3", title: "Track everything", desc: "Add money, transfer between online accounts, see your total" }].map(function (s) { return (<div key={s.step} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}><span style={{ width: 22, height: 22, borderRadius: 6, background: "var(--green-dim)", border: "1px solid var(--green-border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: "var(--green)", flexShrink: 0 }}>{s.step}</span><div><p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: 0 }}>{s.title}</p><p style={{ fontSize: 11, color: "var(--muted)", margin: "1px 0 0 0" }}>{s.desc}</p></div></div>); })}</div></div>)}
 
+      {/* IMPORT STATEMENT */}
       <div style={{ background: "var(--surface)", borderRadius: 12, padding: "18px 20px", border: "1px solid var(--border)", marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg><p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", margin: 0 }}>Import Statement</p></div>
         <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 10px 0" }}>Paste your bank statement or SMS. Amounts, names and categories are auto-detected.</p>
         <textarea value={statementText} onChange={function (e) { setStatementText(e.target.value); setParsedEntries([]); }} placeholder={"15/01/2025 SWIGGY 250.00\n16/01/2025 NETFLIX 15.99\n17/01/2025 SALARY 50000.00 CR\n18/01/2025 UBER 185.50"} style={{ width: "100%", height: 80, borderRadius: 8, padding: "10px", fontSize: 11, fontFamily: "monospace", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)", outline: "none", resize: "none", lineHeight: 1.5, marginBottom: 8, transition: "all 200ms ease" }} onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--green-dim)"; }} onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
         <button onClick={handleParse} disabled={!statementText.trim()} style={{ height: 32, padding: "0 14px", borderRadius: 7, background: statementText.trim() ? "var(--green)" : "var(--card)", border: "none", color: statementText.trim() ? "#fff" : "var(--faint)", fontSize: 11, fontWeight: 600, cursor: statementText.trim() ? "pointer" : "not-allowed", fontFamily: "inherit", transition: "all 150ms ease" }}>Detect Transactions</button>
-        {parsedEntries.length > 0 && (<div style={{ marginTop: 12, animation: "fadeIn 200ms ease" }}><p style={{ fontSize: 11, fontWeight: 700, color: "var(--text)", margin: "0 0 8px 0" }}>Found {parsedEntries.length} transactions — toggle to select</p><div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: 10 }}>{parsedEntries.map(function (entry, idx) { var cat = getCatIcon(entry.category); return (<div key={idx} onClick={function () { toggleEntry(idx); }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 6, background: entry.selected ? "var(--green-dim)" : "var(--bg)", border: "1px solid " + (entry.selected ? "var(--green-border)" : "var(--border)"), cursor: "pointer", transition: "all 120ms ease", opacity: entry.selected ? 1 : 0.45 }}><div style={{ width: 16, height: 16, borderRadius: 3, border: entry.selected ? "none" : "2px solid var(--border)", background: entry.selected ? "var(--green)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{entry.selected && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}</div><span style={{ width: 18, height: 13, borderRadius: 2, background: cat.b, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 5, fontWeight: 800, color: cat.c, flexShrink: 0 }}>{cat.l}</span><span style={{ flex: 1, fontSize: 11, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.merchant}</span><span style={{ fontSize: 11, fontWeight: 700, color: entry.isIncome ? "var(--green)" : "var(--red)", fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{entry.isIncome ? "+" : "-"}{formatCurrency(entry.amount)}</span><span style={{ fontSize: 9, color: "var(--muted)", flexShrink: 0 }}>{entry.date}</span></div>); })}</div><button onClick={addParsed} style={{ height: 32, padding: "0 14px", borderRadius: 7, background: "var(--green)", border: "none", color: "#fff", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Add {parsedEntries.filter(function (e) { return e.selected; }).length} to Transactions</button></div>)}
+        {parsedEntries.length > 0 && (<div style={{ marginTop: 12, animation: "fadeIn 200ms ease" }}><p style={{ fontSize: 11, fontWeight: 700, color: "var(--text)", margin: "0 0 8px 0" }}>Found {parsedEntries.length} transactions — toggle to select</p><div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: 10 }}>{parsedEntries.map(function (entry, idx) { var ci = getCatInfo(entry.category); return (<div key={idx} onClick={function () { toggleEntry(idx); }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 6, background: entry.selected ? "var(--green-dim)" : "var(--bg)", border: "1px solid " + (entry.selected ? "var(--green-border)" : "var(--border)"), cursor: "pointer", transition: "all 120ms ease", opacity: entry.selected ? 1 : 0.45 }}><div style={{ width: 16, height: 16, borderRadius: 3, border: entry.selected ? "none" : "2px solid var(--border)", background: entry.selected ? "var(--green)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{entry.selected && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}</div><span style={{ width: 18, height: 13, borderRadius: 2, background: ci.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 5, fontWeight: 800, color: ci.color, flexShrink: 0 }}>{ci.label}</span><span style={{ flex: 1, fontSize: 11, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.merchant}</span><span style={{ fontSize: 11, fontWeight: 700, color: entry.isIncome ? "var(--green)" : "var(--red)", fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{entry.isIncome ? "+" : "-"}{formatCurrency(entry.amount)}</span><span style={{ fontSize: 9, color: "var(--muted)", flexShrink: 0 }}>{entry.date}</span></div>); })}</div><button onClick={addParsed} style={{ height: 32, padding: "0 14px", borderRadius: 7, background: "var(--green)", border: "none", color: "#fff", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Add {parsedEntries.filter(function (e) { return e.selected; }).length} to Transactions</button></div>)}
       </div>
 
-      <div style={{ background: "var(--surface)", borderRadius: 10, padding: "12px 14px", border: "1px solid var(--border)", marginBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg><p style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", margin: 0 }}>Transfer Rules</p></div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          <p style={{ fontSize: 11, color: "var(--muted)", margin: 0, lineHeight: 1.5 }}><span style={{ color: "var(--green)", fontWeight: 700 }}>&#10003;</span> Bank ↔ UPI ↔ Card — online accounts can transfer between each other</p>
-          <p style={{ fontSize: 11, color: "var(--muted)", margin: 0, lineHeight: 1.5 }}><span style={{ color: "var(--red)", fontWeight: 700 }}>&#10007;</span> Cash ↔ Online — cash is physical money, can't transfer electronically</p>
-          <p style={{ fontSize: 11, color: "var(--muted)", margin: 0, lineHeight: 1.5 }}><span style={{ color: "var(--green)", fontWeight: 700 }}>&#10003;</span> Use <b>Add Money</b> to put cash into an online account</p>
+      {/* TRANSFER RULES */}
+      <div style={{ background: "var(--surface)", borderRadius: 12, padding: "16px 18px", border: "1px solid var(--border)", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg, #1A8F4E, #2DD4BF)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 014-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 01-4 4H3" /></svg>
+          </div>
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", margin: 0 }}>Transfer Rules</p>
+            <p style={{ fontSize: 10, color: "var(--muted)", margin: "1px 0 0 0" }}>How money moves between your accounts</p>
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+          <div style={{ padding: "10px", borderRadius: 8, background: "var(--green-dim)", border: "1px solid var(--green-border)", textAlign: "center" }}>
+            <div style={{ display: "flex", justifyContent: "center", gap: 4, marginBottom: 6 }}>
+              <span style={{ width: 24, height: 24, borderRadius: 6, background: "linear-gradient(135deg, #1E3A5F, #3B82F6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, color: "#fff" }}>BK</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" style={{ alignSelf: "center" }}><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 014-4h14" /></svg>
+              <span style={{ width: 24, height: 24, borderRadius: 6, background: "linear-gradient(135deg, #4C1D95, #8B5CF6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, color: "#fff" }}>UP</span>
+            </div>
+            <p style={{ fontSize: 10, fontWeight: 700, color: "var(--green)", margin: 0 }}>Online ↔ Online</p>
+            <p style={{ fontSize: 8, color: "var(--muted)", margin: "2px 0 0 0" }}>Bank, UPI, Card</p>
+          </div>
+          <div style={{ padding: "10px", borderRadius: 8, background: "var(--red-dim)", border: "1px solid var(--red-border)", textAlign: "center" }}>
+            <div style={{ display: "flex", justifyContent: "center", gap: 4, marginBottom: 6, opacity: 0.5 }}>
+              <span style={{ width: 24, height: 24, borderRadius: 6, background: "linear-gradient(135deg, #064E3B, #22C55E)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, color: "#fff" }}>CA</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--red)" strokeWidth="2.5" style={{ alignSelf: "center" }}><line x1="1" y1="1" x2="23" y2="23" /><line x1="23" y1="1" x2="1" y2="23" /></svg>
+              <span style={{ width: 24, height: 24, borderRadius: 6, background: "linear-gradient(135deg, #1E3A5F, #3B82F6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, color: "#fff" }}>BK</span>
+            </div>
+            <p style={{ fontSize: 10, fontWeight: 700, color: "var(--red)", margin: 0 }}>Cash ↔ Online</p>
+            <p style={{ fontSize: 8, color: "var(--muted)", margin: "2px 0 0 0" }}>Not possible</p>
+          </div>
+          <div style={{ padding: "10px", borderRadius: 8, background: "var(--green-dim)", border: "1px solid var(--green-border)", textAlign: "center" }}>
+            <div style={{ display: "flex", justifyContent: "center", gap: 4, marginBottom: 6 }}>
+              <span style={{ width: 24, height: 24, borderRadius: 6, background: "linear-gradient(135deg, #064E3B, #22C55E)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, color: "#fff" }}>CA</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" style={{ alignSelf: "center" }}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+              <span style={{ width: 24, height: 24, borderRadius: 6, background: "var(--green)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 7, fontWeight: 800, color: "#fff" }}>+</span>
+            </div>
+            <p style={{ fontSize: 10, fontWeight: 700, color: "var(--green)", margin: 0 }}>Use Add Money</p>
+            <p style={{ fontSize: 8, color: "var(--muted)", margin: "2px 0 0 0" }}>Cash to online</p>
+          </div>
         </div>
       </div>
 
+      {/* PROFILE & SETTINGS */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 0 }}>
         <div style={{ background: "var(--surface)", borderRadius: 10, padding: "14px 16px", border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg, #1A8F4E, #2DD4BF)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><span style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>{initials}</span></div>
@@ -497,9 +624,9 @@ export default function AccountsPage() {
         </div>
       </div>
 
+      {/* ADD ACCOUNT MODAL */}
       {showAdd && (<div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowAdd(false); }}><div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 400, maxHeight: "90vh", overflowY: "auto", boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
-        <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 4px 0" }}>Add Account</h2>
-        <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 12px 0" }}>Choose type, fill details, auto-detect or type balance.</p>
+        <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 4px 0" }}>Add Account</h2><p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 12px 0" }}>Choose type, fill details, auto-detect or type balance.</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 4, marginBottom: 12 }}>{PRESETS.map(function (p) { var isActive = selectedType === p.type; return (<button key={p.type} onClick={function () { setSelectedType(p.type); setFormFields({}); setAutoDetectedBalance(null); setInitialBalance(""); }} style={{ padding: "8px 0", borderRadius: 7, border: "1px solid " + (isActive ? p.color + "40" : "var(--border)"), background: isActive ? p.color + "10" : "transparent", cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}><span style={{ width: 24, height: 24, borderRadius: 6, background: isActive ? p.color + "18" : "var(--surface)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: p.color }}>{p.icon}</span><span style={{ fontSize: 9, fontWeight: isActive ? 700 : 500, color: isActive ? p.color : "var(--muted)" }}>{p.label}</span></button>); })}</div>
         {Object.keys(currentFields).map(function (key) { var ph = currentFields[key]; return (<input key={key} type="text" placeholder={ph} value={formFields[key] || ""} onChange={function (e) { setFormFields(function (f) { var n = { ...f }; n[key] = key === "cardNumber" ? fmtCard(e.target.value) : key === "expiry" ? fmtExp(e.target.value) : e.target.value; return n; }); setAutoDetectedBalance(null); }} style={{ width: "100%", height: 38, padding: "0 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 12, outline: "none", fontFamily: "inherit", marginBottom: 6, transition: "all 200ms ease" }} onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--green-dim)"; }} onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />); })}
         {canAutoDetect && hasEnoughDetail && autoDetectedBalance === null && (<div style={{ marginBottom: 8, animation: "fadeIn 200ms ease" }}><button onClick={requestAutoDetect} disabled={detecting} style={{ width: "100%", height: 38, borderRadius: 8, background: "linear-gradient(135deg, #1A8F4E, #2DD4BF)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: detecting ? "wait" : "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 200ms ease", boxShadow: "0 2px 12px rgba(26,143,78,0.2)" }} onMouseEnter={function (e) { if (!detecting) e.currentTarget.style.transform = "translateY(-1px)"; }} onMouseLeave={function (e) { e.currentTarget.style.transform = "translateY(0)"; }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>{detecting ? "Detecting..." : "Auto-Detect Balance"}</button><p style={{ fontSize: 9, color: "var(--muted)", margin: "4px 0 0 0", textAlign: "center" }}>We'll ask for permission to check your balance</p></div>)}
@@ -509,6 +636,7 @@ export default function AccountsPage() {
         <div style={{ display: "flex", gap: 6 }}><button onClick={function () { setShowAdd(false); }} style={{ flex: 1, height: 38, borderRadius: 8, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button><button onClick={addAccount} style={{ flex: 1, height: 38, borderRadius: 8, background: "var(--green)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(26,143,78,0.15)", transition: "all 200ms ease" }} onMouseEnter={function (e) { e.currentTarget.style.transform = "translateY(-1px)"; }} onMouseLeave={function (e) { e.currentTarget.style.transform = "translateY(0)"; }}>Add Account</button></div>
       </div></div>)}
 
+      {/* PERMISSION MODAL */}
       {showPerm && (<div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", animation: "fadeIn 200ms ease" }}><div style={{ background: "var(--bg)", borderRadius: 16, padding: 24, width: "100%", maxWidth: 340, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)", textAlign: "center" }}>
         <div style={{ width: 52, height: 52, borderRadius: 14, background: "var(--green-dim)", border: "1px solid var(--green-border)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="1.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg></div>
         <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 6px 0" }}>Check Your Balance?</h3>
@@ -517,9 +645,9 @@ export default function AccountsPage() {
         <div style={{ display: "flex", gap: 8 }}><button onClick={denyPermission} style={{ flex: 1, height: 40, borderRadius: 8, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>No, I'll type it</button><button onClick={grantPermission} style={{ flex: 1, height: 40, borderRadius: 8, background: "var(--green)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(26,143,78,0.15)" }}>Yes, check it</button></div>
       </div></div>)}
 
+      {/* EDIT MODAL */}
       {showEdit && (<div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowEdit(false); }}><div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 400, maxHeight: "90vh", overflowY: "auto", boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
-        <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 4px 0" }}>Edit Account</h2>
-        <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 12px 0" }}>Change name, type, balance, or details.</p>
+        <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 4px 0" }}>Edit Account</h2><p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 12px 0" }}>Change name, type, balance, or details.</p>
         <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 4px 0" }}>Account name</p>
         <input type="text" placeholder="Account name" value={editName} onChange={function (e) { setEditName(e.target.value); }} style={{ width: "100%", height: 38, padding: "0 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, fontWeight: 600, outline: "none", fontFamily: "inherit", marginBottom: 10, transition: "all 200ms ease" }} onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--green-dim)"; }} onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
         <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 4px 0" }}>Type</p>
@@ -531,9 +659,9 @@ export default function AccountsPage() {
         <div style={{ display: "flex", gap: 6, marginTop: 4 }}><button onClick={function () { setShowEdit(false); }} style={{ flex: 1, height: 38, borderRadius: 8, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button><button onClick={doEdit} style={{ flex: 1, height: 38, borderRadius: 8, background: "var(--green)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(26,143,78,0.15)", transition: "all 200ms ease" }} onMouseEnter={function (e) { e.currentTarget.style.transform = "translateY(-1px)"; }} onMouseLeave={function (e) { e.currentTarget.style.transform = "translateY(0)"; }}>Save Changes</button></div>
       </div></div>)}
 
+      {/* ADD MONEY MODAL */}
       {showAddMoney && (<div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowAddMoney(false); }}><div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 360, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
-        <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 4px 0" }}>Add Money</h2>
-        <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 12px 0" }}>Pick an account and enter the amount to add.</p>
+        <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 4px 0" }}>Add Money</h2><p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 12px 0" }}>Pick an account and enter the amount to add.</p>
         <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 4px 0" }}>Which account?</p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 10 }}>{accounts.map(function (acc) { var isSel = addMoneyAccountId === acc.id; return (<button key={acc.id} onClick={function () { setAddMoneyAccountId(acc.id); }} style={{ padding: "5px 8px", borderRadius: 5, border: "1px solid " + (isSel ? acc.color + "40" : "var(--border)"), background: isSel ? acc.color + "10" : "transparent", cursor: "pointer", fontFamily: "inherit", transition: "all 120ms ease", display: "flex", alignItems: "center", gap: 3 }}><span style={{ fontSize: 7, fontWeight: 800, color: acc.color }}>{getIcon(acc.type)}</span><span style={{ fontSize: 10, fontWeight: isSel ? 700 : 500, color: isSel ? acc.color : "var(--muted)" }}>{acc.name}</span></button>); })}</div>
         <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 4px 0" }}>How much?</p>
@@ -541,9 +669,9 @@ export default function AccountsPage() {
         <div style={{ display: "flex", gap: 6 }}><button onClick={function () { setShowAddMoney(false); }} style={{ flex: 1, height: 38, borderRadius: 8, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button><button onClick={doAddMoney} disabled={!addMoneyAmount || !addMoneyAccountId} style={{ flex: 1, height: 38, borderRadius: 8, background: addMoneyAmount && addMoneyAccountId ? "var(--green)" : "var(--card)", border: "none", color: addMoneyAmount && addMoneyAccountId ? "#fff" : "var(--faint)", fontSize: 12, fontWeight: 600, cursor: addMoneyAmount && addMoneyAccountId ? "pointer" : "not-allowed", fontFamily: "inherit", transition: "all 200ms ease" }}>Add</button></div>
       </div></div>)}
 
+      {/* TRANSFER MODAL */}
       {showTransfer && (<div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowTransfer(false); }}><div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 360, maxHeight: "90vh", overflowY: "auto", boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
-        <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 4px 0" }}>Transfer Money</h2>
-        <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 12px 0" }}>Move money between online accounts. Cash can't be transferred electronically.</p>
+        <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 4px 0" }}>Transfer Money</h2><p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 12px 0" }}>Move money between online accounts. Cash can't be transferred electronically.</p>
         <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 4px 0" }}>From</p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6 }}>{accounts.map(function (acc) { var isSel = transferFrom === acc.id; return (<button key={acc.id} onClick={function () { setTransferFrom(acc.id); setTransferTo(""); }} style={{ padding: "5px 8px", borderRadius: 5, border: "1px solid " + (isSel ? acc.color + "40" : "var(--border)"), background: isSel ? acc.color + "10" : "transparent", cursor: "pointer", fontFamily: "inherit", transition: "all 120ms ease", display: "flex", alignItems: "center", gap: 3 }}><span style={{ fontSize: 7, fontWeight: 800, color: acc.color }}>{getIcon(acc.type)}</span><span style={{ fontSize: 10, fontWeight: isSel ? 700 : 500, color: isSel ? acc.color : "var(--muted)" }}>{acc.name}</span><span style={{ fontSize: 8, color: "var(--muted)" }}>{formatCurrency(acc.balance)}</span>{!isOnlineType(acc.type) && <span style={{ fontSize: 6, fontWeight: 700, color: "#EAB308" }}>PHYS</span>}</button>); })}</div>
         <div style={{ textAlign: "center", margin: "4px 0" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 014-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 01-4 4H3" /></svg></div>
