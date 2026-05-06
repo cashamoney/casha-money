@@ -2,9 +2,15 @@
 
 import { useState, useEffect, useRef } from "react";
 
+/* ---------------------------------------------------------------------------
+   TYPES
+   --------------------------------------------------------------------------- */
+
+type AccountType = "bank" | "upi" | "cash" | "card";
+
 type Account = {
   id: string;
-  type: "bank" | "upi" | "cash" | "card";
+  type: AccountType;
   name: string;
   balance: number;
   color: string;
@@ -34,7 +40,7 @@ type TransferRecord = {
 type Profile = { name: string; email: string };
 
 type Preset = {
-  type: "bank" | "upi" | "cash" | "card";
+  type: AccountType;
   label: string;
   color: string;
   icon: string;
@@ -43,15 +49,27 @@ type Preset = {
   canAutoDetect: boolean;
 };
 
-function generateId() {
+/* ---------------------------------------------------------------------------
+   HELPERS
+   --------------------------------------------------------------------------- */
+
+function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
 }
 
-function formatCurrency(n: number) {
+function formatCurrency(n: number): string {
   var abs = Math.abs(n);
   var str = abs.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return (n < 0 ? "-" : "") + "$" + str;
 }
+
+function isOnlineType(t: AccountType): boolean {
+  return t === "bank" || t === "upi" || t === "card";
+}
+
+/* ---------------------------------------------------------------------------
+   PRESETS
+   --------------------------------------------------------------------------- */
 
 var PRESETS: Preset[] = [
   { type: "bank", label: "Bank Account", color: "#3B82F6", icon: "BK", desc: "Savings, checking, current", fields: { bankName: "Bank name (e.g. SBI, HDFC)", accountNumber: "Last 4 digits", holderName: "Your name" }, canAutoDetect: true },
@@ -59,6 +77,10 @@ var PRESETS: Preset[] = [
   { type: "cash", label: "Cash", color: "#22C55E", icon: "CA", desc: "Wallet, purse, hand cash", fields: { holderName: "Label (e.g. My Wallet)" }, canAutoDetect: false },
   { type: "card", label: "Card", color: "#F97316", icon: "CD", desc: "Credit or debit card", fields: { bankName: "Bank name", cardNumber: "Card number", expiry: "MM/YY", holderName: "Name on card" }, canAutoDetect: true },
 ];
+
+/* ---------------------------------------------------------------------------
+   FORMATTING & DETECTION
+   --------------------------------------------------------------------------- */
 
 function detectCardType(n: string): string {
   var c = n.replace(/\D/g, "");
@@ -110,6 +132,28 @@ function getCatIcon(name: string): { l: string; c: string; b: string } {
   return m[name] || { l: "OT", c: "#6B7280", b: "#F9FAFB" };
 }
 
+/* ---------------------------------------------------------------------------
+   🔧 BALANCE DETECTION — SWAP THIS WHEN YOU GET FUNDING
+   
+   Currently: Simulated balance based on account details hash.
+   Production: Replace simulateBalance() body with real API call.
+   
+   Example production code:
+   
+   async function fetchRealBalance(type: AccountType, details: Record<string, string>): Promise<number> {
+     const res = await fetch("/api/balance", {
+       method: "POST",
+       headers: { "Content-Type": "application/json" },
+       body: JSON.stringify({ type, details }),
+     });
+     const data = await res.json();
+     return data.balance;
+   }
+   
+   Then replace the setTimeout in grantPermission() with:
+     const bal = await fetchRealBalance(selectedType, formFields);
+   --------------------------------------------------------------------------- */
+
 function simulateBalance(type: string, details: Record<string, string>): number {
   var seed = 0;
   var str = JSON.stringify(details);
@@ -120,6 +164,10 @@ function simulateBalance(type: string, details: Record<string, string>): number 
   if (type === "card") return Math.round((-500 + (seed % 8000)) * 100) / 100;
   return Math.round((100 + (seed % 5000)) * 100) / 100;
 }
+
+/* ---------------------------------------------------------------------------
+   STATEMENT PARSER
+   --------------------------------------------------------------------------- */
 
 function parseStatement(text: string): { date: string; merchant: string; amount: number; isIncome: boolean; category: string; selected: boolean }[] {
   var results: { date: string; merchant: string; amount: number; isIncome: boolean; category: string; selected: boolean }[] = [];
@@ -151,9 +199,9 @@ function parseStatement(text: string): { date: string; merchant: string; amount:
   return results;
 }
 
-function isOnlineType(t: "bank" | "upi" | "cash" | "card"): boolean {
-  return t === "bank" || t === "upi" || t === "card";
-}
+/* ---------------------------------------------------------------------------
+   MAIN COMPONENT
+   --------------------------------------------------------------------------- */
 
 export default function AccountsPage() {
   var [accounts, setAccounts] = useState<Account[]>([]);
@@ -167,7 +215,7 @@ export default function AccountsPage() {
   var [showPerm, setShowPerm] = useState(false);
   var [editId, setEditId] = useState("");
   var [editName, setEditName] = useState("");
-  var [editType, setEditType] = useState<"bank" | "upi" | "cash" | "card">("bank");
+  var [editType, setEditType] = useState<AccountType>("bank");
   var [editBalance, setEditBalance] = useState("");
   var [editFields, setEditFields] = useState<Record<string, string>>({});
   var [addMoneyAccountId, setAddMoneyAccountId] = useState("");
@@ -175,7 +223,7 @@ export default function AccountsPage() {
   var [transferFrom, setTransferFrom] = useState("");
   var [transferTo, setTransferTo] = useState("");
   var [transferAmount, setTransferAmount] = useState("");
-  var [selectedType, setSelectedType] = useState<"bank" | "upi" | "cash" | "card">("bank");
+  var [selectedType, setSelectedType] = useState<AccountType>("bank");
   var [formFields, setFormFields] = useState<Record<string, string>>({});
   var [initialBalance, setInitialBalance] = useState("");
   var [autoDetectedBalance, setAutoDetectedBalance] = useState<number | null>(null);
@@ -193,10 +241,10 @@ export default function AccountsPage() {
   var emailRef = useRef<HTMLInputElement>(null);
 
   useEffect(function () {
-    var a = localStorage.getItem("casha-accounts"); if (a) { try { setAccounts(JSON.parse(a)); } catch (e) {} }
-    var t = localStorage.getItem("casha-transactions"); if (t) { try { setTransactions(JSON.parse(t)); } catch (e) {} }
-    var tr = localStorage.getItem("casha-transfers"); if (tr) { try { setTransfers(JSON.parse(tr)); } catch (e) {} }
-    var p = localStorage.getItem("casha-profile"); if (p) { try { setProfile(JSON.parse(p)); } catch (e) {} }
+    var a = localStorage.getItem("casha-accounts"); if (a) { try { setAccounts(JSON.parse(a)); } catch (e) { /* ignore */ } }
+    var t = localStorage.getItem("casha-transactions"); if (t) { try { setTransactions(JSON.parse(t)); } catch (e) { /* ignore */ } }
+    var tr = localStorage.getItem("casha-transfers"); if (tr) { try { setTransfers(JSON.parse(tr)); } catch (e) { /* ignore */ } }
+    var p = localStorage.getItem("casha-profile"); if (p) { try { setProfile(JSON.parse(p)); } catch (e) { /* ignore */ } }
   }, []);
 
   useEffect(function () { localStorage.setItem("casha-accounts", JSON.stringify(accounts)); }, [accounts]);
@@ -207,6 +255,8 @@ export default function AccountsPage() {
   useEffect(function () { if (editingEmail && emailRef.current) emailRef.current.focus(); }, [editingEmail]);
 
   var showToast = function (msg: string) { setToast(msg); setTimeout(function () { setToast(""); }, 2500); };
+
+  /* ---- computed ---- */
 
   var totalBalance = accounts.reduce(function (s, a) { return s + a.balance; }, 0);
   var now = new Date();
@@ -223,6 +273,17 @@ export default function AccountsPage() {
     (selectedType === "upi" && !!formFields.upiId) ||
     (selectedType === "card" && !!(formFields.cardNumber && formFields.cardNumber.replace(/\D/g, "").length >= 4));
 
+  var onlineAccounts = accounts.filter(function (a) { return isOnlineType(a.type); });
+
+  var fromAcc = accounts.find(function (a) { return a.id === transferFrom; });
+  var fromIsOnline = fromAcc ? isOnlineType(fromAcc.type) : true;
+  var eligibleToAccounts = accounts.filter(function (a) {
+    if (a.id === transferFrom) return false;
+    return fromIsOnline === isOnlineType(a.type);
+  });
+
+  /* ---- actions ---- */
+
   var requestAutoDetect = function () {
     setDetecting(true);
     setAutoDetectedBalance(null);
@@ -231,6 +292,7 @@ export default function AccountsPage() {
 
   var grantPermission = function () {
     setShowPerm(false);
+    /* 🔧 PRODUCTION: Replace setTimeout with real API call */
     setTimeout(function () {
       var bal = simulateBalance(selectedType, formFields);
       setAutoDetectedBalance(bal);
@@ -304,30 +366,18 @@ export default function AccountsPage() {
     showToast(formatCurrency(amt) + " added to " + accName);
   };
 
-  var getTransferError = function (): string | null => {
-    if (!transferFrom || !transferTo) return null;
-    var fromAcc = accounts.find(function (a) { return a.id === transferFrom; });
-    var toAcc = accounts.find(function (a) { return a.id === transferTo; });
-    if (!fromAcc || !toAcc) return null;
-    var fromOnline = isOnlineType(fromAcc.type);
-    var toOnline = isOnlineType(toAcc.type);
-    if (fromOnline !== toOnline) {
-      return "Cannot transfer between cash and online accounts. Cash is physical money — use \"Add Money\" or \"Remove\" to adjust.";
-    }
-    return null;
-  };
-
-  var transferError = getTransferError();
-
   var doTransfer = function () {
     var amt = parseFloat(transferAmount);
     if (!amt || amt <= 0 || !transferFrom || !transferTo || transferFrom === transferTo) return;
-    if (transferError) { showToast(transferError); return; }
-    var fromAcc = accounts.find(function (a) { return a.id === transferFrom; });
+    var fromAcc2 = accounts.find(function (a) { return a.id === transferFrom; });
     var toAcc = accounts.find(function (a) { return a.id === transferTo; });
-    if (!fromAcc || !toAcc) return;
-    if (fromAcc.balance < amt) { showToast("Not enough balance in " + fromAcc.name); return; }
-    var fromName = fromAcc.name;
+    if (!fromAcc2 || !toAcc) return;
+    if (isOnlineType(fromAcc2.type) !== isOnlineType(toAcc.type)) {
+      showToast("Cannot transfer between cash and online accounts");
+      return;
+    }
+    if (fromAcc2.balance < amt) { showToast("Not enough balance in " + fromAcc2.name); return; }
+    var fromName = fromAcc2.name;
     var toName = toAcc.name;
     setAccounts(function (prev) { return prev.map(function (a) { if (a.id === transferFrom) return { ...a, balance: a.balance - amt }; if (a.id === transferTo) return { ...a, balance: a.balance + amt }; return a; }); });
     var today = new Date().toISOString().split("T")[0];
@@ -364,16 +414,7 @@ export default function AccountsPage() {
   var editPreset = PRESETS.find(function (p) { return p.type === editType; });
   var editCurrentFields: Record<string, string> = editPreset ? editPreset.fields : {};
 
-  var onlineAccounts = accounts.filter(function (a) { return isOnlineType(a.type); });
-  var cashAccounts = accounts.filter(function (a) { return a.type === "cash"; });
-
-  var fromAcc = accounts.find(function (a) { return a.id === transferFrom; });
-  var fromIsOnline = fromAcc ? isOnlineType(fromAcc.type) : true;
-  var eligibleToAccounts = accounts.filter(function (a) {
-    if (a.id === transferFrom) return false;
-    if (fromIsOnline !== isOnlineType(a.type)) return false;
-    return true;
-  });
+  /* ---- render ---- */
 
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "28px 0 40px" }}>
@@ -649,6 +690,7 @@ export default function AccountsPage() {
         </div>
       </div>
 
+      {/* ADD ACCOUNT MODAL */}
       {showAdd && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowAdd(false); }}>
           <div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 400, maxHeight: "90vh", overflowY: "auto", boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
@@ -718,6 +760,7 @@ export default function AccountsPage() {
         </div>
       )}
 
+      {/* PERMISSION MODAL */}
       {showPerm && (
         <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", animation: "fadeIn 200ms ease" }}>
           <div style={{ background: "var(--bg)", borderRadius: 16, padding: 24, width: "100%", maxWidth: 340, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)", textAlign: "center" }}>
@@ -739,6 +782,7 @@ export default function AccountsPage() {
         </div>
       )}
 
+      {/* EDIT MODAL */}
       {showEdit && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowEdit(false); }}>
           <div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 400, maxHeight: "90vh", overflowY: "auto", boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
@@ -786,6 +830,7 @@ export default function AccountsPage() {
         </div>
       )}
 
+      {/* ADD MONEY MODAL */}
       {showAddMoney && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowAddMoney(false); }}>
           <div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 360, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
@@ -816,6 +861,7 @@ export default function AccountsPage() {
         </div>
       )}
 
+      {/* TRANSFER MODAL */}
       {showTransfer && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowTransfer(false); }}>
           <div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 360, maxHeight: "90vh", overflowY: "auto", boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
@@ -853,11 +899,6 @@ export default function AccountsPage() {
                 <p style={{ fontSize: 10, color: "var(--red)", margin: 0, padding: "6px 0" }}>No eligible accounts. Cash can only transfer to cash.</p>
               )}
             </div>
-            {transferError && (
-              <div style={{ padding: "8px 10px", borderRadius: 6, background: "var(--red-dim)", border: "1px solid var(--red-border)", marginBottom: 8, animation: "fadeIn 150ms ease" }}>
-                <p style={{ fontSize: 10, fontWeight: 600, color: "var(--red)", margin: 0, lineHeight: 1.4 }}>{transferError}</p>
-              </div>
-            )}
             <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 4px 0" }}>How much?</p>
             <input type="text" inputMode="decimal" placeholder="0.00" value={transferAmount} onChange={function (e) { setTransferAmount(e.target.value.replace(/[^0-9.]/g, "")); }}
               style={{ width: "100%", height: 44, padding: "0 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 20, fontWeight: 700, outline: "none", fontFamily: "inherit", marginBottom: 12, fontVariantNumeric: "tabular-nums", transition: "all 200ms ease" }}
@@ -865,7 +906,7 @@ export default function AccountsPage() {
               onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
             <div style={{ display: "flex", gap: 6 }}>
               <button onClick={function () { setShowTransfer(false); }} style={{ flex: 1, height: 38, borderRadius: 8, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
-              <button onClick={doTransfer} disabled={!transferAmount || !transferFrom || !transferTo || transferFrom === transferTo || !!transferError} style={{ flex: 1, height: 38, borderRadius: 8, background: transferAmount && transferFrom && transferTo && transferFrom !== transferTo && !transferError ? "var(--green)" : "var(--card)", border: "none", color: transferAmount && transferFrom && transferTo && transferFrom !== transferTo && !transferError ? "#fff" : "var(--faint)", fontSize: 12, fontWeight: 600, cursor: transferAmount && transferFrom && transferTo && transferFrom !== transferTo && !transferError ? "pointer" : "not-allowed", fontFamily: "inherit", transition: "all 200ms ease" }}>Transfer</button>
+              <button onClick={doTransfer} disabled={!transferAmount || !transferFrom || !transferTo || transferFrom === transferTo} style={{ flex: 1, height: 38, borderRadius: 8, background: transferAmount && transferFrom && transferTo && transferFrom !== transferTo ? "var(--green)" : "var(--card)", border: "none", color: transferAmount && transferFrom && transferTo && transferFrom !== transferTo ? "#fff" : "var(--faint)", fontSize: 12, fontWeight: 600, cursor: transferAmount && transferFrom && transferTo && transferFrom !== transferTo ? "pointer" : "not-allowed", fontFamily: "inherit", transition: "all 200ms ease" }}>Transfer</button>
             </div>
           </div>
         </div>
