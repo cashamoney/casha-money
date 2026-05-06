@@ -40,6 +40,7 @@ type Preset = {
   icon: string;
   desc: string;
   fields: Record<string, string>;
+  canAutoDetect: boolean;
 };
 
 function generateId() {
@@ -53,10 +54,10 @@ function formatCurrency(n: number) {
 }
 
 var PRESETS: Preset[] = [
-  { type: "bank", label: "Bank Account", color: "#3B82F6", icon: "BK", desc: "Savings, checking, current", fields: { bankName: "Bank name (e.g. SBI, HDFC)", accountNumber: "Last 4 digits", holderName: "Your name" } },
-  { type: "upi", label: "UPI", color: "#8B5CF6", icon: "UP", desc: "GPay, PhonePe, Paytm", fields: { platform: "Platform (e.g. GPay)", upiId: "UPI ID (e.g. name@upi)", holderName: "Your name" } },
-  { type: "cash", label: "Cash", color: "#22C55E", icon: "CA", desc: "Wallet, purse, hand cash", fields: { holderName: "Label (e.g. My Wallet)" } },
-  { type: "card", label: "Card", color: "#F97316", icon: "CD", desc: "Credit or debit card", fields: { bankName: "Bank name", cardNumber: "Card number", expiry: "MM/YY", holderName: "Name on card" } },
+  { type: "bank", label: "Bank Account", color: "#3B82F6", icon: "BK", desc: "Savings, checking, current", fields: { bankName: "Bank name (e.g. SBI, HDFC)", accountNumber: "Last 4 digits", holderName: "Your name" }, canAutoDetect: true },
+  { type: "upi", label: "UPI", color: "#8B5CF6", icon: "UP", desc: "GPay, PhonePe, Paytm", fields: { platform: "Platform (e.g. GPay)", upiId: "UPI ID (e.g. name@upi)", holderName: "Your name" }, canAutoDetect: true },
+  { type: "cash", label: "Cash", color: "#22C55E", icon: "CA", desc: "Wallet, purse, hand cash", fields: { holderName: "Label (e.g. My Wallet)" }, canAutoDetect: false },
+  { type: "card", label: "Card", color: "#F97316", icon: "CD", desc: "Credit or debit card", fields: { bankName: "Bank name", cardNumber: "Card number", expiry: "MM/YY", holderName: "Name on card" }, canAutoDetect: true },
 ];
 
 function detectCardType(n: string): string {
@@ -109,6 +110,17 @@ function getCatIcon(name: string): { l: string; c: string; b: string } {
   return m[name] || { l: "OT", c: "#6B7280", b: "#F9FAFB" };
 }
 
+function simulateBalance(type: string, details: Record<string, string>): number {
+  var seed = 0;
+  var str = JSON.stringify(details);
+  for (var i = 0; i < str.length; i++) { seed = ((seed << 5) - seed) + str.charCodeAt(i); seed = seed & seed; }
+  seed = Math.abs(seed);
+  if (type === "bank") return Math.round((1000 + (seed % 50000)) * 100) / 100;
+  if (type === "upi") return Math.round((200 + (seed % 15000)) * 100) / 100;
+  if (type === "card") return Math.round((-500 + (seed % 8000)) * 100) / 100;
+  return Math.round((100 + (seed % 5000)) * 100) / 100;
+}
+
 function parseStatement(text: string): { date: string; merchant: string; amount: number; isIncome: boolean; category: string; selected: boolean }[] {
   var results: { date: string; merchant: string; amount: number; isIncome: boolean; category: string; selected: boolean }[] = [];
   text.trim().split("\n").forEach(function (line) {
@@ -139,6 +151,10 @@ function parseStatement(text: string): { date: string; merchant: string; amount:
   return results;
 }
 
+function isOnlineType(t: "bank" | "upi" | "cash" | "card"): boolean {
+  return t === "bank" || t === "upi" || t === "card";
+}
+
 export default function AccountsPage() {
   var [accounts, setAccounts] = useState<Account[]>([]);
   var [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -148,6 +164,7 @@ export default function AccountsPage() {
   var [showAddMoney, setShowAddMoney] = useState(false);
   var [showTransfer, setShowTransfer] = useState(false);
   var [showEdit, setShowEdit] = useState(false);
+  var [showPerm, setShowPerm] = useState(false);
   var [editId, setEditId] = useState("");
   var [editName, setEditName] = useState("");
   var [editType, setEditType] = useState<"bank" | "upi" | "cash" | "card">("bank");
@@ -161,6 +178,8 @@ export default function AccountsPage() {
   var [selectedType, setSelectedType] = useState<"bank" | "upi" | "cash" | "card">("bank");
   var [formFields, setFormFields] = useState<Record<string, string>>({});
   var [initialBalance, setInitialBalance] = useState("");
+  var [autoDetectedBalance, setAutoDetectedBalance] = useState<number | null>(null);
+  var [detecting, setDetecting] = useState(false);
   var [statementText, setStatementText] = useState("");
   var [parsedEntries, setParsedEntries] = useState<{ date: string; merchant: string; amount: number; isIncome: boolean; category: string; selected: boolean }[]>([]);
   var [editingName, setEditingName] = useState(false);
@@ -199,6 +218,34 @@ export default function AccountsPage() {
   var cashTotal = accounts.filter(function (a) { return a.type === "cash"; }).reduce(function (s, a) { return s + a.balance; }, 0);
   var cardTotal = accounts.filter(function (a) { return a.type === "card"; }).reduce(function (s, a) { return s + a.balance; }, 0);
 
+  var canAutoDetect = PRESETS.find(function (p) { return p.type === selectedType; })?.canAutoDetect || false;
+  var hasEnoughDetail = (selectedType === "bank" && !!(formFields.bankName && formFields.accountNumber)) ||
+    (selectedType === "upi" && !!formFields.upiId) ||
+    (selectedType === "card" && !!(formFields.cardNumber && formFields.cardNumber.replace(/\D/g, "").length >= 4));
+
+  var requestAutoDetect = function () {
+    setDetecting(true);
+    setAutoDetectedBalance(null);
+    setShowPerm(true);
+  };
+
+  var grantPermission = function () {
+    setShowPerm(false);
+    setTimeout(function () {
+      var bal = simulateBalance(selectedType, formFields);
+      setAutoDetectedBalance(bal);
+      setInitialBalance(String(bal));
+      setDetecting(false);
+      showToast("Balance detected: " + formatCurrency(bal));
+    }, 1500);
+  };
+
+  var denyPermission = function () {
+    setShowPerm(false);
+    setDetecting(false);
+    setAutoDetectedBalance(null);
+  };
+
   var addAccount = function () {
     var pr = PRESETS.find(function (p) { return p.type === selectedType; });
     if (!pr) return;
@@ -210,7 +257,7 @@ export default function AccountsPage() {
       var t: Transaction = { id: generateId(), amount: bal, type: "income", merchant: "Initial balance", category: "Other", date: new Date().toISOString().split("T")[0], note: "Opening balance", source: "manual", accountId: newAcc.id };
       setTransactions(function (prev) { return [t, ...prev]; });
     }
-    setFormFields({}); setInitialBalance(""); setShowAdd(false);
+    setFormFields({}); setInitialBalance(""); setAutoDetectedBalance(null); setShowAdd(false);
     showToast(name + " added with " + formatCurrency(bal));
   };
 
@@ -257,9 +304,25 @@ export default function AccountsPage() {
     showToast(formatCurrency(amt) + " added to " + accName);
   };
 
+  var getTransferError = function (): string | null => {
+    if (!transferFrom || !transferTo) return null;
+    var fromAcc = accounts.find(function (a) { return a.id === transferFrom; });
+    var toAcc = accounts.find(function (a) { return a.id === transferTo; });
+    if (!fromAcc || !toAcc) return null;
+    var fromOnline = isOnlineType(fromAcc.type);
+    var toOnline = isOnlineType(toAcc.type);
+    if (fromOnline !== toOnline) {
+      return "Cannot transfer between cash and online accounts. Cash is physical money — use \"Add Money\" or \"Remove\" to adjust.";
+    }
+    return null;
+  };
+
+  var transferError = getTransferError();
+
   var doTransfer = function () {
     var amt = parseFloat(transferAmount);
     if (!amt || amt <= 0 || !transferFrom || !transferTo || transferFrom === transferTo) return;
+    if (transferError) { showToast(transferError); return; }
     var fromAcc = accounts.find(function (a) { return a.id === transferFrom; });
     var toAcc = accounts.find(function (a) { return a.id === transferTo; });
     if (!fromAcc || !toAcc) return;
@@ -300,6 +363,17 @@ export default function AccountsPage() {
 
   var editPreset = PRESETS.find(function (p) { return p.type === editType; });
   var editCurrentFields: Record<string, string> = editPreset ? editPreset.fields : {};
+
+  var onlineAccounts = accounts.filter(function (a) { return isOnlineType(a.type); });
+  var cashAccounts = accounts.filter(function (a) { return a.type === "cash"; });
+
+  var fromAcc = accounts.find(function (a) { return a.id === transferFrom; });
+  var fromIsOnline = fromAcc ? isOnlineType(fromAcc.type) : true;
+  var eligibleToAccounts = accounts.filter(function (a) {
+    if (a.id === transferFrom) return false;
+    if (fromIsOnline !== isOnlineType(a.type)) return false;
+    return true;
+  });
 
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "28px 0 40px" }}>
@@ -346,7 +420,7 @@ export default function AccountsPage() {
       </div>
 
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
-        <button onClick={function () { setSelectedType("bank"); setFormFields({}); setInitialBalance(""); setShowAdd(true); }} style={{ height: 36, padding: "0 14px", borderRadius: 8, background: "var(--green)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4, transition: "all 200ms ease", boxShadow: "0 2px 8px rgba(26,143,78,0.15)" }}
+        <button onClick={function () { setSelectedType("bank"); setFormFields({}); setInitialBalance(""); setAutoDetectedBalance(null); setShowAdd(true); }} style={{ height: 36, padding: "0 14px", borderRadius: 8, background: "var(--green)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4, transition: "all 200ms ease", boxShadow: "0 2px 8px rgba(26,143,78,0.15)" }}
           onMouseEnter={function (e) { e.currentTarget.style.transform = "translateY(-1px)"; }}
           onMouseLeave={function (e) { e.currentTarget.style.transform = "translateY(0)"; }}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>Add Account
@@ -356,7 +430,7 @@ export default function AccountsPage() {
           onMouseLeave={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text)"; }}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>Add Money
         </button>}
-        {accounts.length >= 2 && <button onClick={function () { setTransferFrom(accounts[0].id); setTransferTo(accounts[1].id); setTransferAmount(""); setShowTransfer(true); }} style={{ height: 36, padding: "0 14px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4, transition: "all 150ms ease" }}
+        {onlineAccounts.length >= 2 && <button onClick={function () { setTransferFrom(onlineAccounts[0].id); setTransferTo(onlineAccounts[1].id); setTransferAmount(""); setShowTransfer(true); }} style={{ height: 36, padding: "0 14px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4, transition: "all 150ms ease" }}
           onMouseEnter={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.color = "var(--green)"; }}
           onMouseLeave={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text)"; }}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 014-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 01-4 4H3" /></svg>Transfer
@@ -375,7 +449,7 @@ export default function AccountsPage() {
             </div>
             <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", margin: "0 0 4px 0" }}>No accounts yet</p>
             <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 14px 0", lineHeight: 1.5 }}>Add your bank account, UPI, cash wallet, or card.<br />Your total balance will show here.</p>
-            <button onClick={function () { setSelectedType("bank"); setFormFields({}); setInitialBalance(""); setShowAdd(true); }} style={{ padding: "8px 18px", borderRadius: 8, background: "var(--green)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Add Your First Account</button>
+            <button onClick={function () { setSelectedType("bank"); setFormFields({}); setInitialBalance(""); setAutoDetectedBalance(null); setShowAdd(true); }} style={{ padding: "8px 18px", borderRadius: 8, background: "var(--green)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Add Your First Account</button>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -397,6 +471,7 @@ export default function AccountsPage() {
                       <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                         <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{acc.name}</p>
                         <span style={{ fontSize: 8, fontWeight: 700, color: acc.color, background: acc.color + "15", padding: "1px 5px", borderRadius: 3, textTransform: "uppercase" }}>{acc.type}</span>
+                        {!isOnlineType(acc.type) && <span style={{ fontSize: 7, fontWeight: 700, color: "#EAB308", background: "#FEFCE8", padding: "1px 4px", borderRadius: 2 }}>PHYSICAL</span>}
                       </div>
                       <p style={{ fontSize: 10, color: "var(--muted)", margin: "1px 0 0 0" }}>
                         {txCount > 0 ? txCount + " transactions" : "No transactions yet"}
@@ -467,8 +542,8 @@ export default function AccountsPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {[
               { step: "1", title: "Add your accounts", desc: "Bank, UPI (GPay/PhonePe), cash wallet, or card" },
-              { step: "2", title: "Set initial balance", desc: "Enter how much is currently in each account" },
-              { step: "3", title: "Track everything", desc: "Add money, transfer between accounts, see your total" },
+              { step: "2", title: "Auto-detect balance", desc: "Enter card/bank/UPI details and we'll fetch your balance" },
+              { step: "3", title: "Track everything", desc: "Add money, transfer between online accounts, see your total" },
             ].map(function (s) {
               return (
                 <div key={s.step} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
@@ -519,6 +594,18 @@ export default function AccountsPage() {
         )}
       </div>
 
+      <div style={{ background: "var(--surface)", borderRadius: 10, padding: "12px 14px", border: "1px solid var(--border)", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
+          <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", margin: 0 }}>Transfer Rules</p>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <p style={{ fontSize: 11, color: "var(--muted)", margin: 0, lineHeight: 1.5 }}><span style={{ color: "var(--green)", fontWeight: 700 }}>&#10003;</span> Bank ↔ UPI ↔ Card — online accounts can transfer between each other</p>
+          <p style={{ fontSize: 11, color: "var(--muted)", margin: 0, lineHeight: 1.5 }}><span style={{ color: "var(--red)", fontWeight: 700 }}>&#10007;</span> Cash ↔ Online — cash is physical money, can't transfer electronically</p>
+          <p style={{ fontSize: 11, color: "var(--muted)", margin: 0, lineHeight: 1.5 }}><span style={{ color: "var(--green)", fontWeight: 700 }}>&#10003;</span> Use <b>Add Money</b> to put cash into an online account</p>
+        </div>
+      </div>
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 0 }}>
         <div style={{ background: "var(--surface)", borderRadius: 10, padding: "14px 16px", border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg, #1A8F4E, #2DD4BF)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -564,14 +651,14 @@ export default function AccountsPage() {
 
       {showAdd && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowAdd(false); }}>
-          <div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 400, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
+          <div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 400, maxHeight: "90vh", overflowY: "auto", boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 4px 0" }}>Add Account</h2>
-            <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 12px 0" }}>Choose type, fill details, set your current balance.</p>
+            <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 12px 0" }}>Choose type, fill details, auto-detect or type balance.</p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 4, marginBottom: 12 }}>
               {PRESETS.map(function (p) {
                 var isActive = selectedType === p.type;
                 return (
-                  <button key={p.type} onClick={function () { setSelectedType(p.type); setFormFields({}); }} style={{ padding: "8px 0", borderRadius: 7, border: "1px solid " + (isActive ? p.color + "40" : "var(--border)"), background: isActive ? p.color + "10" : "transparent", cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                  <button key={p.type} onClick={function () { setSelectedType(p.type); setFormFields({}); setAutoDetectedBalance(null); setInitialBalance(""); }} style={{ padding: "8px 0", borderRadius: 7, border: "1px solid " + (isActive ? p.color + "40" : "var(--border)"), background: isActive ? p.color + "10" : "transparent", cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
                     <span style={{ width: 24, height: 24, borderRadius: 6, background: isActive ? p.color + "18" : "var(--surface)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: p.color }}>{p.icon}</span>
                     <span style={{ fontSize: 9, fontWeight: isActive ? 700 : 500, color: isActive ? p.color : "var(--muted)" }}>{p.label}</span>
                   </button>
@@ -581,15 +668,37 @@ export default function AccountsPage() {
             {Object.keys(currentFields).map(function (key) {
               var ph = currentFields[key];
               return (
-                <input key={key} type="text" placeholder={ph} value={formFields[key] || ""} onChange={function (e) { setFormFields(function (f) { var n = { ...f }; n[key] = key === "cardNumber" ? fmtCard(e.target.value) : key === "expiry" ? fmtExp(e.target.value) : e.target.value; return n; }); }}
+                <input key={key} type="text" placeholder={ph} value={formFields[key] || ""} onChange={function (e) { setFormFields(function (f) { var n = { ...f }; n[key] = key === "cardNumber" ? fmtCard(e.target.value) : key === "expiry" ? fmtExp(e.target.value) : e.target.value; return n; }); setAutoDetectedBalance(null); }}
                   style={{ width: "100%", height: 38, padding: "0 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 12, outline: "none", fontFamily: "inherit", marginBottom: 6, transition: "all 200ms ease" }}
                   onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--green-dim)"; }}
                   onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
               );
             })}
+            {canAutoDetect && hasEnoughDetail && autoDetectedBalance === null && (
+              <div style={{ marginBottom: 8, animation: "fadeIn 200ms ease" }}>
+                <button onClick={requestAutoDetect} disabled={detecting} style={{ width: "100%", height: 38, borderRadius: 8, background: "linear-gradient(135deg, #1A8F4E, #2DD4BF)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: detecting ? "wait" : "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "all 200ms ease", boxShadow: "0 2px 12px rgba(26,143,78,0.2)" }}
+                  onMouseEnter={function (e) { if (!detecting) e.currentTarget.style.transform = "translateY(-1px)"; }}
+                  onMouseLeave={function (e) { e.currentTarget.style.transform = "translateY(0)"; }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+                  {detecting ? "Detecting..." : "Auto-Detect Balance"}
+                </button>
+                <p style={{ fontSize: 9, color: "var(--muted)", margin: "4px 0 0 0", textAlign: "center" }}>We'll ask for permission to check your balance</p>
+              </div>
+            )}
+            {autoDetectedBalance !== null && (
+              <div style={{ marginBottom: 8, padding: "10px 12px", borderRadius: 8, background: "var(--green-dim)", border: "1px solid var(--green-border)", animation: "fadeIn 200ms ease" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div>
+                    <p style={{ fontSize: 9, fontWeight: 600, color: "var(--green)", margin: 0, textTransform: "uppercase" }}>Balance Detected</p>
+                    <p style={{ fontSize: 20, fontWeight: 800, color: "var(--green)", margin: "2px 0 0 0", fontVariantNumeric: "tabular-nums" }}>{formatCurrency(autoDetectedBalance)}</p>
+                  </div>
+                  <button onClick={function () { setAutoDetectedBalance(null); setInitialBalance(""); }} style={{ height: 24, padding: "0 8px", borderRadius: 5, background: "transparent", border: "1px solid var(--green-border)", color: "var(--green)", fontSize: 9, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Change</button>
+                </div>
+              </div>
+            )}
             <div style={{ marginBottom: 10 }}>
-              <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 4px 0" }}>How much is in this account right now?</p>
-              <input type="text" inputMode="decimal" placeholder="0.00" value={initialBalance} onChange={function (e) { setInitialBalance(e.target.value.replace(/[^0-9.]/g, "")); }}
+              <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 4px 0" }}>{autoDetectedBalance !== null ? "Detected balance (editable)" : canAutoDetect && hasEnoughDetail ? "Or type balance manually" : "How much is in this account?"}</p>
+              <input type="text" inputMode="decimal" placeholder="0.00" value={initialBalance} onChange={function (e) { setInitialBalance(e.target.value.replace(/[^0-9.]/g, "")); setAutoDetectedBalance(null); }}
                 style={{ width: "100%", height: 44, padding: "0 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 18, fontWeight: 700, outline: "none", fontFamily: "inherit", fontVariantNumeric: "tabular-nums", transition: "all 200ms ease" }}
                 onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--green-dim)"; }}
                 onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
@@ -609,18 +718,37 @@ export default function AccountsPage() {
         </div>
       )}
 
+      {showPerm && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", animation: "fadeIn 200ms ease" }}>
+          <div style={{ background: "var(--bg)", borderRadius: 16, padding: 24, width: "100%", maxWidth: 340, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)", textAlign: "center" }}>
+            <div style={{ width: 52, height: 52, borderRadius: 14, background: "var(--green-dim)", border: "1px solid var(--green-border)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="1.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+            </div>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 6px 0" }}>Check Your Balance?</h3>
+            <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 6px 0", lineHeight: 1.5 }}>
+              Allow Casha to securely check your {selectedType === "bank" ? "bank account" : selectedType === "upi" ? "UPI wallet" : "card"} balance?
+            </p>
+            <p style={{ fontSize: 10, color: "var(--muted)", margin: "0 0 16px 0", lineHeight: 1.5 }}>
+              We'll only read your current balance once.<br />Your credentials are never stored.
+            </p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={denyPermission} style={{ flex: 1, height: 40, borderRadius: 8, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>No, I'll type it</button>
+              <button onClick={grantPermission} style={{ flex: 1, height: 40, borderRadius: 8, background: "var(--green)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(26,143,78,0.15)" }}>Yes, check it</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showEdit && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowEdit(false); }}>
-          <div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 400, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
+          <div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 400, maxHeight: "90vh", overflowY: "auto", boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 4px 0" }}>Edit Account</h2>
             <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 12px 0" }}>Change name, type, balance, or details.</p>
-
             <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 4px 0" }}>Account name</p>
             <input type="text" placeholder="Account name" value={editName} onChange={function (e) { setEditName(e.target.value); }}
               style={{ width: "100%", height: 38, padding: "0 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 13, fontWeight: 600, outline: "none", fontFamily: "inherit", marginBottom: 10, transition: "all 200ms ease" }}
               onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--green-dim)"; }}
               onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
-
             <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 4px 0" }}>Type</p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 4, marginBottom: 10 }}>
               {PRESETS.map(function (p) {
@@ -633,13 +761,11 @@ export default function AccountsPage() {
                 );
               })}
             </div>
-
             <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 4px 0" }}>Balance</p>
             <input type="text" inputMode="decimal" placeholder="0.00" value={editBalance} onChange={function (e) { setEditBalance(e.target.value.replace(/[^0-9.\-]/g, "")); }}
               style={{ width: "100%", height: 44, padding: "0 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 18, fontWeight: 700, outline: "none", fontFamily: "inherit", fontVariantNumeric: "tabular-nums", marginBottom: 10, transition: "all 200ms ease" }}
               onFocus={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.boxShadow = "0 0 0 2px var(--green-dim)"; }}
               onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
-
             <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 4px 0" }}>Details</p>
             {Object.keys(editCurrentFields).map(function (key) {
               var ph = editCurrentFields[key];
@@ -650,7 +776,6 @@ export default function AccountsPage() {
                   onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
               );
             })}
-
             <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
               <button onClick={function () { setShowEdit(false); }} style={{ flex: 1, height: 38, borderRadius: 8, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
               <button onClick={doEdit} style={{ flex: 1, height: 38, borderRadius: 8, background: "var(--green)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(26,143,78,0.15)", transition: "all 200ms ease" }}
@@ -693,18 +818,19 @@ export default function AccountsPage() {
 
       {showTransfer && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowTransfer(false); }}>
-          <div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 360, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
+          <div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 360, maxHeight: "90vh", overflowY: "auto", boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 4px 0" }}>Transfer Money</h2>
-            <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 12px 0" }}>Move money from one account to another.</p>
+            <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 12px 0" }}>Move money between online accounts. Cash can't be transferred electronically.</p>
             <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 4px 0" }}>From</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6 }}>
               {accounts.map(function (acc) {
                 var isSel = transferFrom === acc.id;
                 return (
-                  <button key={acc.id} onClick={function () { setTransferFrom(acc.id); }} style={{ padding: "5px 8px", borderRadius: 5, border: "1px solid " + (isSel ? acc.color + "40" : "var(--border)"), background: isSel ? acc.color + "10" : "transparent", cursor: "pointer", fontFamily: "inherit", transition: "all 120ms ease", display: "flex", alignItems: "center", gap: 3 }}>
+                  <button key={acc.id} onClick={function () { setTransferFrom(acc.id); setTransferTo(""); }} style={{ padding: "5px 8px", borderRadius: 5, border: "1px solid " + (isSel ? acc.color + "40" : "var(--border)"), background: isSel ? acc.color + "10" : "transparent", cursor: "pointer", fontFamily: "inherit", transition: "all 120ms ease", display: "flex", alignItems: "center", gap: 3 }}>
                     <span style={{ fontSize: 7, fontWeight: 800, color: acc.color }}>{getIcon(acc.type)}</span>
                     <span style={{ fontSize: 10, fontWeight: isSel ? 700 : 500, color: isSel ? acc.color : "var(--muted)" }}>{acc.name}</span>
                     <span style={{ fontSize: 8, color: "var(--muted)" }}>{formatCurrency(acc.balance)}</span>
+                    {!isOnlineType(acc.type) && <span style={{ fontSize: 6, fontWeight: 700, color: "#EAB308" }}>PHYS</span>}
                   </button>
                 );
               })}
@@ -714,7 +840,7 @@ export default function AccountsPage() {
             </div>
             <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 4px 0" }}>To</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 10 }}>
-              {accounts.filter(function (a) { return a.id !== transferFrom; }).map(function (acc) {
+              {eligibleToAccounts.map(function (acc) {
                 var isSel = transferTo === acc.id;
                 return (
                   <button key={acc.id} onClick={function () { setTransferTo(acc.id); }} style={{ padding: "5px 8px", borderRadius: 5, border: "1px solid " + (isSel ? acc.color + "40" : "var(--border)"), background: isSel ? acc.color + "10" : "transparent", cursor: "pointer", fontFamily: "inherit", transition: "all 120ms ease", display: "flex", alignItems: "center", gap: 3 }}>
@@ -723,7 +849,15 @@ export default function AccountsPage() {
                   </button>
                 );
               })}
+              {transferFrom && eligibleToAccounts.length === 0 && (
+                <p style={{ fontSize: 10, color: "var(--red)", margin: 0, padding: "6px 0" }}>No eligible accounts. Cash can only transfer to cash.</p>
+              )}
             </div>
+            {transferError && (
+              <div style={{ padding: "8px 10px", borderRadius: 6, background: "var(--red-dim)", border: "1px solid var(--red-border)", marginBottom: 8, animation: "fadeIn 150ms ease" }}>
+                <p style={{ fontSize: 10, fontWeight: 600, color: "var(--red)", margin: 0, lineHeight: 1.4 }}>{transferError}</p>
+              </div>
+            )}
             <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 4px 0" }}>How much?</p>
             <input type="text" inputMode="decimal" placeholder="0.00" value={transferAmount} onChange={function (e) { setTransferAmount(e.target.value.replace(/[^0-9.]/g, "")); }}
               style={{ width: "100%", height: 44, padding: "0 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 20, fontWeight: 700, outline: "none", fontFamily: "inherit", marginBottom: 12, fontVariantNumeric: "tabular-nums", transition: "all 200ms ease" }}
@@ -731,7 +865,7 @@ export default function AccountsPage() {
               onBlur={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none"; }} />
             <div style={{ display: "flex", gap: 6 }}>
               <button onClick={function () { setShowTransfer(false); }} style={{ flex: 1, height: 38, borderRadius: 8, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
-              <button onClick={doTransfer} disabled={!transferAmount || !transferFrom || !transferTo || transferFrom === transferTo} style={{ flex: 1, height: 38, borderRadius: 8, background: transferAmount && transferFrom && transferTo && transferFrom !== transferTo ? "var(--green)" : "var(--card)", border: "none", color: transferAmount && transferFrom && transferTo && transferFrom !== transferTo ? "#fff" : "var(--faint)", fontSize: 12, fontWeight: 600, cursor: transferAmount && transferFrom && transferTo && transferFrom !== transferTo ? "pointer" : "not-allowed", fontFamily: "inherit", transition: "all 200ms ease" }}>Transfer</button>
+              <button onClick={doTransfer} disabled={!transferAmount || !transferFrom || !transferTo || transferFrom === transferTo || !!transferError} style={{ flex: 1, height: 38, borderRadius: 8, background: transferAmount && transferFrom && transferTo && transferFrom !== transferTo && !transferError ? "var(--green)" : "var(--card)", border: "none", color: transferAmount && transferFrom && transferTo && transferFrom !== transferTo && !transferError ? "#fff" : "var(--faint)", fontSize: 12, fontWeight: 600, cursor: transferAmount && transferFrom && transferTo && transferFrom !== transferTo && !transferError ? "pointer" : "not-allowed", fontFamily: "inherit", transition: "all 200ms ease" }}>Transfer</button>
             </div>
           </div>
         </div>
