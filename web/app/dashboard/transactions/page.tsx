@@ -122,7 +122,7 @@ function autoDetectTransactions(accounts: Account[]): Transaction[] {
       category: m.cat,
       date: date,
       note: "",
-      source: "auto",
+      source: "auto" as "manual" | "sms" | "csv" | "auto",
       accountId: acc.id,
     });
   }
@@ -163,7 +163,7 @@ function parseStatement(text: string, accounts: Account[]): { date: string; merc
   return results;
 }
 
-function renderDetailContent(tx: Transaction, accounts: Account[], onClose: function () { void }, onDelete: function (id: string) { void }) {
+function renderDetailContent(tx: Transaction, accounts: Account[], onClose: () => void, onDelete: (id: string) => void) {
   var ci = getCatInfo(tx.category);
   var acc = accounts.find(function (a) { return a.id === tx.accountId; }) || null;
   var isTf = tx.merchant.startsWith("Transfer to ") || tx.merchant.startsWith("Transfer from ");
@@ -378,7 +378,7 @@ export default function TransactionsPage() {
   var addManual = function () {
     var amt = parseFloat(addForm.amount);
     if (!amt || amt <= 0 || !addForm.merchant.trim()) return;
-    var tx: Transaction = { id: generateId(), amount: addForm.type === "expense" ? -amt : amt, type: addForm.type, merchant: addForm.merchant.trim(), category: addForm.category, date: addForm.date || new Date().toISOString().split("T")[0], note: addForm.note, source: "manual", accountId: addForm.accountId || undefined };
+    var tx: Transaction = { id: generateId(), amount: addForm.type === "expense" ? -amt : amt, type: addForm.type, merchant: addForm.merchant.trim(), category: addForm.category, date: addForm.date || new Date().toISOString().split("T")[0], note: addForm.note, source: "manual" as "manual" | "sms" | "csv" | "auto", accountId: addForm.accountId || undefined };
     setTransactions(function (prev) { return [tx, ...prev]; });
     setAddForm({ merchant: "", amount: "", type: "expense", category: "Other", date: new Date().toISOString().split("T")[0], note: "", accountId: "" });
     setShowAdd(false);
@@ -508,7 +508,6 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      {/* DETAIL MODAL */}
       {showDetail && detailTx && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={closeDetail}>
           <div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 380, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
@@ -517,7 +516,6 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      {/* ADD TRANSACTION MODAL */}
       {showAdd && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowAdd(false); }}>
           <div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 380, maxHeight: "90vh", overflowY: "auto", boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
@@ -546,7 +544,6 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      {/* AUTO-DETECT MODAL */}
       {showDetect && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { if (!detecting) setShowDetect(false); }}>
           <div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 380, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)", textAlign: "center" }} onClick={function (e) { e.stopPropagation(); }}>
@@ -568,7 +565,6 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      {/* IMPORT MODAL */}
       {showImport && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowImport(false); }}>
           <div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 400, maxHeight: "90vh", overflowY: "auto", boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
