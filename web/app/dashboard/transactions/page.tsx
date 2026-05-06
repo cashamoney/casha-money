@@ -163,6 +163,83 @@ function parseStatement(text: string, accounts: Account[]): { date: string; merc
   return results;
 }
 
+function renderDetailContent(tx: Transaction, accounts: Account[], onClose: function () { void }, onDelete: function (id: string) { void }) {
+  var ci = getCatInfo(tx.category);
+  var acc = accounts.find(function (a) { return a.id === tx.accountId; }) || null;
+  var isTf = tx.merchant.startsWith("Transfer to ") || tx.merchant.startsWith("Transfer from ");
+  var tfPartner: Account | null = null;
+  var tfDir: "out" | "in" = "out";
+  if (tx.merchant.startsWith("Transfer to ")) {
+    var n1 = tx.merchant.replace("Transfer to ", "");
+    tfPartner = accounts.find(function (a) { return a.name === n1; }) || null;
+    tfDir = "out";
+  } else if (tx.merchant.startsWith("Transfer from ")) {
+    var n2 = tx.merchant.replace("Transfer from ", "");
+    tfPartner = accounts.find(function (a) { return a.name === n2; }) || null;
+    tfDir = "in";
+  }
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+        <div style={{ width: 44, height: 44, borderRadius: 10, background: ci.bg, border: "1px solid " + ci.color + "25", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <span style={{ fontSize: 14, fontWeight: 800, color: ci.color }}>{ci.label}</span>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: 0 }}>{tx.merchant}</p>
+          <p style={{ fontSize: 11, color: "var(--muted)", margin: "2px 0 0 0" }}>{tx.date} {isTf ? "\u00B7 Transfer" : "\u00B7 " + tx.category}</p>
+        </div>
+      </div>
+      <div style={{ textAlign: "center", marginBottom: 14, padding: "14px 0", borderRadius: 10, background: tx.type === "income" ? "var(--green-dim)" : "var(--red-dim)", border: "1px solid " + (tx.type === "income" ? "var(--green-border)" : "var(--red-border)") }}>
+        <p style={{ fontSize: 10, fontWeight: 600, color: tx.type === "income" ? "var(--green)" : "var(--red)", margin: "0 0 2px 0", textTransform: "uppercase" }}>{tx.type === "income" ? "Money In" : "Money Out"}</p>
+        <p style={{ fontSize: 28, fontWeight: 800, color: tx.type === "income" ? "var(--green)" : "var(--red)", margin: 0, fontVariantNumeric: "tabular-nums" }}>{tx.type === "income" ? "+" : "-"}{formatCurrency(Math.abs(tx.amount))}</p>
+      </div>
+      {acc && (
+        <div style={{ padding: "10px 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", marginBottom: 8 }}>
+          <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 6px 0" }}>Account</p>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, " + getGrad(acc.type)[0] + ", " + getGrad(acc.type)[1] + ")", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <span style={{ fontSize: 10, fontWeight: 800, color: "#fff" }}>{getIcon(acc.type)}</span>
+            </div>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{acc.name}</p>
+              <p style={{ fontSize: 10, color: "var(--muted)", margin: "1px 0 0 0" }}>{acc.type} {acc.details.bankName ? "\u00B7 " + acc.details.bankName : ""} {acc.details.upiId ? "\u00B7 " + acc.details.upiId : ""}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      {isTf && tfPartner && (
+        <div style={{ padding: "10px 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", marginBottom: 8 }}>
+          <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 6px 0" }}>{tfDir === "out" ? "Transferred To" : "Received From"}</p>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, " + getGrad(tfPartner.type)[0] + ", " + getGrad(tfPartner.type)[1] + ")", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <span style={{ fontSize: 10, fontWeight: 800, color: "#fff" }}>{getIcon(tfPartner.type)}</span>
+            </div>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{tfPartner.name}</p>
+              <p style={{ fontSize: 10, color: "var(--muted)", margin: "1px 0 0 0" }}>{tfPartner.type} {tfPartner.details.bankName ? "\u00B7 " + tfPartner.details.bankName : ""} {tfPartner.details.upiId ? "\u00B7 " + tfPartner.details.upiId : ""}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, marginBottom: 12 }}>
+        <div style={{ padding: "8px 10px", borderRadius: 6, background: "var(--surface)" }}>
+          <span style={{ fontSize: 8, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase" }}>Category</span>
+          <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: "2px 0 0 0" }}>{tx.category}</p>
+        </div>
+        <div style={{ padding: "8px 10px", borderRadius: 6, background: "var(--surface)" }}>
+          <span style={{ fontSize: 8, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase" }}>Source</span>
+          <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: "2px 0 0 0" }}>{tx.source === "auto" ? "Auto-detected" : tx.source === "csv" ? "Imported" : tx.source === "sms" ? "SMS" : "Manual"}</p>
+        </div>
+      </div>
+      {tx.note && (<div style={{ padding: "8px 10px", borderRadius: 6, background: "var(--surface)", marginBottom: 12 }}><span style={{ fontSize: 8, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase" }}>Note</span><p style={{ fontSize: 12, color: "var(--text)", margin: "2px 0 0 0" }}>{tx.note}</p></div>)}
+      <div style={{ display: "flex", gap: 6 }}>
+        <button onClick={onClose} style={{ flex: 1, height: 36, borderRadius: 8, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Close</button>
+        <button onClick={function () { onDelete(tx.id); }} style={{ height: 36, padding: "0 14px", borderRadius: 8, background: "transparent", border: "1px solid var(--red-border)", color: "var(--red)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }} onMouseEnter={function (e) { e.currentTarget.style.background = "var(--red)"; e.currentTarget.style.color = "#fff"; }} onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--red)"; }}>Delete</button>
+      </div>
+    </div>
+  );
+}
+
 export default function TransactionsPage() {
   var [transactions, setTransactions] = useState<Transaction[]>([]);
   var [accounts, setAccounts] = useState<Account[]>([]);
@@ -313,6 +390,8 @@ export default function TransactionsPage() {
     showToast("Transaction deleted");
   };
 
+  var closeDetail = function () { setShowDetail(false); setDetailTx(null); };
+
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "28px 0 40px" }}>
       {toast && <div style={{ position: "fixed", top: 24, left: "50%", transform: "translateX(-50%)", zIndex: 100, background: "var(--green)", color: "#fff", padding: "10px 24px", borderRadius: 10, fontSize: 13, fontWeight: 600, fontFamily: "inherit", boxShadow: "0 4px 20px rgba(26,143,78,0.3)", animation: "fadeIn 200ms ease" }}>{toast}</div>}
@@ -431,74 +510,9 @@ export default function TransactionsPage() {
 
       {/* DETAIL MODAL */}
       {showDetail && detailTx && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowDetail(false); setDetailTx(null); }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={closeDetail}>
           <div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 380, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
-            {function () {
-              var ci = getCatInfo(detailTx.category);
-              var acc = getAccount(detailTx.accountId);
-              var isTf = isTransferTx(detailTx);
-              var tfInfo = isTf ? getTransferPartner(detailTx) : null;
-              return (
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 10, background: ci.bg, border: "1px solid " + ci.color + "25", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <span style={{ fontSize: 14, fontWeight: 800, color: ci.color }}>{ci.label}</span>
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: 0 }}>{detailTx.merchant}</p>
-                      <p style={{ fontSize: 11, color: "var(--muted)", margin: "2px 0 0 0" }}>{detailTx.date} {isTf ? "\u00B7 Transfer" : "\u00B7 " + detailTx.category}</p>
-                    </div>
-                  </div>
-                  <div style={{ textAlign: "center", marginBottom: 14, padding: "14px 0", borderRadius: 10, background: detailTx.type === "income" ? "var(--green-dim)" : "var(--red-dim)", border: "1px solid " + (detailTx.type === "income" ? "var(--green-border)" : "var(--red-border)") }}>
-                    <p style={{ fontSize: 10, fontWeight: 600, color: detailTx.type === "income" ? "var(--green)" : "var(--red)", margin: "0 0 2px 0", textTransform: "uppercase" }}>{detailTx.type === "income" ? "Money In" : "Money Out"}</p>
-                    <p style={{ fontSize: 28, fontWeight: 800, color: detailTx.type === "income" ? "var(--green)" : "var(--red)", margin: 0, fontVariantNumeric: "tabular-nums" }}>{detailTx.type === "income" ? "+" : "-"}{formatCurrency(Math.abs(detailTx.amount))}</p>
-                  </div>
-                  {acc && (
-                    <div style={{ padding: "10px 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", marginBottom: 8 }}>
-                      <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 6px 0" }}>Account</p>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, " + getGrad(acc.type)[0] + ", " + getGrad(acc.type)[1] + ")", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                          <span style={{ fontSize: 10, fontWeight: 800, color: "#fff" }}>{getIcon(acc.type)}</span>
-                        </div>
-                        <div>
-                          <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{acc.name}</p>
-                          <p style={{ fontSize: 10, color: "var(--muted)", margin: "1px 0 0 0" }}>{acc.type} {acc.details.bankName ? "\u00B7 " + acc.details.bankName : ""} {acc.details.upiId ? "\u00B7 " + acc.details.upiId : ""}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {isTf && tfInfo && tfInfo.partner && (
-                    <div style={{ padding: "10px 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", marginBottom: 8 }}>
-                      <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 6px 0" }}>{tfInfo.direction === "out" ? "Transferred To" : "Received From"}</p>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, " + getGrad(tfInfo.partner.type)[0] + ", " + getGrad(tfInfo.partner.type)[1] + ")", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                          <span style={{ fontSize: 10, fontWeight: 800, color: "#fff" }}>{getIcon(tfInfo.partner.type)}</span>
-                        </div>
-                        <div>
-                          <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{tfInfo.partner.name}</p>
-                          <p style={{ fontSize: 10, color: "var(--muted)", margin: "1px 0 0 0" }}>{tfInfo.partner.type} {tfInfo.partner.details.bankName ? "\u00B7 " + tfInfo.partner.details.bankName : ""} {tfInfo.partner.details.upiId ? "\u00B7 " + tfInfo.partner.details.upiId : ""}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, marginBottom: 12 }}>
-                    <div style={{ padding: "8px 10px", borderRadius: 6, background: "var(--surface)" }}>
-                      <span style={{ fontSize: 8, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase" }}>Category</span>
-                      <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: "2px 0 0 0" }}>{detailTx.category}</p>
-                    </div>
-                    <div style={{ padding: "8px 10px", borderRadius: 6, background: "var(--surface)" }}>
-                      <span style={{ fontSize: 8, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase" }}>Source</span>
-                      <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: "2px 0 0 0" }}>{detailTx.source === "auto" ? "Auto-detected" : detailTx.source === "csv" ? "Imported" : detailTx.source === "sms" ? "SMS" : "Manual"}</p>
-                    </div>
-                  </div>
-                  {detailTx.note && (<div style={{ padding: "8px 10px", borderRadius: 6, background: "var(--surface)", marginBottom: 12 }}><span style={{ fontSize: 8, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase" }}>Note</span><p style={{ fontSize: 12, color: "var(--text)", margin: "2px 0 0 0" }}>{detailTx.note}</p></div>)}
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={function () { setShowDetail(false); setDetailTx(null); }} style={{ flex: 1, height: 36, borderRadius: 8, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Close</button>
-                    <button onClick={function () { deleteTx(detailTx.id); setShowDetail(false); setDetailTx(null); }} style={{ height: 36, padding: "0 14px", borderRadius: 8, background: "transparent", border: "1px solid var(--red-border)", color: "var(--red)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }} onMouseEnter={function (e) { e.currentTarget.style.background = "var(--red)"; e.currentTarget.style.color = "#fff"; }} onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--red)"; }}>Delete</button>
-                  </div>
-                </div>
-              );
-            }()}
+            {renderDetailContent(detailTx, accounts, closeDetail, deleteTx)}
           </div>
         </div>
       )}
