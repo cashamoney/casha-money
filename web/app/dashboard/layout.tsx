@@ -194,7 +194,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         display: "flex",
         justifyContent: "center",
       }}>
-        <div style={{ width: "100%", maxWidth: 800, padding: "36px 48px 120px" }}>
+        <div style={{ width: "100%", maxWidth: 800, padding: "28px 48px 48px" }}>
           {children}
         </div>
       </main>
@@ -234,7 +234,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         @media (max-width: 768px) {
           .d-sidebar { display: none !important; }
           .d-main { margin-left: 0 !important; }
-          .d-main > div { padding: 24px 20px 100px !important; max-width: 100% !important; }
+          .d-main > div { padding: 20px 16px 80px !important; max-width: 100% !important; }
           .d-bottom { display: block !important; }
         }
         @media (min-width: 769px) and (max-width: 1024px) {
@@ -245,7 +245,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           .d-sidebar nav a { justify-content: center; padding: 12px !important; }
           .d-sidebar > div:last-child button > span { display: none; }
           .d-main { margin-left: 76px !important; }
-          .d-main > div { padding: 32px 28px 120px !important; max-width: 100% !important; }
+          .d-main > div { padding: 24px 24px 48px !important; max-width: 100% !important; }
         }
         @media (min-width: 769px) {
           .d-bottom { display: none !important; }
