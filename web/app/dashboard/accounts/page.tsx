@@ -175,8 +175,6 @@ export default function AccountsPage() {
   var showToast = function (msg: string) { setToast(msg); setTimeout(function () { setToast(""); }, 2500); };
 
   var totalBalance = accounts.reduce(function (s, a) { return s + a.balance; }, 0);
-  var totalIncome = transactions.filter(function (t) { return t.type === "income"; }).reduce(function (s, t) { return s + t.amount; }, 0);
-  var totalExpense = transactions.filter(function (t) { return t.type === "expense"; }).reduce(function (s, t) { return s + Math.abs(t.amount); }, 0);
   var now = new Date();
   var thisMs = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
   var thisMonthExp = transactions.filter(function (t) { return t.type === "expense" && t.date.startsWith(thisMs); }).reduce(function (s, t) { return s + Math.abs(t.amount); }, 0);
@@ -232,7 +230,7 @@ export default function AccountsPage() {
     setAccounts(function (prev) { return prev.map(function (a) { if (a.id === transferFrom) return { ...a, balance: a.balance - amt }; if (a.id === transferTo) return { ...a, balance: a.balance + amt }; return a; }); });
     var today = new Date().toISOString().split("T")[0];
     setTransfers(function (prev) { return [{ id: generateId(), from: transferFrom, to: transferTo, amount: amt, date: today }, ...prev]; });
-    setTransactions(function (prev) { return [{ id: generateId(), amount: -amt, type: "expense", merchant: "Transfer to " + toName, category: "Other", date: today, note: "Transfer", source: "manual" as "manual" | "sms" | "csv", accountId: transferFrom }, { id: generateId(), amount: amt, type: "income", merchant: "Transfer from " + fromName, category: "Other", date: today, note: "Transfer", source: "manual" as "manual" | "sms" | "csv", accountId: transferTo }, ...prev]; });
+    setTransactions(function (prev) { return [{ id: generateId(), amount: -amt, type: "expense" as "income" | "expense", merchant: "Transfer to " + toName, category: "Other", date: today, note: "Transfer", source: "manual" as "manual" | "sms" | "csv", accountId: transferFrom }, { id: generateId(), amount: amt, type: "income" as "income" | "expense", merchant: "Transfer from " + fromName, category: "Other", date: today, note: "Transfer", source: "manual" as "manual" | "sms" | "csv", accountId: transferTo }, ...prev]; });
     setTransferAmount(""); setTransferFrom(""); setTransferTo(""); setShowTransfer(false);
     showToast(formatCurrency(amt) + " moved from " + fromName + " to " + toName);
   };
@@ -251,14 +249,14 @@ export default function AccountsPage() {
   var toggleEntry = function (idx: number) { setParsedEntries(function (prev) { return prev.map(function (e, i) { return i === idx ? { ...e, selected: !e.selected } : e; }); }); };
   var addParsed = function () {
     var sel = parsedEntries.filter(function (e) { return e.selected; });
-    setTransactions(function (prev) { return sel.map(function (e) { return { id: generateId(), amount: e.isIncome ? e.amount : -e.amount, type: e.isIncome ? "income" as "income" | "expense" : "expense" as "income" | "expense", merchant: e.merchant, category: e.category, date: e.date, note: "", source: "csv" as "manual" | "sms" | "csv" }; }).concat(prev); });
+    setTransactions(function (prev) { return sel.map(function (e) { return { id: generateId(), amount: e.isIncome ? e.amount : -e.amount, type: (e.isIncome ? "income" : "expense") as "income" | "expense", merchant: e.merchant, category: e.category, date: e.date, note: "", source: "csv" as "manual" | "sms" | "csv" }; }).concat(prev); });
     setParsedEntries([]); setStatementText(""); showToast(sel.length + " transactions added");
   };
 
   var getAccTx = function (id: string) { return transactions.filter(function (t) { return t.accountId === id; }).slice(0, 5); };
   var initials = profile.name.split(" ").map(function (w) { return w[0] || ""; }).join("").toUpperCase().substring(0, 2);
 
-  var currentFields = PRESETS.find(function (p) { return p.type === selectedType; })?.fields || {};
+  var currentFields: Record<string, string> = PRESETS.find(function (p) { return p.type === selectedType; })?.fields || {};
 
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "28px 0 40px" }}>
