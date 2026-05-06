@@ -123,9 +123,6 @@ function fmtExp(v: string): string {
   return c;
 }
 
-/* 🔧 PRODUCTION: Replace simulateBalance with real API call.
-   Example: const res = await fetch("/api/balance", { method: "POST", body: JSON.stringify({type, details}) });
-   const data = await res.json(); return data.balance; */
 function simulateBalance(type: string, details: Record<string, string>): number {
   var seed = 0;
   var str = JSON.stringify(details);
@@ -187,7 +184,6 @@ function getPresetLabel(type: AccountType): string {
   return pr ? pr.label : "Account";
 }
 
-/* 🔧 PRODUCTION: Replace with DB aggregated query */
 function getLast6Months(transactions: Transaction[]): { month: string; income: number; expense: number; label: string }[] {
   var now = new Date();
   var months: { month: string; income: number; expense: number; label: string }[] = [];
@@ -206,6 +202,10 @@ function getLast6Months(transactions: Transaction[]): { month: string; income: n
     months.push({ month: prefix, income: inc, expense: exp, label: label });
   }
   return months;
+}
+
+function makeBadge(color1: string, color2: string, text: string) {
+  return { width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg, " + color1 + ", " + color2 + ")", display: "flex" as "flex", alignItems: "center" as "center", justifyContent: "center" as "center", fontSize: 9, fontWeight: 800, color: "#fff", flexShrink: 0 };
 }
 
 export default function AccountsPage() {
@@ -245,7 +245,6 @@ export default function AccountsPage() {
   var nameRef = useRef<HTMLInputElement>(null);
   var emailRef = useRef<HTMLInputElement>(null);
 
-  /* 🔧 PRODUCTION: Replace localStorage with DB reads */
   useEffect(function () {
     var a = localStorage.getItem("casha-accounts"); if (a) { try { setAccounts(JSON.parse(a)); } catch (e) { /* ignore */ } }
     var t = localStorage.getItem("casha-transactions"); if (t) { try { setTransactions(JSON.parse(t)); } catch (e) { /* ignore */ } }
@@ -253,7 +252,6 @@ export default function AccountsPage() {
     var p = localStorage.getItem("casha-profile"); if (p) { try { setProfile(JSON.parse(p)); } catch (e) { /* ignore */ } }
   }, []);
 
-  /* 🔧 PRODUCTION: Replace localStorage with DB writes */
   useEffect(function () { localStorage.setItem("casha-accounts", JSON.stringify(accounts)); }, [accounts]);
   useEffect(function () { localStorage.setItem("casha-transactions", JSON.stringify(transactions)); }, [transactions]);
   useEffect(function () { localStorage.setItem("casha-transfers", JSON.stringify(transfers)); }, [transfers]);
@@ -291,7 +289,6 @@ export default function AccountsPage() {
 
   var requestAutoDetect = function () { setDetecting(true); setAutoDetectedBalance(null); setShowPerm(true); };
 
-  /* 🔧 PRODUCTION: Replace setTimeout with await fetchRealBalance(type, details) */
   var grantPermission = function () {
     setShowPerm(false);
     setTimeout(function () {
@@ -395,22 +392,15 @@ export default function AccountsPage() {
   var currentFields: Record<string, string> = getPresetFields(selectedType);
   var editCurrentFields: Record<string, string> = getPresetFields(editType);
 
-  /* ---- shared badge style ---- */
-  var badgeStyle = function (color1: string, color2: string, text: string): React.CSSProperties => {
-    return { width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg, " + color1 + ", " + color2 + ")", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "#fff", flexShrink: 0 };
-  };
-
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "28px 0 40px" }}>
       {toast && <div style={{ position: "fixed", top: 24, left: "50%", transform: "translateX(-50%)", zIndex: 100, background: "var(--green)", color: "#fff", padding: "10px 24px", borderRadius: 10, fontSize: 13, fontWeight: 600, fontFamily: "inherit", boxShadow: "0 4px 20px rgba(26,143,78,0.3)", animation: "fadeIn 200ms ease" }}>{toast}</div>}
 
-      {/* HEADER */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--text)", letterSpacing: -0.5, margin: "0 0 2px 0" }}>Accounts</h1>
         <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>See where your money is. Add accounts, move money between them.</p>
       </div>
 
-      {/* TOTAL BALANCE */}
       <div style={{ background: "linear-gradient(135deg, #1A8F4E, #2DD4BF)", borderRadius: 16, padding: "24px 24px 20px", marginBottom: 16, color: "#fff", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -24, right: -24, width: 100, height: 100, borderRadius: "50%", background: "rgba(255,255,255,0.07)" }} />
         <p style={{ fontSize: 11, fontWeight: 600, opacity: 0.75, margin: "0 0 4px 0", textTransform: "uppercase", letterSpacing: 0.08 }}>Your Total Balance</p>
@@ -422,13 +412,11 @@ export default function AccountsPage() {
         </div>
       </div>
 
-      {/* INCOME / EXPENSE */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
         <div style={{ background: "var(--surface)", borderRadius: 10, padding: "12px 14px", border: "1px solid var(--border)" }}><p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.05, margin: "0 0 2px 0" }}>Money in this month</p><p style={{ fontSize: 18, fontWeight: 700, color: "var(--green)", margin: 0, fontVariantNumeric: "tabular-nums" }}>+{formatCurrency(thisMonthInc)}</p></div>
         <div style={{ background: "var(--surface)", borderRadius: 10, padding: "12px 14px", border: "1px solid var(--border)" }}><p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.05, margin: "0 0 2px 0" }}>Money out this month</p><p style={{ fontSize: 18, fontWeight: 700, color: "var(--red)", margin: 0, fontVariantNumeric: "tabular-nums" }}>-{formatCurrency(thisMonthExp)}</p></div>
       </div>
 
-      {/* 6-MONTH CHART */}
       <div style={{ background: "var(--surface)", borderRadius: 12, padding: "18px 20px", border: "1px solid var(--border)", marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>
@@ -455,14 +443,12 @@ export default function AccountsPage() {
         </div>
       </div>
 
-      {/* ACTION BUTTONS */}
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
         <button onClick={function () { setSelectedType("bank"); setFormFields({}); setInitialBalance(""); setAutoDetectedBalance(null); setShowAdd(true); }} style={{ height: 36, padding: "0 14px", borderRadius: 8, background: "var(--green)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4, transition: "all 200ms ease", boxShadow: "0 2px 8px rgba(26,143,78,0.15)" }} onMouseEnter={function (e) { e.currentTarget.style.transform = "translateY(-1px)"; }} onMouseLeave={function (e) { e.currentTarget.style.transform = "translateY(0)"; }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>Add Account</button>
         {accounts.length >= 1 && <button onClick={function () { setAddMoneyAccountId(accounts[0].id); setAddMoneyAmount(""); setShowAddMoney(true); }} style={{ height: 36, padding: "0 14px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4, transition: "all 150ms ease" }} onMouseEnter={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.color = "var(--green)"; }} onMouseLeave={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text)"; }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>Add Money</button>}
         {onlineAccounts.length >= 2 && <button onClick={function () { setTransferFrom(onlineAccounts[0].id); setTransferTo(onlineAccounts[1].id); setTransferAmount(""); setShowTransfer(true); }} style={{ height: 36, padding: "0 14px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4, transition: "all 150ms ease" }} onMouseEnter={function (e) { e.currentTarget.style.borderColor = "var(--green-border)"; e.currentTarget.style.color = "var(--green)"; }} onMouseLeave={function (e) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text)"; }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 014-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 01-4 4H3" /></svg>Transfer</button>}
       </div>
 
-      {/* ACCOUNTS LIST */}
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
           <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", margin: 0 }}>Your Accounts</p>
@@ -519,7 +505,6 @@ export default function AccountsPage() {
 
       {accounts.length === 0 && (<div style={{ background: "var(--surface)", borderRadius: 12, padding: "18px 20px", border: "1px solid var(--border)", marginBottom: 16 }}><p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", margin: "0 0 10px 0" }}>How it works</p><div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{[{ step: "1", title: "Add your accounts", desc: "Bank, UPI (GPay/PhonePe), cash wallet, or card" }, { step: "2", title: "Auto-detect balance", desc: "Enter card/bank/UPI details and we'll fetch your balance" }, { step: "3", title: "Track everything", desc: "Add money, transfer between online accounts, see your total" }].map(function (s) { return (<div key={s.step} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}><span style={{ width: 22, height: 22, borderRadius: 6, background: "var(--green-dim)", border: "1px solid var(--green-border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: "var(--green)", flexShrink: 0 }}>{s.step}</span><div><p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: 0 }}>{s.title}</p><p style={{ fontSize: 11, color: "var(--muted)", margin: "1px 0 0 0" }}>{s.desc}</p></div></div>); })}</div></div>)}
 
-      {/* IMPORT STATEMENT */}
       <div style={{ background: "var(--surface)", borderRadius: 12, padding: "18px 20px", border: "1px solid var(--border)", marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg><p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", margin: 0 }}>Import Statement</p></div>
         <p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 10px 0" }}>Paste your bank statement or SMS. Amounts, names and categories are auto-detected.</p>
@@ -528,7 +513,6 @@ export default function AccountsPage() {
         {parsedEntries.length > 0 && (<div style={{ marginTop: 12, animation: "fadeIn 200ms ease" }}><p style={{ fontSize: 11, fontWeight: 700, color: "var(--text)", margin: "0 0 8px 0" }}>Found {parsedEntries.length} transactions — toggle to select</p><div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: 10 }}>{parsedEntries.map(function (entry, idx) { var ci = getCatInfo(entry.category); return (<div key={idx} onClick={function () { toggleEntry(idx); }} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 6, background: entry.selected ? "var(--green-dim)" : "var(--bg)", border: "1px solid " + (entry.selected ? "var(--green-border)" : "var(--border)"), cursor: "pointer", transition: "all 120ms ease", opacity: entry.selected ? 1 : 0.45 }}><div style={{ width: 16, height: 16, borderRadius: 3, border: entry.selected ? "none" : "2px solid var(--border)", background: entry.selected ? "var(--green)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{entry.selected && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}</div><span style={{ width: 18, height: 13, borderRadius: 2, background: ci.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 5, fontWeight: 800, color: ci.color, flexShrink: 0 }}>{ci.label}</span><span style={{ flex: 1, fontSize: 11, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.merchant}</span><span style={{ fontSize: 11, fontWeight: 700, color: entry.isIncome ? "var(--green)" : "var(--red)", fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>{entry.isIncome ? "+" : "-"}{formatCurrency(entry.amount)}</span><span style={{ fontSize: 9, color: "var(--muted)", flexShrink: 0 }}>{entry.date}</span></div>); })}</div><button onClick={addParsed} style={{ height: 32, padding: "0 14px", borderRadius: 7, background: "var(--green)", border: "none", color: "#fff", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Add {parsedEntries.filter(function (e) { return e.selected; }).length} to Transactions</button></div>)}
       </div>
 
-      {/* TRANSFER RULES */}
       <div style={{ background: "var(--surface)", borderRadius: 12, padding: "18px 20px", border: "1px solid var(--border)", marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
           <div style={{ width: 32, height: 32, borderRadius: 9, background: "linear-gradient(135deg, #1A8F4E, #2DD4BF)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -542,41 +526,40 @@ export default function AccountsPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, background: "var(--green-dim)", border: "1px solid var(--green-border)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-              <span style={badgeStyle("#1E3A5F", "#3B82F6", "BK")}>BK</span>
+              <span style={makeBadge("#1E3A5F", "#3B82F6", "BK")}>BK</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><path d="M5 12h14" /><path d="M12 5l7 7-7 7" /></svg>
-              <span style={badgeStyle("#4C1D95", "#8B5CF6", "UP")}>UP</span>
+              <span style={makeBadge("#4C1D95", "#8B5CF6", "UP")}>UP</span>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: "var(--green)", margin: 0 }}>Online accounts can transfer freely</p>
-              <p style={{ fontSize: 10, color: "var(--muted)", margin: "2px 0 0 0" }}>Bank ↔ UPI ↔ Card — instant electronic transfer between any online accounts</p>
+              <p style={{ fontSize: 12, fontWeight: 700, color: "var(--green)", margin: 0 }}>Online accounts transfer freely</p>
+              <p style={{ fontSize: 10, color: "var(--muted)", margin: "2px 0 0 0" }}>Bank, UPI, Card — instant electronic transfer between any online account</p>
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, background: "var(--red-dim)", border: "1px solid var(--red-border)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0, opacity: 0.5 }}>
-              <span style={badgeStyle("#064E3B", "#22C55E", "CA")}>CA</span>
+              <span style={makeBadge("#064E3B", "#22C55E", "CA")}>CA</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" strokeWidth="2.5"><line x1="2" y1="2" x2="22" y2="22" /></svg>
-              <span style={badgeStyle("#1E3A5F", "#3B82F6", "BK")}>BK</span>
+              <span style={makeBadge("#1E3A5F", "#3B82F6", "BK")}>BK</span>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: 12, fontWeight: 700, color: "var(--red)", margin: 0 }}>Cash cannot transfer electronically</p>
-              <p style={{ fontSize: 10, color: "var(--muted)", margin: "2px 0 0 0" }}>Physical cash and online accounts are separate — no direct electronic link</p>
+              <p style={{ fontSize: 10, color: "var(--muted)", margin: "2px 0 0 0" }}>Physical cash and online accounts are separate — no direct link</p>
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, background: "var(--green-dim)", border: "1px solid var(--green-border)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-              <span style={badgeStyle("#064E3B", "#22C55E", "CA")}>CA</span>
+              <span style={makeBadge("#064E3B", "#22C55E", "CA")}>CA</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><path d="M12 5v14" /><path d="M5 12h14" /></svg>
               <span style={{ width: 28, height: 28, borderRadius: 8, background: "var(--green)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: "#fff", flexShrink: 0 }}>+</span>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: "var(--green)", margin: 0 }}>Use "Add Money" to deposit cash</p>
+              <p style={{ fontSize: 12, fontWeight: 700, color: "var(--green)", margin: 0 }}>Use &quot;Add Money&quot; to deposit cash</p>
               <p style={{ fontSize: 10, color: "var(--muted)", margin: "2px 0 0 0" }}>Manually record cash going into any bank, UPI, or card account</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* PROFILE & SETTINGS */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 0 }}>
         <div style={{ background: "var(--surface)", borderRadius: 10, padding: "14px 16px", border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg, #1A8F4E, #2DD4BF)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><span style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>{initials}</span></div>
@@ -591,7 +574,6 @@ export default function AccountsPage() {
         </div>
       </div>
 
-      {/* ADD ACCOUNT MODAL */}
       {showAdd && (<div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowAdd(false); }}><div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 400, maxHeight: "90vh", overflowY: "auto", boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
         <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 4px 0" }}>Add Account</h2><p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 12px 0" }}>Choose type, fill details, auto-detect or type balance.</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 4, marginBottom: 12 }}>{PRESETS.map(function (p) { var isActive = selectedType === p.type; return (<button key={p.type} onClick={function () { setSelectedType(p.type); setFormFields({}); setAutoDetectedBalance(null); setInitialBalance(""); }} style={{ padding: "8px 0", borderRadius: 7, border: "1px solid " + (isActive ? p.color + "40" : "var(--border)"), background: isActive ? p.color + "10" : "transparent", cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}><span style={{ width: 24, height: 24, borderRadius: 6, background: isActive ? p.color + "18" : "var(--surface)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: p.color }}>{p.icon}</span><span style={{ fontSize: 9, fontWeight: isActive ? 700 : 500, color: isActive ? p.color : "var(--muted)" }}>{p.label}</span></button>); })}</div>
@@ -603,7 +585,6 @@ export default function AccountsPage() {
         <div style={{ display: "flex", gap: 6 }}><button onClick={function () { setShowAdd(false); }} style={{ flex: 1, height: 38, borderRadius: 8, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button><button onClick={addAccount} style={{ flex: 1, height: 38, borderRadius: 8, background: "var(--green)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(26,143,78,0.15)", transition: "all 200ms ease" }} onMouseEnter={function (e) { e.currentTarget.style.transform = "translateY(-1px)"; }} onMouseLeave={function (e) { e.currentTarget.style.transform = "translateY(0)"; }}>Add Account</button></div>
       </div></div>)}
 
-      {/* PERMISSION MODAL */}
       {showPerm && (<div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(10px)", animation: "fadeIn 200ms ease" }}><div style={{ background: "var(--bg)", borderRadius: 16, padding: 24, width: "100%", maxWidth: 340, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)", textAlign: "center" }}>
         <div style={{ width: 52, height: 52, borderRadius: 14, background: "var(--green-dim)", border: "1px solid var(--green-border)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="1.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg></div>
         <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 6px 0" }}>Check Your Balance?</h3>
@@ -612,7 +593,6 @@ export default function AccountsPage() {
         <div style={{ display: "flex", gap: 8 }}><button onClick={denyPermission} style={{ flex: 1, height: 40, borderRadius: 8, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>No, I'll type it</button><button onClick={grantPermission} style={{ flex: 1, height: 40, borderRadius: 8, background: "var(--green)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(26,143,78,0.15)" }}>Yes, check it</button></div>
       </div></div>)}
 
-      {/* EDIT MODAL */}
       {showEdit && (<div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowEdit(false); }}><div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 400, maxHeight: "90vh", overflowY: "auto", boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
         <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 4px 0" }}>Edit Account</h2><p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 12px 0" }}>Change name, type, balance, or details.</p>
         <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 4px 0" }}>Account name</p>
@@ -626,7 +606,6 @@ export default function AccountsPage() {
         <div style={{ display: "flex", gap: 6, marginTop: 4 }}><button onClick={function () { setShowEdit(false); }} style={{ flex: 1, height: 38, borderRadius: 8, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button><button onClick={doEdit} style={{ flex: 1, height: 38, borderRadius: 8, background: "var(--green)", border: "none", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 2px 8px rgba(26,143,78,0.15)", transition: "all 200ms ease" }} onMouseEnter={function (e) { e.currentTarget.style.transform = "translateY(-1px)"; }} onMouseLeave={function (e) { e.currentTarget.style.transform = "translateY(0)"; }}>Save Changes</button></div>
       </div></div>)}
 
-      {/* ADD MONEY MODAL */}
       {showAddMoney && (<div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowAddMoney(false); }}><div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 360, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
         <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 4px 0" }}>Add Money</h2><p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 12px 0" }}>Pick an account and enter the amount to add.</p>
         <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 4px 0" }}>Which account?</p>
@@ -636,7 +615,6 @@ export default function AccountsPage() {
         <div style={{ display: "flex", gap: 6 }}><button onClick={function () { setShowAddMoney(false); }} style={{ flex: 1, height: 38, borderRadius: 8, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button><button onClick={doAddMoney} disabled={!addMoneyAmount || !addMoneyAccountId} style={{ flex: 1, height: 38, borderRadius: 8, background: addMoneyAmount && addMoneyAccountId ? "var(--green)" : "var(--card)", border: "none", color: addMoneyAmount && addMoneyAccountId ? "#fff" : "var(--faint)", fontSize: 12, fontWeight: 600, cursor: addMoneyAmount && addMoneyAccountId ? "pointer" : "not-allowed", fontFamily: "inherit", transition: "all 200ms ease" }}>Add</button></div>
       </div></div>)}
 
-      {/* TRANSFER MODAL */}
       {showTransfer && (<div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={function () { setShowTransfer(false); }}><div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 360, maxHeight: "90vh", overflowY: "auto", boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
         <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 4px 0" }}>Transfer Money</h2><p style={{ fontSize: 11, color: "var(--muted)", margin: "0 0 12px 0" }}>Move money between online accounts. Cash can't be transferred electronically.</p>
         <p style={{ fontSize: 9, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", margin: "0 0 4px 0" }}>From</p>
