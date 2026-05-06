@@ -1,0 +1,10 @@
+[33m3ec7393[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Restore old transaction layout with account tracking, auto-detect, production-ready types
+[33mc7be7de[m Fix: correct function type syntax to arrow types () => void
+[33m0d44320[m Fix: extract detail modal into standalone function to eliminate null narrowing issue
+[33m317ddc8[m Fix: type newTx as Transaction[] to resolve accountId optional type mismatch
+[33mdea0275[m Add transactions page with account tracking, auto-detect, transfer visibility, infinite scroll
+[33m21710f7[m Fix: replace React.CSSProperties with plain object using s type assertions
+[33m2603084[m Remove category chart, redesign transfer rules as clear visual guide, production-ready
+[33m224c3ea[m Add 6-month bar chart, category spending chart, redesigned transfer rules with icons
+[33m89e3d2d[m Fix all TypeScript errors: helper functions eliminate undefined narrowing in closures
+[33m7e49e78[m Fix syntax error, production-ready architecture with swap points
