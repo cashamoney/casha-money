@@ -212,11 +212,12 @@ export default function AccountsPage() {
     if (!amt || amt <= 0 || !addMoneyAccountId) return;
     var acc = accounts.find(function (a) { return a.id === addMoneyAccountId; });
     if (!acc) return;
+    var accName = acc.name;
     setAccounts(function (prev) { return prev.map(function (a) { return a.id === addMoneyAccountId ? { ...a, balance: a.balance + amt } : a; }); });
-    var t: Transaction = { id: generateId(), amount: amt, type: "income", merchant: "Added to " + acc.name, category: "Other", date: new Date().toISOString().split("T")[0], note: "", source: "manual", accountId: addMoneyAccountId };
+    var t: Transaction = { id: generateId(), amount: amt, type: "income", merchant: "Added to " + accName, category: "Other", date: new Date().toISOString().split("T")[0], note: "", source: "manual", accountId: addMoneyAccountId };
     setTransactions(function (prev) { return [t, ...prev]; });
     setAddMoneyAmount(""); setShowAddMoney(false); setAddMoneyAccountId("");
-    showToast(formatCurrency(amt) + " added to " + acc.name);
+    showToast(formatCurrency(amt) + " added to " + accName);
   };
 
   var doTransfer = function () {
@@ -231,7 +232,7 @@ export default function AccountsPage() {
     setAccounts(function (prev) { return prev.map(function (a) { if (a.id === transferFrom) return { ...a, balance: a.balance - amt }; if (a.id === transferTo) return { ...a, balance: a.balance + amt }; return a; }); });
     var today = new Date().toISOString().split("T")[0];
     setTransfers(function (prev) { return [{ id: generateId(), from: transferFrom, to: transferTo, amount: amt, date: today }, ...prev]; });
-    setTransactions(function (prev) { return [{ id: generateId(), amount: -amt, type: "expense", merchant: "Transfer to " + toName, category: "Other", date: today, note: "Transfer", source: "manual" as const, accountId: transferFrom }, { id: generateId(), amount: amt, type: "income", merchant: "Transfer from " + fromName, category: "Other", date: today, note: "Transfer", source: "manual" as const, accountId: transferTo }, ...prev]; });
+    setTransactions(function (prev) { return [{ id: generateId(), amount: -amt, type: "expense", merchant: "Transfer to " + toName, category: "Other", date: today, note: "Transfer", source: "manual" as "manual" | "sms" | "csv", accountId: transferFrom }, { id: generateId(), amount: amt, type: "income", merchant: "Transfer from " + fromName, category: "Other", date: today, note: "Transfer", source: "manual" as "manual" | "sms" | "csv", accountId: transferTo }, ...prev]; });
     setTransferAmount(""); setTransferFrom(""); setTransferTo(""); setShowTransfer(false);
     showToast(formatCurrency(amt) + " moved from " + fromName + " to " + toName);
   };
@@ -250,7 +251,7 @@ export default function AccountsPage() {
   var toggleEntry = function (idx: number) { setParsedEntries(function (prev) { return prev.map(function (e, i) { return i === idx ? { ...e, selected: !e.selected } : e; }); }); };
   var addParsed = function () {
     var sel = parsedEntries.filter(function (e) { return e.selected; });
-    setTransactions(function (prev) { return sel.map(function (e) { return { id: generateId(), amount: e.isIncome ? e.amount : -e.amount, type: e.isIncome ? "income" as const : "expense" as const, merchant: e.merchant, category: e.category, date: e.date, note: "", source: "csv" as const }; }).concat(prev); });
+    setTransactions(function (prev) { return sel.map(function (e) { return { id: generateId(), amount: e.isIncome ? e.amount : -e.amount, type: e.isIncome ? "income" as "income" | "expense" : "expense" as "income" | "expense", merchant: e.merchant, category: e.category, date: e.date, note: "", source: "csv" as "manual" | "sms" | "csv" }; }).concat(prev); });
     setParsedEntries([]); setStatementText(""); showToast(sel.length + " transactions added");
   };
 
