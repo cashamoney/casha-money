@@ -52,8 +52,7 @@ var CAT_MAP: Record<string, { color: string; bg: string; label: string }> = {
 };
 
 function getCatInfo(name: string): { color: string; bg: string; label: string } {
-  var info = CAT_MAP[name];
-  return info || { color: "#6B7280", bg: "#F9FAFB", label: "OT" };
+  return CAT_MAP[name] || { color: "#6B7280", bg: "#F9FAFB", label: "OT" };
 }
 
 function formatCurrency(n: number): string {
@@ -163,19 +162,18 @@ function parseStatement(text: string, accounts: Account[]): { date: string; merc
   return results;
 }
 
-function renderDetailContent(tx: Transaction, accounts: Account[], onClose: () => void, onDelete: (id: string) => void) {
+function DetailContent(props: { tx: Transaction; accounts: Account[]; onClose: () => void; onDelete: (id: string) => void }) {
+  var tx = props.tx;
   var ci = getCatInfo(tx.category);
-  var acc = accounts.find(function (a) { return a.id === tx.accountId; }) || null;
+  var acc = props.accounts.find(function (a) { return a.id === tx.accountId; }) || null;
   var isTf = tx.merchant.startsWith("Transfer to ") || tx.merchant.startsWith("Transfer from ");
   var tfPartner: Account | null = null;
   var tfDir: "out" | "in" = "out";
   if (tx.merchant.startsWith("Transfer to ")) {
-    var n1 = tx.merchant.replace("Transfer to ", "");
-    tfPartner = accounts.find(function (a) { return a.name === n1; }) || null;
+    tfPartner = props.accounts.find(function (a) { return a.name === tx.merchant.replace("Transfer to ", ""); }) || null;
     tfDir = "out";
   } else if (tx.merchant.startsWith("Transfer from ")) {
-    var n2 = tx.merchant.replace("Transfer from ", "");
-    tfPartner = accounts.find(function (a) { return a.name === n2; }) || null;
+    tfPartner = props.accounts.find(function (a) { return a.name === tx.merchant.replace("Transfer from ", ""); }) || null;
     tfDir = "in";
   }
   return (
@@ -233,8 +231,8 @@ function renderDetailContent(tx: Transaction, accounts: Account[], onClose: () =
       </div>
       {tx.note && (<div style={{ padding: "8px 10px", borderRadius: 6, background: "var(--surface)", marginBottom: 12 }}><span style={{ fontSize: 8, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase" }}>Note</span><p style={{ fontSize: 12, color: "var(--text)", margin: "2px 0 0 0" }}>{tx.note}</p></div>)}
       <div style={{ display: "flex", gap: 6 }}>
-        <button onClick={onClose} style={{ flex: 1, height: 36, borderRadius: 8, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Close</button>
-        <button onClick={function () { onDelete(tx.id); }} style={{ height: 36, padding: "0 14px", borderRadius: 8, background: "transparent", border: "1px solid var(--red-border)", color: "var(--red)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }} onMouseEnter={function (e) { e.currentTarget.style.background = "var(--red)"; e.currentTarget.style.color = "#fff"; }} onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--red)"; }}>Delete</button>
+        <button onClick={props.onClose} style={{ flex: 1, height: 36, borderRadius: 8, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Close</button>
+        <button onClick={function () { props.onDelete(tx.id); }} style={{ height: 36, padding: "0 14px", borderRadius: 8, background: "transparent", border: "1px solid var(--red-border)", color: "var(--red)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }} onMouseEnter={function (e) { e.currentTarget.style.background = "var(--red)"; e.currentTarget.style.color = "#fff"; }} onMouseLeave={function (e) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--red)"; }}>Delete</button>
       </div>
     </div>
   );
@@ -511,7 +509,7 @@ export default function TransactionsPage() {
       {showDetail && detailTx && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", animation: "fadeIn 200ms ease" }} onClick={closeDetail}>
           <div style={{ background: "var(--bg)", borderRadius: 16, padding: 22, width: "100%", maxWidth: 380, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border)", animation: "fadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }} onClick={function (e) { e.stopPropagation(); }}>
-            {renderDetailContent(detailTx, accounts, closeDetail, deleteTx)}
+            <DetailContent tx={detailTx} accounts={accounts} onClose={closeDetail} onDelete={deleteTx} />
           </div>
         </div>
       )}
