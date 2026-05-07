@@ -275,8 +275,8 @@ export default function TransactionsPage() {
 
   var addCats = addForm.type === "income" ? INC_CATS : EXP_CATS;
 
-  var dropStyle = function (open: boolean): React.CSSProperties => ({ position: "absolute", top: 32, left: 0, zIndex: 40, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: 6, boxShadow: "0 12px 32px rgba(0,0,0,0.15)", animation: "fadeIn 150ms ease" });
-  var btnStyle = function (open: boolean, label: string): React.CSSProperties => ({ height: 28, padding: "0 10px", borderRadius: 6, border: "1px solid " + (open ? "var(--green-border)" : "var(--border)"), background: open ? "var(--green-dim)" : "var(--surface)", color: open ? "var(--green)" : "var(--text)", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4, transition: "all 200ms ease", whiteSpace: "nowrap" });
+  var dropStyle = (open: boolean) => ({ position: "absolute" as const, top: 32, left: 0, zIndex: 40, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: 6, boxShadow: "0 12px 32px rgba(0,0,0,0.15)", animation: "fadeIn 150ms ease" });
+  var btnStyle = (open: boolean) => ({ height: 28, padding: "0 10px", borderRadius: 6, border: "1px solid " + (open ? "var(--green-border)" : "var(--border)"), background: open ? "var(--green-dim)" : "var(--surface)", color: open ? "var(--green)" : "var(--text)", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex" as const, alignItems: "center" as const, gap: 4, transition: "all 200ms ease", whiteSpace: "nowrap" as const });
 
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "28px 0 40px" }} onClick={closeAll}>
@@ -307,14 +307,14 @@ export default function TransactionsPage() {
         <div style={{ width: 1, height: 18, background: "var(--border)", margin: "0 2px" }} />
 
         <div style={{ position: "relative" }} onClick={sp}>
-          <button onClick={function () { setOSort(!oSort); setOCat(false); setODate(false); setOAcc(false); }} style={btnStyle(oSort, "Sort")}>Sort: {SL[sort]} <Arrow open={oSort} /></button>
+          <button onClick={function () { setOSort(!oSort); setOCat(false); setODate(false); setOAcc(false); }} style={btnStyle(oSort)}>Sort: {SL[sort]} <Arrow open={oSort} /></button>
           {oSort && <div style={dropStyle(oSort)}>
             {(["newest", "oldest", "highest", "lowest", "merchant"] as SortOption[]).map(function (s) { return <button key={s} onClick={function (e) { e.stopPropagation(); setSort(s); setOSort(false); }} style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", textAlign: "left", padding: "7px 10px", borderRadius: 6, border: "none", background: sort === s ? "var(--green-dim)" : "transparent", color: sort === s ? "var(--green)" : "var(--text)", fontSize: 11, fontWeight: sort === s ? 700 : 500, cursor: "pointer", fontFamily: "inherit", transition: "all 100ms ease" }}>{sort === s && <span style={{ width: 5, height: 5, borderRadius: 3, background: "var(--green)", flexShrink: 0 }} />}{SL[s]}</button>; })}
           </div>}
         </div>
 
         <div style={{ position: "relative" }} onClick={sp}>
-          <button onClick={function () { setOCat(!oCat); setOSort(false); setODate(false); setOAcc(false); }} style={btnStyle(oCat, "Cat")}>Category: {filterCat === "all" ? "All" : filterCat} <Arrow open={oCat} /></button>
+          <button onClick={function () { setOCat(!oCat); setOSort(false); setODate(false); setOAcc(false); }} style={btnStyle(oCat)}>Category: {filterCat === "all" ? "All" : filterCat} <Arrow open={oCat} /></button>
           {oCat && <div style={{ ...dropStyle(oCat), minWidth: 240, padding: 8 }}>
             <button onClick={function (e) { e.stopPropagation(); setFilterCat("all"); setOCat(false); }} style={{ width: "100%", textAlign: "left", padding: "6px 8px", borderRadius: 6, border: "none", background: filterCat === "all" ? "var(--green-dim)" : "transparent", color: filterCat === "all" ? "var(--green)" : "var(--text)", fontSize: 11, fontWeight: filterCat === "all" ? 700 : 500, cursor: "pointer", fontFamily: "inherit", marginBottom: 4 }}>All Categories</button>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3 }}>
@@ -324,7 +324,7 @@ export default function TransactionsPage() {
         </div>
 
         <div style={{ position: "relative" }} onClick={sp}>
-          <button onClick={function () { setODate(!oDate); setOSort(false); setOCat(false); setOAcc(false); setCalM(new Date().getMonth()); setCalY(new Date().getFullYear()); setCalFrom(""); setCalTo(""); }} style={btnStyle(oDate, "Date")}>Date: {DL[datePreset]}{datePreset === "custom" ? " (" + customFrom + " → " + customTo + ")" : ""} <Arrow open={oDate} /></button>
+          <button onClick={function () { setODate(!oDate); setOSort(false); setOCat(false); setOAcc(false); setCalM(new Date().getMonth()); setCalY(new Date().getFullYear()); setCalFrom(""); setCalTo(""); }} style={btnStyle(oDate)}>Date: {DL[datePreset]}{datePreset === "custom" ? " (" + customFrom + " → " + customTo + ")" : ""} <Arrow open={oDate} /></button>
           {oDate && <div style={{ ...dropStyle(oDate), right: 0, left: "auto", width: 280, padding: 10 }}>
             <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 8 }}>
               {(["today", "yesterday", "week", "month", "30days"] as DatePreset[]).map(function (p) { return <button key={p} onClick={function (e) { e.stopPropagation(); setDatePreset(p); setODate(false); }} style={{ padding: "4px 8px", borderRadius: 5, border: "1px solid " + (datePreset === p ? "var(--green-border)" : "var(--border)"), background: datePreset === p ? "var(--green-dim)" : "transparent", color: datePreset === p ? "var(--green)" : "var(--muted)", fontSize: 9, fontWeight: datePreset === p ? 700 : 500, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }} onMouseEnter={function (e) { e.currentTarget.style.background = "var(--green-dim)"; e.currentTarget.style.color = "var(--green)"; }} onMouseLeave={function (e) { if (datePreset !== p) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--muted)"; } }}>{DL[p]}</button>; })}
@@ -358,7 +358,7 @@ export default function TransactionsPage() {
         </div>
 
         {accounts.length > 0 && <div style={{ position: "relative" }} onClick={sp}>
-          <button onClick={function () { setOAcc(!oAcc); setOSort(false); setOCat(false); setODate(false); }} style={btnStyle(oAcc, "Acc")}>Account: {filterAcc === "all" ? "All" : (accounts.find(function (a) { return a.id === filterAcc; })?.name || "All")} <Arrow open={oAcc} /></button>
+          <button onClick={function () { setOAcc(!oAcc); setOSort(false); setOCat(false); setODate(false); }} style={btnStyle(oAcc)}>Account: {filterAcc === "all" ? "All" : (accounts.find(function (a) { return a.id === filterAcc; })?.name || "All")} <Arrow open={oAcc} /></button>
           {oAcc && <div style={{ ...dropStyle(oAcc), minWidth: 180 }}>
             <button onClick={function (e) { e.stopPropagation(); setFilterAcc("all"); setOAcc(false); }} style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", textAlign: "left", padding: "7px 10px", borderRadius: 6, border: "none", background: filterAcc === "all" ? "var(--green-dim)" : "transparent", color: filterAcc === "all" ? "var(--green)" : "var(--text)", fontSize: 11, fontWeight: filterAcc === "all" ? 700 : 500, cursor: "pointer", fontFamily: "inherit" }}>All Accounts</button>
             {accounts.map(function (a) { var on = filterAcc === a.id; return <button key={a.id} onClick={function (e) { e.stopPropagation(); setFilterAcc(a.id); setOAcc(false); }} style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", textAlign: "left", padding: "7px 10px", borderRadius: 6, border: "none", background: on ? "var(--green-dim)" : "transparent", color: on ? "var(--green)" : "var(--text)", fontSize: 11, fontWeight: on ? 700 : 500, cursor: "pointer", fontFamily: "inherit", transition: "all 100ms ease" }} onMouseEnter={function (e) { if (!on) e.currentTarget.style.background = "var(--green-dim)"; }} onMouseLeave={function (e) { if (!on) e.currentTarget.style.background = "transparent"; }}><div style={{ width: 20, height: 20, borderRadius: 5, background: "linear-gradient(135deg, " + ag(a.type)[0] + ", " + ag(a.type)[1] + ")", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><span style={{ fontSize: 7, fontWeight: 800, color: "#fff" }}>{ai(a.type)}</span></div>{a.name}</button>; })}
