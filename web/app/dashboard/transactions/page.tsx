@@ -27,7 +27,7 @@ var EXP_CATS = ["Food", "Transport", "Shopping", "Entertainment", "Bills", "Rent
 var INC_CATS = ["Salary", "Freelance", "Investment", "Refund", "Gift", "Bonus", "Rental", "Interest", "Dividend", "Transfer", "Other"];
 var ALL_CATS = Array.from(new Set([...EXP_CATS, ...INC_CATS]));
 var MOS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-var SL: Record<SortOption, string> = { newest: "Newest", oldest: "Oldest", highest: "Highest $", lowest: "Lowest $", merchant: "A→Z" };
+var SL: Record<SortOption, string> = { newest: "Newest", oldest: "Oldest", highest: "Highest $", lowest: "Lowest $", merchant: "A\u2192Z" };
 var DL: Record<DatePreset, string> = { all: "All Time", today: "Today", yesterday: "Yesterday", week: "This Week", month: "This Month", "30days": "30 Days", custom: "Custom" };
 
 function ci(n: string) { return CM[n] || CM.Other; }
@@ -98,7 +98,7 @@ function pLine(l: string, defId: string): PE | null {
   if (date.match(/^\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}$/)) { var p = date.split(/[-\/]/); if (p[2].length === 2) p[2] = "20" + p[2]; date = p[2] + "-" + p[1].padStart(2, "0") + "-" + p[0].padStart(2, "0"); }
   var toM = l.match(/(?:to|at|towards|for)\s+([A-Za-z][\w\s&.'-]{1,20})/i);
   var fromM = l.match(/(?:from|by)\s+([A-Za-z][\w\s&.'-]{1,20})/i);
-  var dashM = l.match(/[-–]\s*([A-Za-z][\w\s&.'-]{1,20})/);
+  var dashM = l.match(/[-\u2013]\s*([A-Za-z][\w\s&.'-]{1,20})/);
   var merchant = "";
   if (isIncome && fromM) merchant = fromM[1]; else if (!isIncome && toM) merchant = toM[1]; else if (fromM) merchant = fromM[1]; else if (toM) merchant = toM[1]; else if (dashM) merchant = dashM[1];
   merchant = merchant.replace(/\b(A\/C|acct|account|UPI|card|ending|no|ref|txn|on|was|has|been|is)\b/gi, "").replace(/\bXX\d+\b/g, "").replace(/\d{4,}/g, "").replace(/[^\w\s&.'-]/g, "").trim().substring(0, 24) || "Transaction";
@@ -168,7 +168,10 @@ function DetailContent(props: { tx: Transaction; accounts: Account[]; onClose: (
   );
 }
 
-var Arrow = function (props: { open: boolean }) { return <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transition: "transform 250ms cubic-bezier(0.34,1.56,0.64,1)", transform: props.open ? "rotate(180deg)" : "rotate(0deg)", display: "inline-block" }}><polyline points="6 9 12 15 18 9" /></svg>; };
+function Arrow(props: { open: boolean }) { return <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transition: "transform 250ms cubic-bezier(0.34,1.56,0.64,1)", transform: props.open ? "rotate(180deg)" : "rotate(0deg)", display: "inline-block" }}><polyline points="6 9 12 15 18 9" /></svg>; }
+
+function getDropStyle(open: boolean) { return { position: "absolute", top: 32, left: 0, zIndex: 40, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: 6, boxShadow: "0 12px 32px rgba(0,0,0,0.15)", animation: "fadeIn 150ms ease" }; }
+function getBtnStyle(open: boolean) { return { height: 28, padding: "0 10px", borderRadius: 6, border: "1px solid " + (open ? "var(--green-border)" : "var(--border)"), background: open ? "var(--green-dim)" : "var(--surface)", color: open ? "var(--green)" : "var(--text)", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4, transition: "all 200ms ease", whiteSpace: "nowrap" }; }
 
 export default function TransactionsPage() {
   var [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -275,9 +278,6 @@ export default function TransactionsPage() {
 
   var addCats = addForm.type === "income" ? INC_CATS : EXP_CATS;
 
-  var dropStyle = (open: boolean) => ({ position: "absolute" as const, top: 32, left: 0, zIndex: 40, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: 6, boxShadow: "0 12px 32px rgba(0,0,0,0.15)", animation: "fadeIn 150ms ease" });
-  var btnStyle = (open: boolean) => ({ height: 28, padding: "0 10px", borderRadius: 6, border: "1px solid " + (open ? "var(--green-border)" : "var(--border)"), background: open ? "var(--green-dim)" : "var(--surface)", color: open ? "var(--green)" : "var(--text)", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex" as const, alignItems: "center" as const, gap: 4, transition: "all 200ms ease", whiteSpace: "nowrap" as const });
-
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "28px 0 40px" }} onClick={closeAll}>
       {toast && <div style={{ position: "fixed", top: 24, left: "50%", transform: "translateX(-50%)", zIndex: 100, background: "var(--green)", color: "#fff", padding: "10px 24px", borderRadius: 10, fontSize: 13, fontWeight: 600, fontFamily: "inherit", boxShadow: "0 4px 20px rgba(26,143,78,0.3)", animation: "fadeIn 200ms ease" }}>{toast}</div>}
@@ -307,15 +307,15 @@ export default function TransactionsPage() {
         <div style={{ width: 1, height: 18, background: "var(--border)", margin: "0 2px" }} />
 
         <div style={{ position: "relative" }} onClick={sp}>
-          <button onClick={function () { setOSort(!oSort); setOCat(false); setODate(false); setOAcc(false); }} style={btnStyle(oSort)}>Sort: {SL[sort]} <Arrow open={oSort} /></button>
-          {oSort && <div style={dropStyle(oSort)}>
+          <button onClick={function () { setOSort(!oSort); setOCat(false); setODate(false); setOAcc(false); }} style={getBtnStyle(oSort)}>Sort: {SL[sort]} <Arrow open={oSort} /></button>
+          {oSort && <div style={getDropStyle(oSort)}>
             {(["newest", "oldest", "highest", "lowest", "merchant"] as SortOption[]).map(function (s) { return <button key={s} onClick={function (e) { e.stopPropagation(); setSort(s); setOSort(false); }} style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", textAlign: "left", padding: "7px 10px", borderRadius: 6, border: "none", background: sort === s ? "var(--green-dim)" : "transparent", color: sort === s ? "var(--green)" : "var(--text)", fontSize: 11, fontWeight: sort === s ? 700 : 500, cursor: "pointer", fontFamily: "inherit", transition: "all 100ms ease" }}>{sort === s && <span style={{ width: 5, height: 5, borderRadius: 3, background: "var(--green)", flexShrink: 0 }} />}{SL[s]}</button>; })}
           </div>}
         </div>
 
         <div style={{ position: "relative" }} onClick={sp}>
-          <button onClick={function () { setOCat(!oCat); setOSort(false); setODate(false); setOAcc(false); }} style={btnStyle(oCat)}>Category: {filterCat === "all" ? "All" : filterCat} <Arrow open={oCat} /></button>
-          {oCat && <div style={{ ...dropStyle(oCat), minWidth: 240, padding: 8 }}>
+          <button onClick={function () { setOCat(!oCat); setOSort(false); setODate(false); setOAcc(false); }} style={getBtnStyle(oCat)}>Category: {filterCat === "all" ? "All" : filterCat} <Arrow open={oCat} /></button>
+          {oCat && <div style={{ ...getDropStyle(oCat), minWidth: 240, padding: 8 }}>
             <button onClick={function (e) { e.stopPropagation(); setFilterCat("all"); setOCat(false); }} style={{ width: "100%", textAlign: "left", padding: "6px 8px", borderRadius: 6, border: "none", background: filterCat === "all" ? "var(--green-dim)" : "transparent", color: filterCat === "all" ? "var(--green)" : "var(--text)", fontSize: 11, fontWeight: filterCat === "all" ? 700 : 500, cursor: "pointer", fontFamily: "inherit", marginBottom: 4 }}>All Categories</button>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3 }}>
               {ALL_CATS.map(function (c) { var info = ci(c); var on = filterCat === c; return <button key={c} onClick={function (e) { e.stopPropagation(); setFilterCat(c); setOCat(false); }} style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 7px", borderRadius: 6, border: "1px solid " + (on ? info.color + "50" : "transparent"), background: on ? info.bg : "transparent", color: on ? info.color : "var(--text)", fontSize: 9, fontWeight: on ? 700 : 500, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease", whiteSpace: "nowrap" }} onMouseEnter={function (e) { if (!on) { e.currentTarget.style.background = info.bg; e.currentTarget.style.borderColor = info.color + "30"; } }} onMouseLeave={function (e) { if (!on) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "transparent"; } }}><span style={{ width: 18, height: 18, borderRadius: 5, background: "linear-gradient(135deg, " + info.color + "20, " + info.color + "40)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 6, fontWeight: 800, color: info.color, flexShrink: 0 }}>{info.label}</span>{c}</button>; })}
@@ -324,8 +324,8 @@ export default function TransactionsPage() {
         </div>
 
         <div style={{ position: "relative" }} onClick={sp}>
-          <button onClick={function () { setODate(!oDate); setOSort(false); setOCat(false); setOAcc(false); setCalM(new Date().getMonth()); setCalY(new Date().getFullYear()); setCalFrom(""); setCalTo(""); }} style={btnStyle(oDate)}>Date: {DL[datePreset]}{datePreset === "custom" ? " (" + customFrom + " → " + customTo + ")" : ""} <Arrow open={oDate} /></button>
-          {oDate && <div style={{ ...dropStyle(oDate), right: 0, left: "auto", width: 280, padding: 10 }}>
+          <button onClick={function () { setODate(!oDate); setOSort(false); setOCat(false); setOAcc(false); setCalM(new Date().getMonth()); setCalY(new Date().getFullYear()); setCalFrom(""); setCalTo(""); }} style={getBtnStyle(oDate)}>Date: {DL[datePreset]}{datePreset === "custom" ? " (" + customFrom + " \u2192 " + customTo + ")" : ""} <Arrow open={oDate} /></button>
+          {oDate && <div style={{ ...getDropStyle(oDate), right: 0, left: "auto", width: 280, padding: 10 }}>
             <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 8 }}>
               {(["today", "yesterday", "week", "month", "30days"] as DatePreset[]).map(function (p) { return <button key={p} onClick={function (e) { e.stopPropagation(); setDatePreset(p); setODate(false); }} style={{ padding: "4px 8px", borderRadius: 5, border: "1px solid " + (datePreset === p ? "var(--green-border)" : "var(--border)"), background: datePreset === p ? "var(--green-dim)" : "transparent", color: datePreset === p ? "var(--green)" : "var(--muted)", fontSize: 9, fontWeight: datePreset === p ? 700 : 500, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }} onMouseEnter={function (e) { e.currentTarget.style.background = "var(--green-dim)"; e.currentTarget.style.color = "var(--green)"; }} onMouseLeave={function (e) { if (datePreset !== p) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--muted)"; } }}>{DL[p]}</button>; })}
               <button onClick={function (e) { e.stopPropagation(); setDatePreset("all"); setODate(false); }} style={{ padding: "4px 8px", borderRadius: 5, border: "1px solid " + (datePreset === "all" ? "var(--green-border)" : "var(--border)"), background: datePreset === "all" ? "var(--green-dim)" : "transparent", color: datePreset === "all" ? "var(--green)" : "var(--muted)", fontSize: 9, fontWeight: datePreset === "all" ? 700 : 500, cursor: "pointer", fontFamily: "inherit", transition: "all 150ms ease" }}>All Time</button>
@@ -344,7 +344,7 @@ export default function TransactionsPage() {
                 var inR = calFrom && calTo && dateStr > calFrom && dateStr < calTo;
                 var bg = isF || isTo ? "var(--green)" : inR ? "var(--green-dim)" : isT ? "var(--green-dim)" : "transparent";
                 var col = isF || isTo ? "#fff" : inR || isT ? "var(--green)" : "var(--text)";
-                return <button key={di} onClick={function (e) { e.stopPropagation(); onCalDay(dateStr); }} style={{ height: 30, borderRadius: 6, border: isT && !isF && !isTo ? "1.5px solid var(--green)" : "none", background: bg, color: col, fontSize: 10, fontWeight: isF || isTo || isT ? 700 : 400, cursor: "pointer", fontFamily: "inherit", transition: "all 100ms ease" }} onMouseEnter={function (e) { if (!isF && !isTo) e.currentTarget.style.background = "var(--green-dim)"; }} onMouseLeave={function (e) { if (!isF && !isTo) e.currentTarget.style.background = inR || isT ? "var(--green-dim)" : "transparent"; }}>{day}</button>;
+                return <button key={di} onClick={function (e) { e.stopPropagation(); onCalDay(dateStr); }} style={{ height: 30, borderRadius: 6, border: isT && !isF && !isTo ? "1.5px solid var(--green)" : "none", background: bg, color: col, fontSize: 10, fontWeight: isF || isTo || isT ? 700 : 400, cursor: "pointer", fontFamily: "inherit", transition: "all 100ms ease" }} onMouseEnter={function (e) { if (!isF && !isTo) e.currentTarget.style.background = "var(--green-dim);"; }} onMouseLeave={function (e) { if (!isF && !isTo) e.currentTarget.style.background = inR || isT ? "var(--green-dim)" : "transparent"; }}>{day}</button>;
               })}</div>; })}
               {calFrom && <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--border)" }}>
                 <div style={{ display: "flex", gap: 4, marginBottom: 6 }}>
@@ -358,8 +358,8 @@ export default function TransactionsPage() {
         </div>
 
         {accounts.length > 0 && <div style={{ position: "relative" }} onClick={sp}>
-          <button onClick={function () { setOAcc(!oAcc); setOSort(false); setOCat(false); setODate(false); }} style={btnStyle(oAcc)}>Account: {filterAcc === "all" ? "All" : (accounts.find(function (a) { return a.id === filterAcc; })?.name || "All")} <Arrow open={oAcc} /></button>
-          {oAcc && <div style={{ ...dropStyle(oAcc), minWidth: 180 }}>
+          <button onClick={function () { setOAcc(!oAcc); setOSort(false); setOCat(false); setODate(false); }} style={getBtnStyle(oAcc)}>Account: {filterAcc === "all" ? "All" : (accounts.find(function (a) { return a.id === filterAcc; })?.name || "All")} <Arrow open={oAcc} /></button>
+          {oAcc && <div style={{ ...getDropStyle(oAcc), minWidth: 180 }}>
             <button onClick={function (e) { e.stopPropagation(); setFilterAcc("all"); setOAcc(false); }} style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", textAlign: "left", padding: "7px 10px", borderRadius: 6, border: "none", background: filterAcc === "all" ? "var(--green-dim)" : "transparent", color: filterAcc === "all" ? "var(--green)" : "var(--text)", fontSize: 11, fontWeight: filterAcc === "all" ? 700 : 500, cursor: "pointer", fontFamily: "inherit" }}>All Accounts</button>
             {accounts.map(function (a) { var on = filterAcc === a.id; return <button key={a.id} onClick={function (e) { e.stopPropagation(); setFilterAcc(a.id); setOAcc(false); }} style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", textAlign: "left", padding: "7px 10px", borderRadius: 6, border: "none", background: on ? "var(--green-dim)" : "transparent", color: on ? "var(--green)" : "var(--text)", fontSize: 11, fontWeight: on ? 700 : 500, cursor: "pointer", fontFamily: "inherit", transition: "all 100ms ease" }} onMouseEnter={function (e) { if (!on) e.currentTarget.style.background = "var(--green-dim)"; }} onMouseLeave={function (e) { if (!on) e.currentTarget.style.background = "transparent"; }}><div style={{ width: 20, height: 20, borderRadius: 5, background: "linear-gradient(135deg, " + ag(a.type)[0] + ", " + ag(a.type)[1] + ")", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><span style={{ fontSize: 7, fontWeight: 800, color: "#fff" }}>{ai(a.type)}</span></div>{a.name}</button>; })}
           </div>}
@@ -371,10 +371,10 @@ export default function TransactionsPage() {
       {(filterCat !== "all" || datePreset !== "all" || sort !== "newest" || filterAcc !== "all") && (
         <div style={{ display: "flex", gap: 4, marginBottom: 8, flexWrap: "wrap", alignItems: "center" }}>
           <span style={{ fontSize: 9, color: "var(--muted)", fontWeight: 600, marginRight: 2 }}>Active:</span>
-          {filterCat !== "all" && <span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 7px", borderRadius: 4, background: ci(filterCat).bg, border: "1px solid " + ci(filterCat).color + "30", fontSize: 9, fontWeight: 600, color: ci(filterCat).color }}>{filterCat}<button onClick={function (e) { e.stopPropagation(); setFilterCat("all"); }} style={{ background: "none", border: "none", color: ci(filterCat).color, cursor: "pointer", fontSize: 10, padding: 0, lineHeight: 1, fontFamily: "inherit" }}>\u00D7</button></span>}
-          {datePreset !== "all" && <span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 7px", borderRadius: 4, background: "var(--green-dim)", border: "1px solid var(--green-border)", fontSize: 9, fontWeight: 600, color: "var(--green)" }}>{DL[datePreset]}{datePreset === "custom" ? " " + customFrom + "→" + customTo : ""}<button onClick={function (e) { e.stopPropagation(); setDatePreset("all"); }} style={{ background: "none", border: "none", color: "var(--green)", cursor: "pointer", fontSize: 10, padding: 0, lineHeight: 1, fontFamily: "inherit" }}>\u00D7</button></span>}
-          {sort !== "newest" && <span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 7px", borderRadius: 4, background: "var(--surface)", border: "1px solid var(--border)", fontSize: 9, fontWeight: 600, color: "var(--text)" }}>Sort: {SL[sort]}<button onClick={function (e) { e.stopPropagation(); setSort("newest"); }} style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 10, padding: 0, lineHeight: 1, fontFamily: "inherit" }}>\u00D7</button></span>}
-          {filterAcc !== "all" && <span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 7px", borderRadius: 4, background: "var(--surface)", border: "1px solid var(--border)", fontSize: 9, fontWeight: 600, color: "var(--text)" }}>{accounts.find(function (a) { return a.id === filterAcc; })?.name || "Account"}<button onClick={function (e) { e.stopPropagation(); setFilterAcc("all"); }} style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 10, padding: 0, lineHeight: 1, fontFamily: "inherit" }}>\u00D7</button></span>}
+          {filterCat !== "all" && <span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 7px", borderRadius: 4, background: ci(filterCat).bg, border: "1px solid " + ci(filterCat).color + "30", fontSize: 9, fontWeight: 600, color: ci(filterCat).color }}>{filterCat}<button onClick={function (e) { e.stopPropagation(); setFilterCat("all"); }} style={{ background: "none", border: "none", color: ci(filterCat).color, cursor: "pointer", fontSize: 10, padding: 0, lineHeight: 1, fontFamily: "inherit" }}>{"\u00D7"}</button></span>}
+          {datePreset !== "all" && <span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 7px", borderRadius: 4, background: "var(--green-dim)", border: "1px solid var(--green-border)", fontSize: 9, fontWeight: 600, color: "var(--green)" }}>{DL[datePreset]}{datePreset === "custom" ? " " + customFrom + "\u2192" + customTo : ""}<button onClick={function (e) { e.stopPropagation(); setDatePreset("all"); }} style={{ background: "none", border: "none", color: "var(--green)", cursor: "pointer", fontSize: 10, padding: 0, lineHeight: 1, fontFamily: "inherit" }}>{"\u00D7"}</button></span>}
+          {sort !== "newest" && <span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 7px", borderRadius: 4, background: "var(--surface)", border: "1px solid var(--border)", fontSize: 9, fontWeight: 600, color: "var(--text)" }}>Sort: {SL[sort]}<button onClick={function (e) { e.stopPropagation(); setSort("newest"); }} style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 10, padding: 0, lineHeight: 1, fontFamily: "inherit" }}>{"\u00D7"}</button></span>}
+          {filterAcc !== "all" && <span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 7px", borderRadius: 4, background: "var(--surface)", border: "1px solid var(--border)", fontSize: 9, fontWeight: 600, color: "var(--text)" }}>{accounts.find(function (a) { return a.id === filterAcc; })?.name || "Account"}<button onClick={function (e) { e.stopPropagation(); setFilterAcc("all"); }} style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: 10, padding: 0, lineHeight: 1, fontFamily: "inherit" }}>{"\u00D7"}</button></span>}
           <button onClick={function (e) { e.stopPropagation(); setFilterCat("all"); setDatePreset("all"); setSort("newest"); setFilterAcc("all"); }} style={{ padding: "2px 7px", borderRadius: 4, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 9, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Clear all</button>
         </div>
       )}
@@ -455,7 +455,7 @@ export default function TransactionsPage() {
         <div style={{ marginTop: 8 }}><button onClick={function () { setShowImport(false); }} style={{ width: "100%", height: 34, borderRadius: 8, background: "transparent", border: "1px solid var(--border)", color: "var(--muted)", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Close</button></div>
       </div></div>}
 
-      <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } } @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }`}</style>
+      <style>{"@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } } @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }"}</style>
     </div>
   );
 }
