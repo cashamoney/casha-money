@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 type AccountType = "bank" | "upi" | "cash" | "card";
 type Account = { id: string; type: AccountType; name: string; balance: number; color: string; details: Record<string, string> };
-type Transaction = { id: string; amount: number; type: "income" | "expense"; merchant: string; category: string; date: string; note: string; source: "manual" | "sms" | "csv" | "auto"; accountId?: string; toAccountId?: string };
+type Transaction = { id: string; amount: number; type: "income" | "expense"; merchant: string; category: string; date: string; note: string; source: "manual" | "sms" | "csv" | "auto"; accountId?: string };
 type TransferRecord = { id: string; from: string; to: string; amount: number; date: string };
 type Profile = { name: string; email: string };
 type SortOption = "newest" | "oldest" | "highest" | "lowest" | "merchant";
@@ -185,7 +185,7 @@ function DetailContent(props: { tx: Transaction; accounts: Account[]; onClose: (
         <div style={{ width: 44, height: 44, borderRadius: 10, background: c.bg, border: "1px solid " + c.color + "25", display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 14, fontWeight: 800, color: c.color }}>{c.label}</span></div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: 0 }}>{tx.merchant}</p>
-          <p style={{ fontSize: 11, color: "var(--muted)", margin: "2px 0 0 0" }}>{tx.date}{" \u00B7 "}{tf ? "Transfer" : tx.category}</p>
+          <p style={{ fontSize: 11, color: "var(--muted)", margin: "2px 0 0 0" }}>{tx.date} {" \u00B7 "} {tf ? "Transfer" : tx.category}</p>
         </div>
       </div>
       <div style={{ textAlign: "center", marginBottom: 14, padding: "14px 0", borderRadius: 10, background: tx.type === "income" ? "var(--green-dim)" : "var(--red-dim)", border: "1px solid " + (tx.type === "income" ? "var(--green-border)" : "var(--red-border)") }}>
@@ -224,11 +224,11 @@ function Arrow(props: { open: boolean }) {
   return <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transition: "transform 250ms cubic-bezier(0.34,1.56,0.64,1)", transform: props.open ? "rotate(180deg)" : "rotate(0deg)", display: "inline-block" }}><polyline points="6 9 12 15 18 9" /></svg>;
 }
 
-function getDropStyle(open: boolean) {
+function getDropStyle(open: boolean): React.CSSProperties {
   return { position: "absolute", top: 32, left: 0, zIndex: 40, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: 6, boxShadow: "0 12px 32px rgba(0,0,0,0.15)", animation: "fadeIn 150ms ease" };
 }
 
-function getBtnStyle(open: boolean) {
+function getBtnStyle(open: boolean): React.CSSProperties {
   return { height: 28, padding: "0 10px", borderRadius: 6, border: "1px solid " + (open ? "var(--green-border)" : "var(--border)"), background: open ? "var(--green-dim)" : "var(--surface)", color: open ? "var(--green)" : "var(--text)", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4, transition: "all 200ms ease", whiteSpace: "nowrap" };
 }
 
@@ -390,7 +390,6 @@ export default function TransactionsPage() {
   for (var wi2 = 0; wi2 < 6; wi2++) { calWeeks.push(calCells.slice(wi2 * 7, (wi2 + 1) * 7)); if (wi2 * 7 >= calCells.length) break; }
 
   var addCats = addForm.type === "income" ? INC_CATS : EXP_CATS;
-
   var filterBtns = [{ key: "all", label: "All" }, { key: "income", label: "Income" }, { key: "expense", label: "Expense" }, { key: "transfer", label: "Transfers" }];
 
   return (
@@ -399,7 +398,7 @@ export default function TransactionsPage() {
 
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 26, fontWeight: 700, color: "var(--text)", letterSpacing: -0.5, margin: "0 0 2px 0" }}>Transactions</h1>
-        <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>Every money movement — which account sent or received it.</p>
+        <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>Every money movement - which account sent or received it.</p>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 16 }}>
